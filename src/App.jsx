@@ -4,19 +4,30 @@ import { useState, useRef, useEffect, useCallback } from "react";
    API
 ═══════════════════════════════════════════════════ */
 async function ai(prompt, system, maxTokens = 1400) {
-  const r = await fetch("https://api.anthropic.com/v1/messages", {
+
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "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"
+    },
     body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: maxTokens,
-      system,
-      messages: [{ role: "user", content: prompt }],
-    }),
+      model: "llama3-70b-8192",
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: prompt }
+      ],
+      max_tokens: maxTokens
+    })
   });
-  const d = await r.json();
-  if (d.error) throw new Error(d.error.message);
-  return d.content?.[0]?.text || "";
+
+  const data = await response.json();
+
+  if (data.error) {
+    throw new Error(data.error.message);
+  }
+
+  return data.choices?.[0]?.message?.content || "";
 }
 
 function parseJSON(raw) {
