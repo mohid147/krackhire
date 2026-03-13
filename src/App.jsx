@@ -3,51 +3,74 @@ import { useState, useRef, useEffect, useCallback } from "react";
 /* ═══════════════════════════════════════════════════
    API
 ═══════════════════════════════════════════════════ */
-async function ai(prompt, system, maxTokens = 1400) {
-
-  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": "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"
-    },
-    body: JSON.stringify({
-      model: "llama3-70b-8192",
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: prompt }
-      ],
-      max_tokens: maxTokens
-    })
-  });
-
-  const data = await response.json();
-
-  if (data.error) {
-    throw new Error(data.error.message);
-  }
-
-  return data.choices?.[0]?.message?.content || "";
-}
-
-function parseJSON(raw) {
-  try { return JSON.parse(raw.replace(/```json|```/g, "").trim()); }
-  catch { return null; }
-}
-
-/* ═══════════════════════════════════════════════════
-   TOKENS
-═══════════════════════════════════════════════════ */
-const C = {
-  bg: "#F8F7F4", surface: "#FFFFFF", ink: "#18181B",
-  ink2: "#52525B", ink3: "#A1A1AA", ink4: "#E4E4E7",
-  border: "#E4E4E7", borderHover: "#A1A1AA",
-  green: "#16A34A", greenDark: "#15803D", greenBg: "#F0FDF4", greenMid: "#DCFCE7",
-  red: "#DC2626", redBg: "#FFF5F5",
-  amber: "#D97706", amberBg: "#FFFBEB",
-  blue: "#2563EB", blueBg: "#EFF6FF",
-  purple: "#7C3AED", purpleBg: "#F5F3FF",
-};
+ (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
+diff --git a/src/App.jsx b/src/App.jsx
+index 449e35d32e32183c18a718180f7f935af02f3633..4f1600e3978d81d1c8892231022161b68f3bece8 100644
+--- a/src/App.jsx
++++ b/src/App.jsx
+@@ -1,48 +1,58 @@
+ import { useState, useRef, useEffect, useCallback } from "react";
+ 
+ /* ═══════════════════════════════════════════════════
+    API
+ ═══════════════════════════════════════════════════ */
+ async function ai(prompt, system, maxTokens = 1400) {
++  const apiKey = import.meta.env.VITE_GROQ_API_KEY;
++
++  if (!apiKey) {
++    throw new Error("Missing API key. Set VITE_GROQ_API_KEY in your environment.");
++  }
+ 
+   const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+     method: "POST",
+     headers: {
+       "Content-Type": "application/json",
+-      "Authorization": "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"
++      "Authorization": `Bearer ${apiKey}`
+     },
+     body: JSON.stringify({
+       model: "llama3-70b-8192",
+       messages: [
+         { role: "system", content: system },
+         { role: "user", content: prompt }
+       ],
+       max_tokens: maxTokens
+     })
+   });
+ 
++  if (!response.ok) {
++    const errorText = await response.text();
++    throw new Error(`Groq API request failed (${response.status}): ${errorText || "Unknown error"}`);
++  }
++
+   const data = await response.json();
+ 
+   if (data.error) {
+     throw new Error(data.error.message);
+   }
+ 
+   return data.choices?.[0]?.message?.content || "";
+ }
+ 
+ function parseJSON(raw) {
+   try { return JSON.parse(raw.replace(/```json|```/g, "").trim()); }
+   catch { return null; }
+ }
+ 
+ /* ═══════════════════════════════════════════════════
+    TOKENS
+ ═══════════════════════════════════════════════════ */
+ const C = {
+   bg: "#F8F7F4", surface: "#FFFFFF", ink: "#18181B",
+   ink2: "#52525B", ink3: "#A1A1AA", ink4: "#E4E4E7",
+   border: "#E4E4E7", borderHover: "#A1A1AA",
+   green: "#16A34A", greenDark: "#15803D", greenBg: "#F0FDF4", greenMid: "#DCFCE7",
+   red: "#DC2626", redBg: "#FFF5F5",
+   amber: "#D97706", amberBg: "#FFFBEB",
+   blue: "#2563EB", blueBg: "#EFF6FF",
+ 
+EOF
+)
 
 /* ═══════════════════════════════════════════════════
    SHARED ATOMS
