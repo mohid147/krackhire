@@ -1,0 +1,103 @@
+/* KrackHire — Global Styles
+   Import in main.jsx: import './index.css'
+   This replaces the GLOBAL_CSS string injection in components.
+   Browser caches this file — parsed once, never re-injected on render.
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  background: #F8F7F4;
+  color: #18181B;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+a { text-decoration: none; color: inherit; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+input, textarea, select { font-family: inherit; outline: none; }
+
+/* ANIMATIONS */
+@keyframes spin    { to { transform: rotate(360deg); } }
+@keyframes fadeUp  { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes float   { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+@keyframes ticker  { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+@keyframes pulse   { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+@keyframes toastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-thumb { background: #E4E4E7; border-radius: 99px; }
+
+/* SELECTION */
+::selection { background: #DCFCE7; color: #15803D; }
+
+/* BUTTON HOVER — CSS instead of JS useState */
+.btn:not(:disabled):hover {
+  box-shadow: 0 8px 24px rgba(0,0,0,.16) !important;
+  transform: translateY(-1px) !important;
+}
+.ghost-btn:hover {
+  border-color: #A1A1AA !important;
+  background: #F8F7F4 !important;
+}
+
+/* CARD HOVER */
+.card:hover {
+  box-shadow: 0 8px 24px rgba(0,0,0,.09) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .desktop-nav { display: none !important; }
+  .mobile-menu-btn { display: flex !important; }
+  .hide-mobile { display: none !important; }
+  .mobile-cta { display: flex !important; }
+
+  .hero-grid,
+  .faq-grid,
+  .problem-grid { grid-template-columns: 1fr !important; }
+
+  .how-grid { grid-template-columns: 1fr 1fr !important; }
+  .how-grid > div { border-right: none !important; border-bottom: 1px solid #E4E4E7; }
+  .how-grid > div:last-child { border-bottom: none !important; }
+
+  .footer-grid { grid-template-columns: 1fr 1fr !important; }
+
+  .pricing-grid { grid-template-columns: 1fr !important; }
+
+  .reviews-grid { grid-template-columns: 1fr !important; }
+
+  .input-grid { grid-template-columns: 1fr !important; }
+}
+
+/* PRINT STYLES for resume PDF download */
+@media print {
+  body * { visibility: hidden; }
+  #resume-preview, #resume-preview * { visibility: visible; }
+  #resume-preview {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  @page { margin: 12mm; size: A4; }
+}
