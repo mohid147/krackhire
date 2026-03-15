@@ -1,75 +1,281 @@
 @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
 
+/* ─── RESET ─────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; }
-body { font-family: 'DM Sans', system-ui, sans-serif; background: #F9F8F6; color: #1C1917; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
-a { text-decoration: none; color: inherit; }
-button { font-family: inherit; cursor: pointer; border: none; background: none; }
-input, textarea, select { font-family: inherit; outline: none; }
+html  { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body  { font-family: 'DM Sans', system-ui, sans-serif; background: #F9F8F6; color: #1C1917; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+a     { text-decoration: none; color: inherit; }
+button{ font-family: inherit; cursor: pointer; border: none; background: none; }
+input, textarea, select { font-family: inherit; outline: none; -webkit-appearance: none; }
+img   { max-width: 100%; display: block; }
 
-/* SCROLLBAR */
-::-webkit-scrollbar { width: 4px; }
+/* ─── SCROLLBAR ─────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 4px; }
 ::-webkit-scrollbar-thumb { background: #E7E5E4; border-radius: 99px; }
 
-/* SELECTION */
+/* ─── SELECTION ─────────────────────────────────────────── */
 ::selection { background: #D4E6DA; color: #3D6B4F; }
 
-/* ANIMATIONS */
-@keyframes spin     { to { transform: rotate(360deg); } }
-@keyframes slideUp  { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes shimmer  { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
-@keyframes ticker   { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-@keyframes pulse    { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
-@keyframes fadeIn   { from { opacity: 0; } to { opacity: 1; } }
+/* ─── ANIMATIONS ────────────────────────────────────────── */
+@keyframes spin    { to { transform: rotate(360deg); } }
+@keyframes slideUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+@keyframes shimmer { 0% { background-position:-200% 0; } 100% { background-position:200% 0; } }
+@keyframes pulse   { 0%,100% { opacity:1; } 50% { opacity:.4; } }
+@keyframes fadeIn  { from { opacity:0; } to { opacity:1; } }
 
-/* BUTTON HOVER */
-.kh-btn:not(:disabled):hover {
-  filter: brightness(1.08);
-  box-shadow: 0 4px 14px rgba(0,0,0,.14) !important;
-  transform: translateY(-1px) !important;
-}
-.kh-out:hover {
-  border-color: #A8A29E !important;
-  background: #F9F8F6 !important;
-}
-
-/* CARD HOVER */
-.kh-card:hover {
-  box-shadow: 0 6px 20px rgba(0,0,0,.08) !important;
-  transform: translateY(-1px) !important;
-}
-
-/* RESPONSIVE */
-@media (max-width: 768px) {
-  .desktop-nav    { display: none !important; }
-  .mobile-menu-btn{ display: flex !important; }
-  .mobile-cta     { display: flex !important; }
-
-  .hero-grid,
-  .faq-grid       { grid-template-columns: 1fr !important; }
-
-  .how-grid       {
-    grid-template-columns: 1fr 1fr !important;
+/* ─── BUTTON HOVER (desktop) ────────────────────────────── */
+@media (hover: hover) {
+  .kh-btn:not(:disabled):hover {
+    filter: brightness(1.09);
+    box-shadow: 0 4px 16px rgba(0,0,0,.15) !important;
+    transform: translateY(-1px) !important;
   }
-  .how-grid > div {
-    border-right: none !important;
-    border-bottom: 1px solid #E7E5E4;
+  .kh-out:hover {
+    border-color: #A8A29E !important;
+    background: #F9F8F6 !important;
   }
-  .how-grid > div:last-child { border-bottom: none !important; }
-
-  .footer-grid    { grid-template-columns: 1fr 1fr !important; }
-  .reviews-grid   { grid-template-columns: 1fr !important; }
-  .input-grid     { grid-template-columns: 1fr !important; }
+  .kh-card:hover {
+    box-shadow: 0 6px 20px rgba(0,0,0,.08) !important;
+    transform: translateY(-1px) !important;
+  }
+  nav a:hover {
+    color: #1C1917 !important;
+    background: #FFFFFF !important;
+  }
 }
 
-/* PRINT for resume PDF */
+/* ─── TOUCH TARGETS ─────────────────────────────────────── */
+button, a, [role="button"] {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+button.inline, span.inline { min-height: unset; min-width: unset; display: inline; }
+
+/* ─── DESKTOP DEFAULTS (show/hide helpers) ──────────────── */
+.mobile-only  { display: none !important; }
+.desktop-only { display: flex !important; }
+
+/* ─── PRINT (resume PDF) ────────────────────────────────── */
 @media print {
   body * { visibility: hidden; }
   #resume-preview, #resume-preview * { visibility: visible; }
-  #resume-preview {
-    position: absolute; left: 0; top: 0;
-    width: 100%; padding: 0 !important;
-    box-shadow: none !important; border: none !important;
-  }
+  #resume-preview { position: absolute; left:0; top:0; width:100%; padding:0!important; box-shadow:none!important; border:none!important; }
   @page { margin: 12mm; size: A4; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE — everything below 768px
+═══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+  /* ── HELPERS ── */
+  .mobile-only  { display: flex !important; }
+  .desktop-only { display: none !important; }
+
+  /* ── ANNOUNCEMENT BAR ── */
+  .ann-bar {
+    font-size: 12.5px !important;
+    padding: 8px 12px !important;
+    line-height: 1.5 !important;
+  }
+
+  /* ── NAV ── */
+  nav {
+    height: 52px !important;
+    padding: 0 16px !important;
+  }
+  .nav-logo svg { width: 24px !important; height: 24px !important; }
+  .nav-logo span { font-size: 15px !important; }
+
+  /* ── HERO ── */
+  .hero-section {
+    padding: 40px 16px 48px !important;
+    grid-template-columns: 1fr !important;
+    gap: 32px !important;
+  }
+  .hero-title {
+    font-size: clamp(26px, 7vw, 36px) !important;
+    line-height: 1.18 !important;
+  }
+  .hero-sub {
+    font-size: 15px !important;
+    line-height: 1.75 !important;
+    margin-bottom: 24px !important;
+  }
+  .hero-btns {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+  .hero-btns button, .hero-btns a {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+  .hero-trust { gap: 12px !important; }
+  .hero-visual { display: none !important; }
+
+  /* ── SECTIONS ── */
+  .section-pad {
+    padding: 48px 16px !important;
+  }
+  .section-title {
+    font-size: clamp(22px, 6vw, 30px) !important;
+    line-height: 1.2 !important;
+  }
+  .section-sub {
+    font-size: 14.5px !important;
+  }
+
+  /* ── HOW IT WORKS ── */
+  .how-grid {
+    grid-template-columns: 1fr 1fr !important;
+    border-radius: 10px !important;
+  }
+  .how-grid > div {
+    border-right: none !important;
+    border-bottom: 1px solid #E7E5E4 !important;
+    padding: 18px 14px !important;
+  }
+  .how-grid > div:nth-child(odd)  { border-right: 1px solid #E7E5E4 !important; }
+  .how-grid > div:last-child,
+  .how-grid > div:nth-last-child(2):nth-child(odd) { border-bottom: none !important; }
+
+  /* ── FEATURES GRID ── */
+  .features-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* ── REVIEWS ── */
+  .reviews-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+  .reviews-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+
+  /* ── PRICING ── */
+  .pricing-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  .pricing-card { padding: 20px 18px !important; }
+  .pricing-price { font-size: 36px !important; }
+
+  /* ── FAQ ── */
+  .faq-grid {
+    grid-template-columns: 1fr !important;
+    gap: 24px !important;
+  }
+
+  /* ── FOOTER ── */
+  .footer-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 28px !important;
+  }
+  .footer-brand {
+    grid-column: 1 / -1 !important;
+  }
+
+  /* ── TOOL INPUT GRID ── */
+  .input-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  .input-grid textarea {
+    rows: 8 !important;
+    min-height: 180px !important;
+  }
+
+  /* ── TOOL TABS ── */
+  .tabs-bar {
+    gap: 0 !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+  }
+  .tabs-bar::-webkit-scrollbar { display: none !important; }
+  .tabs-bar button {
+    padding: 10px 12px !important;
+    font-size: 12.5px !important;
+    white-space: nowrap !important;
+    min-height: 40px !important;
+  }
+
+  /* ── SCORE CARD ── */
+  .score-card-inner {
+    flex-direction: column !important;
+    gap: 14px !important;
+  }
+  .score-number { font-size: 40px !important; }
+
+  /* ── CHAT ── */
+  .chat-messages { height: 320px !important; }
+  .chat-input-row { flex-direction: row !important; gap: 8px !important; }
+  .chat-input-row input { font-size: 15px !important; }
+  .quick-prompts button { font-size: 11.5px !important; padding: 4px 10px !important; }
+
+  /* ── TOOL HEADER ── */
+  .tool-header { padding: 0 12px !important; }
+  .tool-header-actions { gap: 6px !important; }
+  .tool-header-actions button { font-size: 12px !important; padding: 6px 10px !important; }
+
+  /* ── STICKY MOBILE CTA ── */
+  .mobile-cta { display: flex !important; }
+
+  /* ── GAP CARDS ── */
+  .gap-item { padding: 10px 12px !important; }
+
+  /* ── AUTH MODAL ── */
+  .auth-modal-inner {
+    padding: 28px 20px !important;
+    border-radius: 14px !important;
+  }
+
+  /* ── DASHBOARD ── */
+  .dashboard-inner {
+    border-radius: 14px !important;
+    max-height: 85vh !important;
+  }
+
+  /* ── UPGRADE MODAL ── */
+  .upgrade-modal-inner {
+    padding: 24px 18px !important;
+    border-radius: 14px !important;
+  }
+
+  /* ── PAYMENT MODAL ── */
+  .payment-modal-inner {
+    padding: 24px 18px !important;
+    border-radius: 14px !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+  }
+
+  /* ── GENERAL CARDS ── */
+  .kh-card { border-radius: 10px !important; }
+
+  /* ── FIELD LABELS ── */
+  label { font-size: 11px !important; }
+
+  /* ── FEEDBACK WIDGET ── */
+  .feedback-widget { padding: 14px 16px !important; }
+  .feedback-btns   { flex-wrap: wrap !important; }
+
+  /* ── SHARE WIDGET ── */
+  .share-widget { flex-direction: column !important; gap: 10px !important; align-items: flex-start !important; }
+}
+
+/* ─── VERY SMALL SCREENS (< 380px) ─────────────────────── */
+@media (max-width: 380px) {
+  .hero-title  { font-size: 24px !important; }
+  .section-title { font-size: 20px !important; }
+  nav { padding: 0 12px !important; }
+  .section-pad { padding: 36px 12px !important; }
+  .how-grid > div { padding: 14px 12px !important; }
 }
