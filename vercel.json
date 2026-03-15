@@ -2,6 +2,9 @@
   "functions": {
     "api/analyse.js": {
       "maxDuration": 30
+    },
+    "api/payment.js": {
+      "maxDuration": 15
     }
   }
 }
