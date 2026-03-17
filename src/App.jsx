@@ -2177,7 +2177,7 @@ function AdminDashboard({ user, profile, onBack }) {
 }
 
 /* ─── ROOT ───────────────────────────────────────────────── */
-function KrackHire() {
+export default function KrackHire() {
   const [view,        setView]        = useState("landing");
   const [user,        setUser]        = useState(null);
   const [profile,     setProfile]     = useState(null);
@@ -2257,13 +2257,4 @@ function KrackHire() {
       }
     </>
   );
-}
-
-/* ─── APP WITH ERROR BOUNDARY ───────────────────────────── */
-const App = KrackHire;
-export { App as default };
-
-/* ─── WRAPPED EXPORT ────────────────────────────────────── */
-export default function App() {
-  return <ErrorBoundary><KrackHire/></ErrorBoundary>;
 }
