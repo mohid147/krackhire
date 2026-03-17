@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo, memo, Component } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo, memo } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 /* ─── SUPABASE ───────────────────────────────────────────── */
@@ -63,32 +63,6 @@ async function callPayment(body) {
 
 function parseJSON(raw) { try { return JSON.parse(raw.replace(/```json|```/g,"").trim()); } catch { return null; } }
 
-/* ─── ERROR BOUNDARY ─────────────────────────────────────── */
-class ErrorBoundary extends Component {
-  constructor(props) { super(props); this.state = { hasError:false, error:null }; }
-  static getDerivedStateFromError(error) { return { hasError:true, error }; }
-  componentDidCatch(error, info) { console.error("KrackHire Error:", error, info); }
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div style={{ minHeight:"100vh", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:"#F9F8F6", padding:24, textAlign:"center" }}>
-          <div style={{ fontSize:40, marginBottom:16 }}>⚠️</div>
-          <div style={{ fontSize:20, fontWeight:700, color:"#1C1917", marginBottom:8 }}>Something went wrong</div>
-          <div style={{ fontSize:14, color:"#57534E", marginBottom:24, maxWidth:400, lineHeight:1.7 }}>
-            {this.state.error?.message || "An unexpected error occurred."}
-          </div>
-          <button onClick={()=>window.location.reload()} style={{ padding:"11px 24px", borderRadius:9, background:"#3D6B4F", color:"#fff", fontSize:14.5, fontWeight:600, cursor:"pointer", border:"none" }}>
-            Reload page
-          </button>
-          <div style={{ marginTop:12, fontSize:12, color:"#A8A29E" }}>
-            If this keeps happening, clear your browser cache and try again.
-          </div>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
 
 /* ─── PLAN HELPERS ───────────────────────────────────────── */
 const PREMIUM_PLANS = ["starter","early_adopter","pro","pro_monthly","pro_yearly","college_basic","college_pro","premium","founding_user","beta_friend"];
@@ -2231,10 +2205,14 @@ export default function KrackHire() {
 
   // Admin access: navigate to /#admin or press Ctrl+Shift+A
   useEffect(()=>{
-    // Check on mount
     if(window.location.hash==="#admin") setView("admin");
-    function onHash() { if(window.location.hash==="#admin") setView("admin"); else if(window.location.hash===""&&view==="admin") setView("landing"); }
-    function onKey(e) { if(e.ctrlKey&&e.shiftKey&&e.key==="A"){ window.location.hash="#admin"; setView("admin"); } }
+    const onHash = () => {
+      if(window.location.hash==="#admin") setView("admin");
+      else setView(v => v==="admin" ? "landing" : v);
+    };
+    const onKey = (e) => {
+      if(e.ctrlKey&&e.shiftKey&&e.key==="A"){ window.location.hash="#admin"; setView("admin"); }
+    };
     window.addEventListener("hashchange", onHash);
     window.addEventListener("keydown", onKey);
     return()=>{ window.removeEventListener("hashchange",onHash); window.removeEventListener("keydown",onKey); };
