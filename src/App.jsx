@@ -2259,10 +2259,6 @@ function KrackHire() {
   );
 }
 
-/* ─── APP WITH ERROR BOUNDARY ───────────────────────────── */
-const App = KrackHire;
-export { App as default };
-
 /* ─── WRAPPED EXPORT ────────────────────────────────────── */
 export default function App() {
   return <ErrorBoundary><KrackHire/></ErrorBoundary>;
