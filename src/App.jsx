@@ -15,16 +15,26 @@ async function signInGoogle() {
   if (!sb) return;
   await sb.auth.signInWithOAuth({ provider:"google", options:{ redirectTo:SITE_URL, queryParams:{ access_type:"offline", prompt:"consent" }}});
 }
-async function doSignOut()        { if (sb) await sb.auth.signOut(); }
+async function doSignOut()        { if (sb) await sb.auth.signOut().catch(()=>{}); }
 async function getProfile(uid)    { if (!sb) return null; const { data } = await sb.from("profiles").select("*").eq("id",uid).single(); return data; }
-async function getAnalyses(uid)   { if (!sb) return []; const { data } = await sb.from("analyses").select("id,company,role,gap_score,ats_score,skill_score,created_at").eq("user_id",uid).order("created_at",{ascending:false}).limit(20); return data||[]; }
-async function getApprovedRevs()  { if (!sb) return []; const { data } = await sb.from("reviews").select("*").eq("approved",true).order("created_at",{ascending:false}).limit(20); return data||[]; }
-async function saveReview(r)      { if (!sb) return; await sb.from("reviews").insert({...r,approved:false}); }
+async function getAnalyses(uid)   { if (!sb||!uid) return []; try { const { data } = await sb.from("analyses").select("id,company,role,gap_score,ats_score,skill_score,created_at").eq("user_id",uid).order("created_at",{ascending:false}).limit(20); return data||[]; } catch(e) { return []; } }
+async function getApprovedRevs()  { if (!sb) return []; try { const { data } = await sb.from("reviews").select("*").eq("approved",true).order("created_at",{ascending:false}).limit(20); return data||[]; } catch(e) { return []; } }
+async function saveReview(r)      { if (!sb) return; try { await sb.from("reviews").insert({...r,approved:false}); } catch(e) { console.error("saveReview:",e.message); throw e; } }
 async function saveFeedback(f)    { if (!sb) return; await sb.from("feedback").insert(f).catch(()=>{}); }
 async function getTrackerJobs(uid){ if (!sb) return []; const { data } = await sb.from("job_tracker").select("*").eq("user_id",uid).order("applied_date",{ascending:false}).limit(50); return data||[]; }
 async function saveTrackerJob(uid,job){ if (!sb) return null; const { data } = await sb.from("job_tracker").insert({...job,user_id:uid}).select().single(); return data; }
 async function updateTrackerJob(id,updates){ if (!sb) return; await sb.from("job_tracker").update(updates).eq("id",id); }
 async function deleteTrackerJob(id){ if (!sb) return; await sb.from("job_tracker").delete().eq("id",id); }
+
+async function verifyPaymentReturn(txnId, userId) {
+  try {
+    const res = await callPayU("verify", { txnId, userId });
+    return res;
+  } catch(e) {
+    console.error("verifyPaymentReturn:", e.message);
+    return { success:false };
+  }
+}
 
 async function redeemInviteCode(code, uid) {
   if (!sb || !code || !uid) return { ok:false, error:"Missing code or user." };
@@ -52,11 +62,16 @@ async function callAPI(type, payload) {
   } catch(e) { clearTimeout(tid); if(e.name==="AbortError") throw new Error("Timed out. Please try again."); throw e; }
 }
 
-async function callPayment(body) {
-  const res  = await fetch("/api/payment", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body) });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error||"Payment error");
-  return data;
+async function callPayU(action, body) {
+  try {
+    const res  = await fetch("/api/payment", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({action,...body}) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message||data.error||"Payment error");
+    return data;
+  } catch(e) {
+    console.error("callPayU error:", e.message);
+    throw e;
+  }
 }
 
 function parseJSON(raw) { try { return JSON.parse(raw.replace(/```json|```/g,"").trim()); } catch { return null; } }
@@ -719,56 +734,87 @@ function InterviewGuide({ role, company }) {
 
 /* ─── PAYMENT MODAL ──────────────────────────────────────── */
 function PaymentModal({ planId, planLabel, planAmount, user, onClose, onSuccess, toast }) {
-  const [loading,setLoading]=useState(false);
+  const [loading, setLoading] = useState(false);
+  const [step,    setStep]    = useState("confirm"); // confirm | redirecting | verifying | done
+
   async function startPayment() {
     if(!user){ toast("Please sign in to upgrade.","error"); return; }
-    setLoading(true);
+    setLoading(true); setStep("redirecting");
     try {
-      if(!window.Razorpay) {
-        await new Promise((res,rej)=>{ const s=document.createElement("script"); s.src="https://checkout.razorpay.com/v1/checkout.js"; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
-      }
-      const order = await callPayment({ action:"create_order", planId, userId:user.id });
-      const rzp = new window.Razorpay({
-        key:order.keyId, amount:order.amount, currency:order.currency,
-        name:"KrackHire", description:order.description, order_id:order.orderId,
-        prefill:{ name:user.user_metadata?.name||"", email:user.email||"" },
-        theme:{ color:C.sage },
-        handler: async(response)=>{
-          try {
-            const verify = await callPayment({ action:"verify_payment", planId, userId:user.id, orderId:response.razorpay_order_id, paymentId:response.razorpay_payment_id, signature:response.razorpay_signature });
-            if(verify.success) onSuccess(verify);
-          } catch(e){ toast(e.message,"error"); }
-        },
-        modal:{ ondismiss:()=>setLoading(false) },
+      const res = await callPayU("initiate", {
+        planId,
+        userId:    user.id,
+        userEmail: user.email,
+        userName:  user.user_metadata?.name || "",
       });
-      rzp.open();
-    } catch(e){ toast(e.message,"error"); setLoading(false); }
+      if (!res.success || !res.data?.payuParams) {
+        throw new Error(res.message || "Could not create payment.");
+      }
+      // Build and auto-submit PayU form (redirect flow)
+      const { payuParams, payuUrl } = res.data;
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = payuUrl;
+      form.style.display = "none";
+      Object.entries(payuParams).forEach(([k,v])=>{
+        const input = document.createElement("input");
+        input.type = "hidden"; input.name = k; input.value = v;
+        form.appendChild(input);
+      });
+      document.body.appendChild(form);
+      form.submit();
+      // Note: page will redirect to PayU — this component stays mounted briefly
+    } catch(e) {
+      toast(e.message || "Payment failed. Please try again.","error");
+      setLoading(false); setStep("confirm");
+    }
   }
+
+  const featureList = [
+    "Unlimited resume analyses",
+    "PDF career reports with improvement plans",
+    "Job application tracker",
+    "All 6 AI outputs including Profile Optimizer",
+    "Interview preparation by round",
+    "Save all analyses & history",
+  ];
+
   return (
-    <div style={{ position:"fixed", inset:0, zIndex:1200, background:"rgba(0,0,0,.5)", backdropFilter:"blur(4px)", display:"flex", alignItems:"center", justifyContent:"center", padding:16 }} onClick={onClose}>
+    <div style={{ position:"fixed", inset:0, zIndex:1200, background:"rgba(0,0,0,.5)", backdropFilter:"blur(4px)", display:"flex", alignItems:"center", justifyContent:"center", padding:16 }} onClick={loading?undefined:onClose}>
       <div onClick={e=>e.stopPropagation()} className="payment-modal-inner" style={{ background:C.surface, borderRadius:16, padding:"28px 24px", maxWidth:400, width:"100%" }}>
-        <div style={{ textAlign:"center", marginBottom:22 }}>
-          <Logo size="md"/>
-          <h2 style={{ fontFamily:"'Lora',Georgia,serif", fontSize:22, color:C.ink, margin:"16px 0 6px", fontWeight:700 }}>Upgrade to {planLabel}</h2>
-          <div style={{ fontSize:36, fontWeight:800, color:C.sage, marginBottom:4 }}>{planAmount}</div>
-          <div style={{ fontSize:13, color:C.ink3 }}>{planId==="pro_yearly"?"per year — best value":"per month"}</div>
-        </div>
-        <div style={{ background:C.sageBg, borderRadius:10, padding:"14px 16px", marginBottom:20 }}>
-          {["Unlimited resume analyses","PDF career reports with improvement plans","Job application tracker","All 5 AI outputs: resume, cover letter, email","Interview preparation by round","Save all analyses & history"].map((f,i)=>(
-            <div key={i} style={{ display:"flex", alignItems:"center", gap:9, fontSize:13.5, color:C.ink2, marginBottom:i<5?8:0 }}>
-              <span className="inline" style={{ color:C.sage, fontWeight:700, minHeight:"unset", minWidth:"unset" }}>✓</span>{f}
+        {step==="redirecting" ? (
+          <div style={{ textAlign:"center", padding:"32px 0" }}>
+            <Spin s={36} c={C.sage}/>
+            <div style={{ fontSize:16, fontWeight:700, color:C.ink, marginTop:18, marginBottom:8 }}>Redirecting to PayU…</div>
+            <p style={{ fontSize:13.5, color:C.ink2 }}>You will be redirected to PayU's secure payment page. Please do not close this window.</p>
+          </div>
+        ) : (
+          <>
+            <div style={{ textAlign:"center", marginBottom:22 }}>
+              <Logo size="md"/>
+              <h2 style={{ fontFamily:"'Lora',Georgia,serif", fontSize:22, color:C.ink, margin:"16px 0 6px", fontWeight:700 }}>Upgrade to {planLabel}</h2>
+              <div style={{ fontSize:36, fontWeight:800, color:C.sage, marginBottom:4 }}>{planAmount}</div>
+              <div style={{ fontSize:13, color:C.ink3 }}>{planId==="pro_yearly"?"per year — best value":planId==="starter"?"one-time, 7-day access":"per month"}</div>
             </div>
-          ))}
-        </div>
-        <Btn onClick={startPayment} disabled={loading} full bg={C.sage} style={{ marginBottom:12, fontSize:15 }}>
-          {loading?<><Spin s={16} c="#fff"/>Processing…</>:`Pay ${planAmount} — UPI / Card / Net Banking`}
-        </Btn>
-        <button onClick={onClose} style={{ width:"100%", textAlign:"center", fontSize:13.5, color:C.ink3, cursor:"pointer", padding:8, minHeight:36 }}>Cancel</button>
-        <p style={{ marginTop:12, fontSize:11.5, color:C.ink3, textAlign:"center" }}>Secured by Razorpay · UPI · Cards · Net Banking</p>
+            <div style={{ background:C.sageBg, borderRadius:10, padding:"14px 16px", marginBottom:20 }}>
+              {featureList.map((f,i)=>(
+                <div key={i} style={{ display:"flex", alignItems:"center", gap:9, fontSize:13.5, color:C.ink2, marginBottom:i<featureList.length-1?8:0 }}>
+                  <span className="inline" style={{ color:C.sage, fontWeight:700, minHeight:"unset", minWidth:"unset" }}>✓</span>{f}
+                </div>
+              ))}
+            </div>
+            <Btn onClick={startPayment} disabled={loading} full bg={C.sage} style={{ marginBottom:12, fontSize:15 }}>
+              {loading?<><Spin s={16} c="#fff"/>Processing…</>:`Pay ${planAmount} via PayU`}
+            </Btn>
+            <button onClick={onClose} style={{ width:"100%", textAlign:"center", fontSize:13.5, color:C.ink3, cursor:"pointer", padding:8, minHeight:36 }}>Cancel</button>
+            <p style={{ marginTop:12, fontSize:11.5, color:C.ink3, textAlign:"center" }}>Secured by PayU · UPI · Cards · Net Banking</p>
+          </>
+        )}
       </div>
     </div>
   );
 }
+
 
 /* ─── UPGRADE MODAL ──────────────────────────────────────── */
 function UpgradeModal({ onClose, onSelectPlan, user }) {
@@ -1362,7 +1408,7 @@ const FEATURES=[
 
 const FAQS=[
   {q:"Is KrackHire free to use?",           a:"Yes — 3 free analyses per month, no account required. Sign in to save your history and track applications. Upgrade to Pro for unlimited analyses and PDF reports."},
-  {q:"How does the Pro plan work?",         a:"Pro gives unlimited analyses at ₹49/month or ₹499/year. Payment via Razorpay — UPI, cards, net banking. Account upgrades instantly after payment."},
+  {q:"How does the Pro plan work?",         a:"Pro gives unlimited analyses at ₹49/month or ₹499/year. Payment via PayU — UPI, cards, net banking. Account upgrades instantly after payment."},
   {q:"Can I upload my resume as a PDF?",    a:"PDF and DOCX upload is coming very soon. Currently you can paste your resume text directly — copy from your PDF and paste into the field."},
   {q:"How accurate is the resume score?",   a:"The score reflects how well your resume matches the specific job description you provide. Use it as a practical guide for improvement, not a guarantee of interview success."},
   {q:"What is the PDF Career Report?",      a:"A downloadable professional report with your full analysis, missing keywords, LinkedIn optimisation tips, and a 7 or 14-day improvement plan. Available for Pro users."},
@@ -1555,7 +1601,7 @@ function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onP
                 </Card>
               </div>
             </div>
-            <p style={{ textAlign:"center", fontSize:13, color:C.ink3, marginTop:16 }}>Payments via Razorpay — UPI · Debit/Credit cards · Net Banking · Secure checkout</p>
+            <p style={{ textAlign:"center", fontSize:13, color:C.ink3, marginTop:16 }}>Payments secured by PayU — UPI · Debit/Credit cards · Net Banking</p>
           </Reveal>
         </div>
       </section>
@@ -1707,7 +1753,7 @@ function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onP
           </div>
           {["admin","founder"].includes(profile?.role)&&(
             <div style={{paddingTop:10,textAlign:"center"}}>
-              <button onClick={onAdmin} style={{fontSize:11,color:"#3D3B38",cursor:"pointer",background:"none",border:"none",fontFamily:"inherit",opacity:.4,minHeight:"unset"}}>⚙ Admin Panel</button>
+              <button onClick={onAdmin} style={{fontSize:11,color:"#57534E",cursor:"pointer",background:"none",border:"none",fontFamily:"inherit",opacity:.35,minHeight:"unset",minWidth:"unset"}}>⚙ Admin</button>
             </div>
           )}
         </div>
@@ -2177,7 +2223,10 @@ function AdminDashboard({ user, profile, onBack }) {
   const { toast, list:toastList, remove:removeToast } = useToast();
 
   useEffect(()=>{
-    if(!["admin","founder"].includes(profile?.role)){ onBack(); return; }
+    // Role comes from Supabase DB via getProfile — not editable from frontend
+    if(!profile || !["admin","founder"].includes(profile?.role)){
+      onBack(); return;
+    }
     load();
   },[]);
 
@@ -2409,41 +2458,65 @@ export default function KrackHire() {
     if(!sb){ setAuthLoading(false); return; }
     sb.auth.getSession().then(({data:{session}})=>{
       setUser(session?.user||null);
-      if(session?.user) getProfile(session.user.id).then(setProfile).catch(()=>{});
+      if(session?.user) getProfile(session.user.id).then(p=>{ if(p) setProfile(p); }).catch(()=>{});
       setAuthLoading(false);
     });
     const {data:{subscription}}=sb.auth.onAuthStateChange((_,session)=>{
       setUser(session?.user||null);
-      if(session?.user) getProfile(session.user.id).then(setProfile).catch(()=>{});
+      if(session?.user) getProfile(session.user.id).then(p=>{ if(p) setProfile(p); }).catch(()=>{});
       else setProfile(null);
     });
     return()=>subscription.unsubscribe();
   },[]);
 
-  // Admin: go to yoursite.com/#admin or press Ctrl+Shift+A
+  // Handle PayU return redirect (?payment=success/failed)
   useEffect(()=>{
-    if(window.location.hash==="#admin") setView("admin");
-    const onHash=()=>{ if(window.location.hash==="#admin") setView("admin"); };
-    const onKey=(e)=>{ if(e.ctrlKey&&e.shiftKey&&e.key==="A"){ window.location.hash="#admin"; setView("admin"); } };
-    window.addEventListener("hashchange",onHash);
-    window.addEventListener("keydown",onKey);
-    return()=>{ window.removeEventListener("hashchange",onHash); window.removeEventListener("keydown",onKey); };
+    const params = new URLSearchParams(window.location.search);
+    const payment = params.get("payment");
+    const plan    = params.get("plan");
+    const txn     = params.get("txn");
+    if(payment === "success") {
+      // Clean URL
+      window.history.replaceState({}, "", window.location.pathname);
+      setPayModal(null);
+      // Refresh profile to get updated plan
+      if(sb) sb.auth.getSession().then(({data:{session}})=>{
+        if(session?.user) {
+          getProfile(session.user.id).then(p=>{ if(p) setProfile(p); });
+          setView("landing");
+          // Show success toast after a brief delay
+          setTimeout(()=>{ toast("🎉 Payment successful! Your plan is now active.","success"); }, 500);
+        }
+      });
+    } else if(payment === "failed") {
+      window.history.replaceState({}, "", window.location.pathname);
+      setTimeout(()=>{ toast("Payment was not completed. Please try again.","error"); }, 300);
+    } else if(payment === "tampered") {
+      window.history.replaceState({}, "", window.location.pathname);
+      setTimeout(()=>{ toast("Payment verification failed. Please contact support.","error"); }, 300);
+    }
   },[]);
+
+  // Admin: only accessible if profile.role is admin or founder (verified from DB)
+  // No keyboard shortcuts, no URL hacks — role comes from Supabase only
 
   async function handleSignOut(){ await doSignOut(); setUser(null); setProfile(null); }
   function navigate(page){ setView(page); window.scrollTo({top:0,behavior:"instant"}); }
-  function goAdmin(){ window.location.hash="#admin"; setView("admin"); }
-  function leaveAdmin(){ window.location.hash=""; setView("landing"); }
+  function goAdmin(){
+    if(!["admin","founder"].includes(profile?.role)){ return; }
+    setView("admin");
+  }
+  function leaveAdmin(){ setView("landing"); }
 
   function handleUpgrade(planId) {
     setUpgradeModal(false);
     if(!planId){ setUpgradeModal(true); return; }
     if(!user){ setShowAuth(true); return; }
     const plans = {
-      pro_monthly:  { planLabel:"Pro Monthly",    planAmount:"₹49/month"  },
-      pro_yearly:   { planLabel:"Pro Yearly",      planAmount:"₹499/year"  },
-      starter:      { planLabel:"Starter (7 days)",planAmount:"₹49"        },
-      founding_user:{ planLabel:"Founding Member", planAmount:"₹49/month"  },
+      pro_monthly:  { planLabel:"Pro Monthly",     planAmount:"₹49/month"  },
+      pro_yearly:   { planLabel:"Pro Yearly",       planAmount:"₹499/year"  },
+      starter:      { planLabel:"Starter (7 days)", planAmount:"₹49"        },
+      founding_user:{ planLabel:"Founding Member",  planAmount:"₹49/month"  },
     };
     const plan = plans[planId] || { planLabel:"Pro", planAmount:"₹49/month" };
     setPayModal({ planId, ...plan });
@@ -2451,8 +2524,9 @@ export default function KrackHire() {
 
   function handlePaymentSuccess() {
     setPayModal(null);
-    toast("Payment successful! Access is now active. 🎉","success");
-    if(user) getProfile(user.id).then(setProfile).catch(()=>{});
+    toast("Payment successful! Your plan is now active. 🎉","success");
+    // Refresh profile from DB to get updated plan
+    if(user) getProfile(user.id).then(p=>{ if(p) setProfile(p); }).catch(()=>{});
   }
 
   if(authLoading) return (
