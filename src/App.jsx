@@ -869,7 +869,7 @@ function AuthModal({ onClose }) {
 }
 
 /* ─── USER MENU ──────────────────────────────────────────── */
-function UserMenu({ user, profile, onSignOut, onUpgrade, onInvite }) {
+function UserMenu({ user, profile, onSignOut, onUpgrade, onInvite, onAdmin }) {
   const [open,setOpen] = useState(false);
   const isPro      = isPremiumPlan(profile?.plan, profile?.plan_expires_at);
   const pLabel     = planDisplayLabel(profile?.plan);
@@ -900,6 +900,9 @@ function UserMenu({ user, profile, onSignOut, onUpgrade, onInvite }) {
           </div>
           {!isPro&&<button onClick={onUpgrade} style={{ width:"100%", padding:"11px 14px", textAlign:"left", fontSize:13.5, fontWeight:600, color:C.amber, cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", borderBottom:`1px solid ${C.border}`, minHeight:44 }}>⚡ Upgrade to Pro</button>}
           {!isPro&&<button onClick={onInvite} style={{ width:"100%", padding:"11px 14px", textAlign:"left", fontSize:13.5, fontWeight:600, color:C.blue, cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", borderBottom:`1px solid ${C.border}`, minHeight:44 }}>🎟️ Enter invite code</button>}
+          {["admin","founder"].includes(profile?.role)&&(
+            <button onClick={()=>{ setOpen(false); onAdmin(); }} style={{ width:"100%", padding:"11px 14px", textAlign:"left", fontSize:13.5, fontWeight:700, color:C.purple, cursor:"pointer", background:C.purpleBg, border:"none", fontFamily:"inherit", borderBottom:`1px solid ${C.border}`, minHeight:44 }}>⚙️ Admin Panel</button>
+          )}
           <button onClick={onSignOut} style={{ width:"100%", padding:"11px 14px", textAlign:"left", fontSize:13.5, color:C.red, cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", minHeight:44 }}>Sign out</button>
         </div>
       )}
@@ -1443,7 +1446,7 @@ function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onP
           ))}
         </div>
         <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-          {user?<UserMenu user={user} profile={profile} onSignOut={onSignOut} onUpgrade={onUpgrade} onInvite={()=>setShowInvite(true)}/>
+          {user?<UserMenu user={user} profile={profile} onSignOut={onSignOut} onUpgrade={onUpgrade} onInvite={()=>setShowInvite(true)} onAdmin={onAdmin}/>
                :<><OutBtn onClick={onShowAuth} size="sm" className="desktop-only">Sign in</OutBtn><Btn onClick={onEnter} size="sm" bg={C.sage}>Try free</Btn></>}
           <button className="mobile-only" onClick={()=>setMenuOpen(!menuOpen)} style={{ padding:"8px 10px", borderRadius:7, color:C.ink2, fontSize:20, lineHeight:1, minHeight:44, minWidth:44 }}>{menuOpen?"✕":"☰"}</button>
         </div>
@@ -1885,7 +1888,7 @@ Type "start" to begin, or ask me anything about the role first.`}]);
               <div style={{ fontSize:15, fontWeight:700, color:C.ink }}>My Analyses</div>
               <button onClick={()=>setShowDash(false)} style={{ fontSize:22, color:C.ink3, cursor:"pointer", lineHeight:1, minHeight:36, minWidth:36 }}>×</button>
             </div>
-            <AnalysisHistory userId={user.id}/>
+            <AnalysisHistory userId={user.id} key={showDash ? "open" : "closed"}/>
           </div>
         </div>
       )}
@@ -2156,187 +2159,408 @@ Type "start" to begin, or ask me anything about the role first.`}]);
 
 /* ─── ANALYSIS HISTORY ───────────────────────────────────── */
 function AnalysisHistory({ userId }) {
-  const [analyses,setAnalyses]=useState([]); const [loading,setLoading]=useState(true);
-  useEffect(()=>{ getAnalyses(userId).then(d=>{setAnalyses(d);setLoading(false);}).catch(()=>setLoading(false)); },[userId]);
+  const [analyses, setAnalyses] = useState([]);
+  const [loading,  setLoading]  = useState(true);
+
+  function load() {
+    setLoading(true);
+    getAnalyses(userId)
+      .then(d => { setAnalyses(d||[]); setLoading(false); })
+      .catch(() => setLoading(false));
+  }
+
+  useEffect(()=>{ load(); }, [userId]);
+
   return (
     <div style={{ flex:1, overflowY:"auto", padding:14 }}>
-      {loading?[1,2,3].map(i=><div key={i} style={{ marginBottom:10 }}><Skel h={54}/></div>)
-       :analyses.length===0?<div style={{ textAlign:"center", padding:"36px 16px", color:C.ink3 }}><div style={{ fontSize:28, marginBottom:8 }}>📭</div><div style={{ fontSize:14 }}>No saved analyses yet.</div></div>
-       :analyses.map((a,i)=>{
-         const clr=a.gap_score>=70?C.sage:a.gap_score>=50?C.amber:C.red;
-         return <div key={i} style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 13px", borderRadius:9, border:`1px solid ${C.border}`, marginBottom:8, background:C.bg }}>
-           <div style={{ width:40, height:40, borderRadius:8, background:clr+"15", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-             <span className="inline" style={{ fontSize:14, fontWeight:800, color:clr, minHeight:"unset", minWidth:"unset" }}>{a.gap_score??"?"}</span>
-           </div>
-           <div style={{ flex:1, minWidth:0 }}>
-             <div style={{ fontSize:13.5, fontWeight:700, color:C.ink, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{a.role||"Unknown role"}{a.company?` — ${a.company}`:""}</div>
-             <div style={{ fontSize:11.5, color:C.ink3, marginTop:2 }}>{new Date(a.created_at).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}</div>
-           </div>
-           <div style={{ fontSize:12, fontWeight:700, color:clr, flexShrink:0 }}>{a.gap_score}/100</div>
-         </div>;
-       })}
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+        <span style={{ fontSize:12, color:C.ink3 }}>{analyses.length} saved {analyses.length===1?"analysis":"analyses"}</span>
+        <button onClick={load} style={{ fontSize:12, color:C.blue, cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", minHeight:"unset", minWidth:"unset", fontWeight:600 }}>
+          {loading ? "Loading…" : "↻ Refresh"}
+        </button>
+      </div>
+      {loading
+        ? [1,2,3].map(i=><div key={i} style={{ marginBottom:10 }}><Skel h={54}/></div>)
+        : analyses.length===0
+          ? <div style={{ textAlign:"center", padding:"36px 16px", color:C.ink3 }}>
+              <div style={{ fontSize:28, marginBottom:8 }}>📭</div>
+              <div style={{ fontSize:14, marginBottom:6 }}>No saved analyses yet.</div>
+              <div style={{ fontSize:13 }}>Sign in and run an analysis to save it here.</div>
+            </div>
+          : analyses.map((a,i)=>{
+              const clr=a.gap_score>=70?C.sage:a.gap_score>=50?C.amber:C.red;
+              return (
+                <div key={a.id||i} style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 13px", borderRadius:9, border:`1px solid ${C.border}`, marginBottom:8, background:C.bg }}>
+                  <div style={{ width:42, height:42, borderRadius:8, background:clr+"15", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                    <span className="inline" style={{ fontSize:15, fontWeight:800, color:clr, minHeight:"unset", minWidth:"unset" }}>{a.gap_score??"-"}</span>
+                  </div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:13.5, fontWeight:700, color:C.ink, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                      {a.role||"Unknown role"}{a.company?` — ${a.company}`:""}
+                    </div>
+                    <div style={{ fontSize:11.5, color:C.ink3, marginTop:3, display:"flex", gap:8, flexWrap:"wrap" }}>
+                      <span>{new Date(a.created_at).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}</span>
+                      {a.ats_score!=null&&<span>ATS: {a.ats_score}</span>}
+                      {a.skill_score!=null&&<span>Skills: {a.skill_score}</span>}
+                    </div>
+                  </div>
+                  <div style={{ fontSize:13, fontWeight:800, color:clr, flexShrink:0 }}>{a.gap_score!=null?`${a.gap_score}/100`:"-"}</div>
+                </div>
+              );
+            })
+      }
     </div>
   );
 }
 
-
 /* ─── ADMIN HELPERS ──────────────────────────────────────── */
-async function adminGetUsers()         { if(!sb)return[]; const{data}=await sb.from("profiles").select("id,role,plan,plan_expires_at,analyses_this_month,lifetime_accesses_remaining,created_at").order("created_at",{ascending:false}).limit(200); return data||[]; }
-async function adminUpdateUser(id,upd) { if(!sb)return; await sb.from("profiles").update(upd).eq("id",id); }
-async function adminGetInviteCodes()   { if(!sb)return[]; const{data}=await sb.from("invite_codes").select("*").order("created_at",{ascending:false}); return data||[]; }
+async function adminGetUsers()         { if(!sb)return[]; try{ const{data}=await sb.from("profiles").select("id,email,name,role,plan,plan_expires_at,analyses_this_month,lifetime_accesses_remaining,created_at").order("created_at",{ascending:false}).limit(500); return data||[]; }catch(e){return[];} }
+async function adminUpdateUser(id,upd) { if(!sb)return; await sb.from("profiles").update({...upd,updated_at:new Date().toISOString()}).eq("id",id); }
+async function adminGetInviteCodes()   { if(!sb)return[]; try{ const{data}=await sb.from("invite_codes").select("*").order("created_at",{ascending:false}); return data||[]; }catch(e){return[];} }
 async function adminCreateCode(code,limit,days,expires){ if(!sb)return null; const{data,error}=await sb.from("invite_codes").insert({code:code.trim().toUpperCase(),usage_limit:limit,access_days:days,expires_at:expires||null}).select().single(); if(error)throw new Error(error.message); return data; }
 async function adminDeleteCode(id)     { if(!sb)return; await sb.from("invite_codes").delete().eq("id",id); }
-async function adminGetAnalyses()      { if(!sb)return[]; const{data}=await sb.from("analyses").select("id,user_id,company,role,gap_score,ats_score,skill_score,created_at").order("created_at",{ascending:false}).limit(100); return data||[]; }
-async function adminGetFeedback()      { if(!sb)return[]; const{data}=await sb.from("feedback").select("*").order("created_at",{ascending:false}).limit(100); return data||[]; }
-async function adminGetPendingReviews(){ if(!sb)return[]; const{data}=await sb.from("reviews").select("*").eq("approved",false).order("created_at",{ascending:false}); return data||[]; }
+async function adminGetAnalyses()      { if(!sb)return[]; try{ const{data}=await sb.from("analyses").select("id,user_id,company,role,gap_score,ats_score,skill_score,created_at").order("created_at",{ascending:false}).limit(200); return data||[]; }catch(e){return[];} }
+async function adminGetFeedback()      { if(!sb)return[]; try{ const{data}=await sb.from("feedback").select("*").order("created_at",{ascending:false}).limit(200); return data||[]; }catch(e){return[];} }
+async function adminGetPendingReviews(){ if(!sb)return[]; try{ const{data}=await sb.from("reviews").select("*").eq("approved",false).order("created_at",{ascending:false}); return data||[]; }catch(e){return[];} }
+async function adminGetAllReviews()    { if(!sb)return[]; try{ const{data}=await sb.from("reviews").select("*").order("created_at",{ascending:false}).limit(100); return data||[]; }catch(e){return[];} }
 async function adminApproveReview(id)  { if(!sb)return; await sb.from("reviews").update({approved:true}).eq("id",id); }
 async function adminDeleteReview(id)   { if(!sb)return; await sb.from("reviews").delete().eq("id",id); }
+async function adminGetTransactions()  { if(!sb)return[]; try{ const{data}=await sb.from("transactions").select("*").order("created_at",{ascending:false}).limit(200); return data||[]; }catch(e){return[];} }
+async function adminDeleteUser(id)     { if(!sb)return; await sb.from("profiles").delete().eq("id",id); }
 async function adminCounts()           {
-  if(!sb)return{totalUsers:0,totalAnalyses:0,approvedReviews:0,totalFeedback:0,plans:{}};
-  const[u,a,r,f]=await Promise.all([
-    sb.from("profiles").select("id,plan",{count:"exact"}),
-    sb.from("analyses").select("id",{count:"exact"}),
-    sb.from("reviews").select("id").eq("approved",true),
-    sb.from("feedback").select("id",{count:"exact"})
-  ]);
-  const plans={};
-  (u.data||[]).forEach(p=>{const k=p.plan||"free";plans[k]=(plans[k]||0)+1;});
-  return{totalUsers:u.count||0,totalAnalyses:a.count||0,approvedReviews:(r.data||[]).length,totalFeedback:f.count||0,plans};
+  if(!sb)return{totalUsers:0,totalAnalyses:0,approvedReviews:0,totalFeedback:0,plans:{},revenue:0,successTxns:0};
+  try {
+    const[u,a,r,f,t]=await Promise.all([
+      sb.from("profiles").select("id,plan",{count:"exact"}),
+      sb.from("analyses").select("id",{count:"exact"}),
+      sb.from("reviews").select("id").eq("approved",true),
+      sb.from("feedback").select("id",{count:"exact"}),
+      sb.from("transactions").select("amount,status").eq("status","success"),
+    ]);
+    const plans={};
+    (u.data||[]).forEach(p=>{const k=p.plan||"free";plans[k]=(plans[k]||0)+1;});
+    const revenue=(t.data||[]).reduce((s,tx)=>s+(tx.amount||0),0);
+    return{totalUsers:u.count||0,totalAnalyses:a.count||0,approvedReviews:(r.data||[]).length,totalFeedback:f.count||0,plans,revenue,successTxns:(t.data||[]).length};
+  } catch(e){ return{totalUsers:0,totalAnalyses:0,approvedReviews:0,totalFeedback:0,plans:{},revenue:0,successTxns:0}; }
 }
 
 /* ─── ADMIN DASHBOARD ────────────────────────────────────── */
 const ADMIN_PLANS=["free","starter","pro","pro_monthly","pro_yearly","early_adopter","founding_user","beta_friend","college_basic","college_pro","premium"];
 
 function AdminDashboard({ user, profile, onBack }) {
-  const [tab,       setTab]      = useState("overview");
-  const [counts,    setCounts]   = useState(null);
-  const [users,     setUsers]    = useState([]);
-  const [analyses,  setAnalyses] = useState([]);
-  const [codes,     setCodes]    = useState([]);
-  const [reviews,   setReviews]  = useState([]);
-  const [feedback,  setFeedback] = useState([]);
-  const [loading,   setLoading]  = useState(true);
-  const [search,    setSearch]   = useState("");
-  const [newCode,   setNewCode]  = useState({code:"",limit:1,days:30,expires:""});
-  const [codeErr,   setCodeErr]  = useState("");
-  const [codeSaving,setCodeSaving]=useState(false);
+  const [tab,         setTab]         = useState("overview");
+  const [counts,      setCounts]      = useState(null);
+  const [users,       setUsers]       = useState([]);
+  const [analyses,    setAnalyses]    = useState([]);
+  const [codes,       setCodes]       = useState([]);
+  const [reviews,     setReviews]     = useState([]);
+  const [allReviews,  setAllReviews]  = useState([]);
+  const [feedback,    setFeedback]    = useState([]);
+  const [transactions,setTransactions]= useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [tabLoading,  setTabLoading]  = useState(false);
+  const [search,      setSearch]      = useState("");
+  const [planFilter,  setPlanFilter]  = useState("all");
+  const [roleFilter,  setRoleFilter]  = useState("all");
+  const [newCode,     setNewCode]     = useState({code:"",limit:1,days:30,expires:""});
+  const [codeErr,     setCodeErr]     = useState("");
+  const [codeSaving,  setCodeSaving]  = useState(false);
+  const [expandUser,  setExpandUser]  = useState(null);
   const { toast, list:toastList, remove:removeToast } = useToast();
 
+  const planClr = {free:C.stone,starter:C.blue,pro:C.sage,pro_monthly:C.sage,pro_yearly:C.sage,founding_user:C.purple,early_adopter:C.purple,beta_friend:C.blue,college_basic:C.amber,college_pro:C.amber,premium:C.amber};
+
   useEffect(()=>{
-    // Role comes from Supabase DB via getProfile — not editable from frontend
-    if(!profile || !["admin","founder"].includes(profile?.role)){
-      onBack(); return;
-    }
-    load();
+    if(!profile || !["admin","founder"].includes(profile?.role)){ onBack(); return; }
+    loadAll();
   },[]);
 
-  async function load() {
+  async function loadAll() {
     setLoading(true);
     try {
-      const[c,u,a,cd,rv,fb]=await Promise.all([
-        adminCounts(),adminGetUsers(),adminGetAnalyses(),
-        adminGetInviteCodes(),adminGetPendingReviews(),adminGetFeedback()
+      const[c,u,a,cd,rv,arv,fb,txn]=await Promise.all([
+        adminCounts(),adminGetUsers(),adminGetAnalyses(),adminGetInviteCodes(),
+        adminGetPendingReviews(),adminGetAllReviews(),adminGetFeedback(),adminGetTransactions()
       ]);
-      setCounts(c);setUsers(u);setAnalyses(a);setCodes(cd);setReviews(rv);setFeedback(fb);
+      setCounts(c);setUsers(u);setAnalyses(a);setCodes(cd);
+      setReviews(rv);setAllReviews(arv);setFeedback(fb);setTransactions(txn);
     } catch(e){ toast("Load error: "+e.message,"error"); }
     setLoading(false);
   }
 
-  async function updateUserRole(id,role){ await adminUpdateUser(id,{role}); setUsers(p=>p.map(u=>u.id===id?{...u,role}:u)); toast("Role updated ✓"); }
+  // ── User actions ──────────────────────────────────────────
+  async function updateUserRole(id,role){
+    await adminUpdateUser(id,{role});
+    setUsers(p=>p.map(u=>u.id===id?{...u,role}:u));
+    toast("Role updated ✓");
+  }
   async function updateUserPlan(id,plan){
     const expires=["founding_user","early_adopter"].includes(plan)?null:new Date(Date.now()+30*86400000).toISOString();
     await adminUpdateUser(id,{plan,plan_expires_at:expires});
     setUsers(p=>p.map(u=>u.id===id?{...u,plan,plan_expires_at:expires}:u));
     toast("Plan updated ✓");
   }
+  async function giveLifetimeAccess(id,count){
+    await adminUpdateUser(id,{lifetime_accesses_remaining:count});
+    setUsers(p=>p.map(u=>u.id===id?{...u,lifetime_accesses_remaining:count}:u));
+    toast(`Gave ${count} lifetime accesses ✓`);
+  }
+  async function suspendUser(id){
+    if(!confirm("Suspend this user? They will lose plan access."))return;
+    await adminUpdateUser(id,{plan:"free",plan_expires_at:null});
+    setUsers(p=>p.map(u=>u.id===id?{...u,plan:"free",plan_expires_at:null}:u));
+    toast("User suspended — plan reset to free.");
+  }
+
+  // ── Code actions ──────────────────────────────────────────
   async function createCode(){
     if(!newCode.code.trim()){setCodeErr("Enter a code.");return;}
     setCodeSaving(true);setCodeErr("");
-    try{ const d=await adminCreateCode(newCode.code,newCode.limit,newCode.days,newCode.expires||null); setCodes(p=>[d,...p]); setNewCode({code:"",limit:1,days:30,expires:""}); toast("Code created ✓"); }
-    catch(e){ setCodeErr(e.message); }
+    try{
+      const d=await adminCreateCode(newCode.code,newCode.limit,newCode.days,newCode.expires||null);
+      setCodes(p=>[d,...p]);
+      setNewCode({code:"",limit:1,days:30,expires:""});
+      toast("Code created ✓");
+    } catch(e){ setCodeErr(e.message); }
     setCodeSaving(false);
   }
-  async function deleteCode(id){ if(!confirm("Delete this code?"))return; await adminDeleteCode(id); setCodes(p=>p.filter(c=>c.id!==id)); toast("Deleted."); }
-  async function approveRev(id){ await adminApproveReview(id); setReviews(p=>p.filter(r=>r.id!==id)); toast("Approved ✓"); }
-  async function deleteRev(id){ await adminDeleteReview(id); setReviews(p=>p.filter(r=>r.id!==id)); toast("Deleted."); }
+  async function deleteCode(id){
+    if(!confirm("Delete this code?"))return;
+    await adminDeleteCode(id);
+    setCodes(p=>p.filter(c=>c.id!==id));
+    toast("Deleted.");
+  }
 
-  const filtered=users.filter(u=>!search||u.id?.includes(search)||u.plan?.includes(search)||u.role?.includes(search));
-  const ATABS=[{id:"overview",label:"Overview",icon:"📊"},{id:"users",label:"Users",icon:"👥"},{id:"invites",label:"Invite Codes",icon:"🎟️"},{id:"analyses",label:"Analyses",icon:"🔍"},{id:"reviews",label:"Reviews",icon:"⭐"},{id:"feedback",label:"Feedback",icon:"💬"}];
-  const planClr={free:C.stone,starter:C.blue,pro:C.sage,pro_monthly:C.sage,pro_yearly:C.sage,founding_user:C.purple,early_adopter:C.purple,beta_friend:C.blue,premium:C.amber};
+  // ── Review actions ────────────────────────────────────────
+  async function approveRev(id){ await adminApproveReview(id); setReviews(p=>p.filter(r=>r.id!==id)); setAllReviews(p=>p.map(r=>r.id===id?{...r,approved:true}:r)); toast("Approved ✓"); }
+  async function deleteRev(id){ await adminDeleteReview(id); setReviews(p=>p.filter(r=>r.id!==id)); setAllReviews(p=>p.filter(r=>r.id!==id)); toast("Deleted."); }
+
+  // ── Filtered users ────────────────────────────────────────
+  const filtered = users.filter(u=>{
+    const matchSearch = !search || u.id?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase()) || u.name?.toLowerCase().includes(search.toLowerCase()) || u.plan?.includes(search.toLowerCase());
+    const matchPlan   = planFilter==="all" || u.plan===planFilter;
+    const matchRole   = roleFilter==="all" || u.role===roleFilter;
+    return matchSearch && matchPlan && matchRole;
+  });
+
+  // ── Tab definitions ───────────────────────────────────────
+  const ATABS=[
+    {id:"overview",  label:"Overview",     icon:"📊"},
+    {id:"users",     label:"Users",        icon:"👥", badge:users.length},
+    {id:"payments",  label:"Payments",     icon:"💰", badge:transactions.filter(t=>t.status==="success").length},
+    {id:"invites",   label:"Invite Codes", icon:"🎟️"},
+    {id:"analyses",  label:"Analyses",     icon:"🔍", badge:analyses.length},
+    {id:"reviews",   label:"Reviews",      icon:"⭐", badge:reviews.length>0?reviews.length:null,badgeColor:reviews.length>0?C.red:null},
+    {id:"feedback",  label:"Feedback",     icon:"💬"},
+  ];
+
+  // ── Shared styles ─────────────────────────────────────────
+  const A = {
+    card:  { background:C.surface, border:`1px solid ${C.border}`, borderRadius:12 },
+    row:   { padding:"12px 18px", borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", gap:12 },
+    label: { fontSize:11, fontWeight:700, color:C.ink3, textTransform:"uppercase", letterSpacing:.6 },
+    val:   { fontSize:13.5, color:C.ink, fontWeight:500 },
+  };
 
   return (
     <div style={{minHeight:"100vh",background:C.bg}}>
       <Toasts list={toastList} remove={removeToast}/>
-      <header style={{position:"sticky",top:0,zIndex:100,height:52,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 clamp(12px,4vw,32px)",background:"rgba(249,248,246,.97)",backdropFilter:"blur(14px)",borderBottom:`1px solid ${C.border}`}}>
-        <div style={{display:"flex",alignItems:"center",gap:10}}><Logo size="sm"/><Tag color={C.purple} bg={C.purpleBg}>Admin</Tag>{profile?.role==="founder"&&<Tag color={C.amber} bg={C.amberBg}>Founder</Tag>}</div>
-        <div style={{display:"flex",gap:8}}><OutBtn size="sm" onClick={load}>↻ Refresh</OutBtn><OutBtn size="sm" onClick={onBack}>← Back</OutBtn></div>
-      </header>
-      <div style={{maxWidth:1100,margin:"0 auto",padding:"20px clamp(12px,4vw,24px) 80px"}}>
-        <div style={{display:"flex",gap:2,borderBottom:`1px solid ${C.border}`,marginBottom:20,overflowX:"auto"}}>
-          {ATABS.map(t=>(
-            <button key={t.id} onClick={()=>setTab(t.id)} style={{padding:"10px 14px",background:tab===t.id?C.surface:"transparent",border:`1px solid ${tab===t.id?C.border:"transparent"}`,borderBottom:tab===t.id?`2px solid ${C.purple}`:"1px solid transparent",borderRadius:"7px 7px 0 0",marginBottom:-1,color:tab===t.id?C.purple:C.ink3,fontWeight:tab===t.id?700:500,fontSize:13.5,cursor:"pointer",whiteSpace:"nowrap",fontFamily:"inherit",minHeight:42,display:"flex",alignItems:"center",gap:6}}>
-              {t.icon} {t.label}
-              {t.id==="reviews"&&reviews.length>0&&<span style={{background:C.red,color:"#fff",borderRadius:99,fontSize:10,padding:"1px 6px",fontWeight:700}}>{reviews.length}</span>}
-            </button>
-          ))}
-        </div>
-        {loading&&<div style={{display:"flex",justifyContent:"center",padding:60}}><Spin s={32} c={C.purple}/></div>}
 
-        {!loading&&tab==="overview"&&counts&&(
-          <div style={{display:"flex",flexDirection:"column",gap:16}}>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:10}}>
-              {[{label:"Total Users",value:counts.totalUsers,color:C.blue,icon:"👥"},{label:"Total Analyses",value:counts.totalAnalyses,color:C.sage,icon:"🔍"},{label:"Reviews Live",value:counts.approvedReviews,color:C.amber,icon:"⭐"},{label:"Feedback Items",value:counts.totalFeedback,color:C.stone,icon:"💬"},{label:"Invite Codes",value:codes.length,color:C.purple,icon:"🎟️"},{label:"Pending Reviews",value:reviews.length,color:C.red,icon:"⏳"}].map((s,i)=>(
-                <Card key={i} style={{padding:"16px 18px"}}>
-                  <div style={{fontSize:22,marginBottom:6}}>{s.icon}</div>
-                  <div style={{fontSize:28,fontWeight:800,color:s.color,lineHeight:1}}>{s.value}</div>
-                  <div style={{fontSize:12,color:C.ink3,marginTop:4,fontWeight:600}}>{s.label}</div>
+      {/* ── Header ── */}
+      <header style={{position:"sticky",top:0,zIndex:200,height:56,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 clamp(12px,4vw,32px)",background:"rgba(249,248,246,.98)",backdropFilter:"blur(16px)",borderBottom:`1px solid ${C.border}`,boxShadow:"0 1px 8px rgba(0,0,0,.04)"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <Logo size="sm"/>
+          <div style={{width:1,height:20,background:C.border}}/>
+          <Tag color={C.purple} bg={C.purpleBg}>Admin</Tag>
+          {profile?.role==="founder"&&<Tag color={C.amber} bg={C.amberBg}>Founder</Tag>}
+        </div>
+        <div style={{fontSize:13,color:C.ink3,display:"flex",alignItems:"center",gap:6}}>
+          <span style={{width:7,height:7,borderRadius:"50%",background:C.sage,display:"inline-block",animation:"pulse 2s infinite"}}/>
+          Signed in as {profile?.email||user?.email}
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <OutBtn size="sm" onClick={loadAll} style={{minWidth:"unset"}}>↻</OutBtn>
+          <OutBtn size="sm" onClick={onBack}>← Back to site</OutBtn>
+        </div>
+      </header>
+
+      {/* ── Tab bar ── */}
+      <div style={{borderBottom:`1px solid ${C.border}`,background:C.surface,padding:"0 clamp(12px,4vw,32px)",overflowX:"auto",display:"flex",gap:0}}>
+        {ATABS.map(t=>(
+          <button key={t.id} onClick={()=>setTab(t.id)}
+            style={{padding:"13px 16px",background:"transparent",border:"none",borderBottom:tab===t.id?`2.5px solid ${C.purple}`:"2.5px solid transparent",color:tab===t.id?C.purple:C.ink3,fontWeight:tab===t.id?700:500,fontSize:13.5,cursor:"pointer",whiteSpace:"nowrap",fontFamily:"inherit",display:"flex",alignItems:"center",gap:7,transition:"color .15s",minHeight:"unset",minWidth:"unset"}}>
+            {t.icon} {t.label}
+            {t.badge!=null&&t.badge>0&&<span style={{background:t.badgeColor||C.blue+"22",color:t.badgeColor||C.blue,borderRadius:99,fontSize:11,padding:"1px 7px",fontWeight:700,minHeight:"unset",minWidth:"unset"}}>{t.badge}</span>}
+          </button>
+        ))}
+      </div>
+
+      <div style={{maxWidth:1200,margin:"0 auto",padding:"24px clamp(12px,4vw,32px) 80px"}}>
+        {loading&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:80,gap:14}}><Spin s={36} c={C.purple}/><div style={{fontSize:14,color:C.ink3}}>Loading admin data…</div></div>}
+
+        {/* ══ OVERVIEW ══ */}
+        {!loading&&tab==="overview"&&(
+          <div style={{display:"flex",flexDirection:"column",gap:18}}>
+
+            {/* Stats grid */}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:12}}>
+              {[
+                {label:"Total Users",    value:counts?.totalUsers||0,     color:C.blue,   icon:"👥", sub:"all time"},
+                {label:"Total Analyses", value:counts?.totalAnalyses||0,  color:C.sage,   icon:"🔍", sub:"AI analyses run"},
+                {label:"Revenue",        value:`₹${((counts?.revenue||0)/100).toFixed(0)}`,color:C.sage,icon:"💰",sub:`${counts?.successTxns||0} transactions`},
+                {label:"Invite Codes",   value:codes.length,              color:C.purple, icon:"🎟️", sub:"active codes"},
+                {label:"Reviews Live",   value:counts?.approvedReviews||0,color:C.amber,  icon:"⭐", sub:"approved"},
+                {label:"Pending Reviews",value:reviews.length,            color:reviews.length>0?C.red:C.stone,icon:"⏳",sub:"awaiting approval"},
+              ].map((s,i)=>(
+                <Card key={i} style={{padding:"18px 20px",cursor:"default"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+                    <span style={{fontSize:20}}>{s.icon}</span>
+                    <span style={{fontSize:11,color:C.ink3,fontWeight:500}}>{s.sub}</span>
+                  </div>
+                  <div style={{fontSize:30,fontWeight:800,color:s.color,lineHeight:1,marginBottom:4}}>{s.value}</div>
+                  <div style={{fontSize:12,color:C.ink3,fontWeight:600,textTransform:"uppercase",letterSpacing:.4}}>{s.label}</div>
                 </Card>
               ))}
             </div>
-            <Card flat style={{padding:"18px 20px"}}>
-              <div style={{fontSize:13,fontWeight:700,color:C.ink,marginBottom:14}}>Users by plan</div>
+
+            {/* Plan breakdown */}
+            <Card flat style={{padding:"20px 22px"}}>
+              <div style={{fontSize:13.5,fontWeight:700,color:C.ink,marginBottom:14}}>Users by plan</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
-                {Object.entries(counts.plans||{}).sort((a,b)=>b[1]-a[1]).map(([plan,count])=>(
-                  <div key={plan} style={{padding:"8px 14px",borderRadius:99,background:(planClr[plan]||C.stone)+"15",color:planClr[plan]||C.stone,fontSize:13,fontWeight:600}}>{planDisplayLabel(plan)}: {count}</div>
+                {Object.entries(counts?.plans||{}).sort((a,b)=>b[1]-a[1]).map(([plan,count])=>(
+                  <div key={plan} style={{padding:"8px 16px",borderRadius:99,background:(planClr[plan]||C.stone)+"15",color:planClr[plan]||C.stone,fontSize:13,fontWeight:600,display:"flex",alignItems:"center",gap:8}}>
+                    <span>{planDisplayLabel(plan)}</span>
+                    <span style={{background:(planClr[plan]||C.stone)+"30",borderRadius:99,padding:"1px 8px",fontSize:12}}>{count}</span>
+                  </div>
                 ))}
+                {Object.keys(counts?.plans||{}).length===0&&<span style={{fontSize:13,color:C.ink3}}>No users yet</span>}
               </div>
             </Card>
-            <Card flat style={{overflow:"hidden"}}>
-              <div style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}`,fontSize:13,fontWeight:700,color:C.ink}}>Recent analyses</div>
-              {analyses.slice(0,10).map((a,i)=>{
-                const clr=a.gap_score>=70?C.sage:a.gap_score>=50?C.amber:C.red;
-                return <div key={i} style={{padding:"10px 18px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:12,fontSize:13}}>
-                  <div style={{width:36,height:36,borderRadius:7,background:clr+"15",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,color:clr,flexShrink:0}}>{a.gap_score??"-"}</div>
-                  <div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,color:C.ink,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.role||"?"}{a.company?` @ ${a.company}`:""}</div><div style={{fontSize:11.5,color:C.ink3}}>{new Date(a.created_at).toLocaleDateString("en-IN",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</div></div>
-                  <div style={{fontSize:11.5,color:C.ink3,flexShrink:0}}>ATS:{a.ats_score??"-"} · Sk:{a.skill_score??"-"}</div>
-                </div>;
-              })}
-            </Card>
+
+            {/* Recent activity: analyses + transactions side by side */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}} className="input-grid">
+              <Card flat style={{overflow:"hidden"}}>
+                <div style={{padding:"14px 18px",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <span style={{fontSize:13.5,fontWeight:700,color:C.ink}}>Recent Analyses</span>
+                  <Tag color={C.sage}>{analyses.length}</Tag>
+                </div>
+                <div style={{maxHeight:280,overflowY:"auto"}}>
+                  {analyses.slice(0,8).map((a,i)=>{
+                    const clr=a.gap_score>=70?C.sage:a.gap_score>=50?C.amber:C.red;
+                    return <div key={i} style={{...A.row,fontSize:13}}>
+                      <div style={{width:34,height:34,borderRadius:7,background:clr+"15",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,color:clr,fontSize:13,flexShrink:0}}>{a.gap_score??"-"}</div>
+                      <div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,color:C.ink,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.role||"?"}{a.company?` @ ${a.company}`:""}</div><div style={{fontSize:11,color:C.ink3}}>{new Date(a.created_at).toLocaleString("en-IN",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</div></div>
+                    </div>;
+                  })}
+                  {analyses.length===0&&<div style={{padding:"28px",textAlign:"center",color:C.ink3,fontSize:13}}>No analyses yet</div>}
+                </div>
+              </Card>
+
+              <Card flat style={{overflow:"hidden"}}>
+                <div style={{padding:"14px 18px",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <span style={{fontSize:13.5,fontWeight:700,color:C.ink}}>Recent Payments</span>
+                  <Tag color={C.sage}>₹{((counts?.revenue||0)/100).toFixed(0)}</Tag>
+                </div>
+                <div style={{maxHeight:280,overflowY:"auto"}}>
+                  {transactions.slice(0,8).map((t,i)=>{
+                    const stClr={success:C.sage,failed:C.red,pending:C.amber,cancelled:C.stone};
+                    return <div key={i} style={{...A.row,fontSize:13}}>
+                      <div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,color:C.ink}}>{planDisplayLabel(t.plan_id)}</div><div style={{fontSize:11,color:C.ink3}}>{new Date(t.created_at).toLocaleString("en-IN",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</div></div>
+                      <div style={{textAlign:"right",flexShrink:0}}><div style={{fontWeight:700,color:t.status==="success"?C.sage:C.red}}>₹{((t.amount||0)/100).toFixed(0)}</div><Tag color={stClr[t.status]||C.stone}>{t.status}</Tag></div>
+                    </div>;
+                  })}
+                  {transactions.length===0&&<div style={{padding:"28px",textAlign:"center",color:C.ink3,fontSize:13}}>No transactions yet</div>}
+                </div>
+              </Card>
+            </div>
+
+            {/* Pending reviews alert */}
+            {reviews.length>0&&(
+              <div style={{padding:"14px 18px",background:C.redBg,borderRadius:10,border:`1px solid ${C.red}20`,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+                <span style={{fontSize:14,color:C.red,fontWeight:600}}>⚠️ {reviews.length} review{reviews.length>1?"s":""} pending approval</span>
+                <Btn size="sm" bg={C.red} onClick={()=>setTab("reviews")}>Review now</Btn>
+              </div>
+            )}
           </div>
         )}
 
+        {/* ══ USERS ══ */}
         {!loading&&tab==="users"&&(
-          <div style={{display:"flex",flexDirection:"column",gap:12}}>
-            <div style={{display:"flex",gap:10,alignItems:"center"}}>
-              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Filter by plan, role, or ID…" style={{flex:1,padding:"10px 14px",borderRadius:9,border:`1.5px solid ${C.border}`,background:C.bg,fontSize:14,color:C.ink,fontFamily:"inherit",outline:"none"}}/>
-              <div style={{fontSize:13,color:C.ink3,whiteSpace:"nowrap"}}>{filtered.length} users</div>
+          <div style={{display:"flex",flexDirection:"column",gap:14}}>
+            {/* Filters */}
+            <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
+              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by name, email, ID, or plan…"
+                style={{flex:1,minWidth:200,padding:"10px 14px",borderRadius:9,border:`1.5px solid ${C.border}`,background:C.surface,fontSize:14,color:C.ink,fontFamily:"inherit",outline:"none"}}/>
+              <select value={planFilter} onChange={e=>setPlanFilter(e.target.value)} style={{padding:"10px 13px",borderRadius:9,border:`1.5px solid ${C.border}`,background:C.surface,fontSize:13.5,color:C.ink,fontFamily:"inherit",cursor:"pointer",minHeight:44}}>
+                <option value="all">All plans</option>
+                {ADMIN_PLANS.map(p=><option key={p} value={p}>{planDisplayLabel(p)}</option>)}
+              </select>
+              <select value={roleFilter} onChange={e=>setRoleFilter(e.target.value)} style={{padding:"10px 13px",borderRadius:9,border:`1.5px solid ${C.border}`,background:C.surface,fontSize:13.5,color:C.ink,fontFamily:"inherit",cursor:"pointer",minHeight:44}}>
+                <option value="all">All roles</option>
+                {["user","admin","founder"].map(r=><option key={r} value={r}>{r}</option>)}
+              </select>
+              <div style={{fontSize:13,color:C.ink3,whiteSpace:"nowrap",padding:"0 4px"}}>{filtered.length} / {users.length} users</div>
             </div>
+
             <Card flat style={{overflow:"hidden"}}>
-              <div style={{maxHeight:600,overflowY:"auto"}}>
-                {filtered.map((u,i)=>(
-                  <div key={u.id} style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
-                    <div style={{flex:1,minWidth:200}}>
-                      <div style={{fontSize:12,color:C.ink3,fontFamily:"monospace"}}>{u.id?.slice(0,18)}…</div>
-                      <div style={{fontSize:11.5,color:C.ink3,marginTop:2}}>Joined {new Date(u.created_at).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})} · {u.analyses_this_month||0} analyses · {u.lifetime_accesses_remaining??3} lifetime left</div>
-                    </div>
-                    <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-                      <select value={u.plan||"free"} onChange={e=>updateUserPlan(u.id,e.target.value)} style={{padding:"6px 10px",borderRadius:7,border:`1.5px solid ${(planClr[u.plan||"free"]||C.stone)}30`,background:(planClr[u.plan||"free"]||C.stone)+"12",color:planClr[u.plan||"free"]||C.stone,fontSize:12,fontWeight:600,fontFamily:"inherit",cursor:"pointer",minHeight:"unset"}}>
-                        {ADMIN_PLANS.map(p=><option key={p} value={p}>{planDisplayLabel(p)}</option>)}
-                      </select>
-                      <select value={u.role||"user"} onChange={e=>updateUserRole(u.id,e.target.value)} style={{padding:"6px 10px",borderRadius:7,border:`1.5px solid ${C.border}`,background:C.bg,fontSize:12,fontWeight:600,fontFamily:"inherit",cursor:"pointer",color:u.role==="founder"?C.purple:u.role==="admin"?C.blue:C.ink2,minHeight:"unset"}}>
+              {/* Table header */}
+              <div style={{padding:"10px 18px",background:C.bg,borderBottom:`1px solid ${C.border}`,display:"grid",gridTemplateColumns:"1fr 1fr 140px 120px 80px",gap:12,fontSize:11,fontWeight:700,color:C.ink3,textTransform:"uppercase",letterSpacing:.6}}>
+                <div>User</div><div>Plan</div><div>Role</div><div>Usage</div><div>Actions</div>
+              </div>
+              <div style={{maxHeight:560,overflowY:"auto"}}>
+                {filtered.length===0&&<div style={{padding:"40px",textAlign:"center",color:C.ink3}}>No users match filters</div>}
+                {filtered.map((u)=>(
+                  <div key={u.id}>
+                    <div style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}`,display:"grid",gridTemplateColumns:"1fr 1fr 140px 120px 80px",gap:12,alignItems:"center",cursor:"pointer",transition:"background .15s"}}
+                      onMouseEnter={e=>e.currentTarget.style.background=C.bg}
+                      onMouseLeave={e=>e.currentTarget.style.background=""}>
+                      {/* User info */}
+                      <div style={{minWidth:0}}>
+                        <div style={{fontSize:13.5,fontWeight:600,color:C.ink,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.name||u.email?.split("@")[0]||"—"}</div>
+                        <div style={{fontSize:11.5,color:C.ink3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.email||u.id?.slice(0,16)+"…"}</div>
+                        <div style={{fontSize:11,color:C.ink4,marginTop:2}}>{new Date(u.created_at).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}</div>
+                      </div>
+                      {/* Plan selector */}
+                      <div>
+                        <select value={u.plan||"free"} onChange={e=>updateUserPlan(u.id,e.target.value)}
+                          onClick={e=>e.stopPropagation()}
+                          style={{padding:"5px 10px",borderRadius:7,border:`1.5px solid ${(planClr[u.plan||"free"]||C.stone)}40`,background:(planClr[u.plan||"free"]||C.stone)+"12",color:planClr[u.plan||"free"]||C.stone,fontSize:12,fontWeight:700,fontFamily:"inherit",cursor:"pointer",minHeight:"unset",width:"100%"}}>
+                          {ADMIN_PLANS.map(p=><option key={p} value={p}>{planDisplayLabel(p)}</option>)}
+                        </select>
+                        {u.plan_expires_at&&!["founding_user","early_adopter"].includes(u.plan)&&<div style={{fontSize:10.5,color:C.ink3,marginTop:3}}>Exp: {new Date(u.plan_expires_at).toLocaleDateString("en-IN",{day:"numeric",month:"short"})}</div>}
+                      </div>
+                      {/* Role selector */}
+                      <select value={u.role||"user"} onChange={e=>updateUserRole(u.id,e.target.value)}
+                        onClick={e=>e.stopPropagation()}
+                        style={{padding:"5px 10px",borderRadius:7,border:`1.5px solid ${C.border}`,background:u.role==="founder"?C.purpleBg:u.role==="admin"?C.blueBg:C.bg,fontSize:12,fontWeight:700,fontFamily:"inherit",cursor:"pointer",color:u.role==="founder"?C.purple:u.role==="admin"?C.blue:C.ink2,minHeight:"unset"}}>
                         {["user","admin","founder"].map(r=><option key={r} value={r}>{r}</option>)}
                       </select>
+                      {/* Usage */}
+                      <div>
+                        <div style={{fontSize:12,color:C.ink2}}>{u.analyses_this_month||0} this month</div>
+                        <div style={{fontSize:11.5,color:C.ink3}}>{u.lifetime_accesses_remaining??3} lifetime left</div>
+                      </div>
+                      {/* Actions */}
+                      <div style={{display:"flex",gap:5}}>
+                        <button onClick={e=>{e.stopPropagation();setExpandUser(expandUser===u.id?null:u.id);}}
+                          style={{padding:"5px 9px",borderRadius:6,border:`1px solid ${C.border}`,background:C.surface,fontSize:11,color:C.ink2,cursor:"pointer",fontFamily:"inherit",minHeight:"unset",minWidth:"unset"}}>
+                          {expandUser===u.id?"▲":"▼"}
+                        </button>
+                      </div>
                     </div>
+                    {/* Expanded user panel */}
+                    {expandUser===u.id&&(
+                      <div style={{padding:"16px 18px",background:C.bg,borderBottom:`1px solid ${C.border}`,animation:"slideUp .2s ease"}}>
+                        <div style={{display:"flex",flexWrap:"wrap",gap:10}}>
+                          <Btn size="sm" bg={C.purple} onClick={()=>giveLifetimeAccess(u.id,3)}>+3 lifetime accesses</Btn>
+                          <Btn size="sm" bg={C.blue}   onClick={()=>giveLifetimeAccess(u.id,(u.lifetime_accesses_remaining||0)+1)}>+1 lifetime access</Btn>
+                          <Btn size="sm" bg={C.sage}   onClick={()=>updateUserPlan(u.id,"founding_user")}>Make Founding Member</Btn>
+                          <Btn size="sm" bg={C.amber}  onClick={()=>updateUserPlan(u.id,"beta_friend")}>Make Beta Friend</Btn>
+                          <OutBtn size="sm" onClick={()=>suspendUser(u.id)} style={{color:C.red,borderColor:C.red+"40"}}>Suspend (reset to free)</OutBtn>
+                        </div>
+                        <div style={{marginTop:10,fontSize:12,color:C.ink3}}>ID: <span style={{fontFamily:"monospace"}}>{u.id}</span></div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -2344,32 +2568,98 @@ function AdminDashboard({ user, profile, onBack }) {
           </div>
         )}
 
+        {/* ══ PAYMENTS ══ */}
+        {!loading&&tab==="payments"&&(
+          <div style={{display:"flex",flexDirection:"column",gap:14}}>
+            {/* Revenue summary */}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12}}>
+              {[
+                {label:"Total Revenue",  value:`₹${((counts?.revenue||0)/100).toFixed(0)}`, color:C.sage},
+                {label:"Successful",     value:transactions.filter(t=>t.status==="success").length,  color:C.sage},
+                {label:"Failed",         value:transactions.filter(t=>t.status==="failed").length,   color:C.red},
+                {label:"Pending",        value:transactions.filter(t=>t.status==="pending").length,  color:C.amber},
+                {label:"Needs Review",   value:transactions.filter(t=>t.needs_manual_review).length, color:C.red},
+              ].map((s,i)=>(
+                <Card key={i} style={{padding:"16px 18px"}}>
+                  <div style={{fontSize:26,fontWeight:800,color:s.color,marginBottom:4}}>{s.value}</div>
+                  <div style={{fontSize:11.5,color:C.ink3,fontWeight:600,textTransform:"uppercase",letterSpacing:.4}}>{s.label}</div>
+                </Card>
+              ))}
+            </div>
+
+            <Card flat style={{overflow:"hidden"}}>
+              <div style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}`,fontSize:13.5,fontWeight:700,color:C.ink}}>All Transactions ({transactions.length})</div>
+              <div style={{maxHeight:560,overflowY:"auto"}}>
+                {transactions.length===0&&<div style={{padding:"40px",textAlign:"center",color:C.ink3}}>No transactions yet</div>}
+                {transactions.map((t,i)=>{
+                  const stClr={success:C.sage,failed:C.red,pending:C.amber,cancelled:C.stone,tampered:C.red,refunded:C.purple};
+                  return <div key={t.id} style={{padding:"13px 18px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:12}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                        <span style={{fontSize:13.5,fontWeight:700,color:C.ink}}>{planDisplayLabel(t.plan_id)}</span>
+                        <Tag color={stClr[t.status]||C.stone}>{t.status}</Tag>
+                        {t.needs_manual_review&&<Tag color={C.red} bg={C.redBg}>⚠ Manual review</Tag>}
+                      </div>
+                      <div style={{fontSize:11.5,color:C.ink3,marginTop:3,fontFamily:"monospace"}}>txn: {t.txn_id}</div>
+                      <div style={{fontSize:11.5,color:C.ink3}}>{new Date(t.created_at).toLocaleString("en-IN",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})}</div>
+                      {t.failure_reason&&<div style={{fontSize:11.5,color:C.red,marginTop:2}}>Reason: {t.failure_reason}</div>}
+                    </div>
+                    <div style={{textAlign:"right",flexShrink:0}}>
+                      <div style={{fontSize:18,fontWeight:800,color:t.status==="success"?C.sage:C.ink3}}>₹{((t.amount||0)/100).toFixed(0)}</div>
+                      <div style={{fontSize:11,color:C.ink3}}>{t.currency}</div>
+                    </div>
+                  </div>;
+                })}
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* ══ INVITE CODES ══ */}
         {!loading&&tab==="invites"&&(
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
-            <Card flat style={{padding:"18px 20px"}}>
-              <div style={{fontSize:13,fontWeight:700,color:C.ink,marginBottom:14}}>Create invite code</div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:10,marginBottom:12}} className="input-grid">
+            <Card flat style={{padding:"20px 22px"}}>
+              <div style={{fontSize:13.5,fontWeight:700,color:C.ink,marginBottom:16}}>Create new invite code</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:12,marginBottom:14}} className="input-grid">
                 <Field label="Code" value={newCode.code} onChange={v=>setNewCode(p=>({...p,code:v.toUpperCase()}))} placeholder="BETA-XXXX" maxLen={30}/>
                 <Field label="Usage limit" value={String(newCode.limit)} onChange={v=>setNewCode(p=>({...p,limit:parseInt(v)||1}))} type="number"/>
                 <Field label="Access days" value={String(newCode.days)} onChange={v=>setNewCode(p=>({...p,days:parseInt(v)||30}))} type="number"/>
                 <Field label="Expires (optional)" value={newCode.expires} onChange={v=>setNewCode(p=>({...p,expires:v}))} type="date" accent={C.purple}/>
               </div>
-              {codeErr&&<div style={{fontSize:13,color:C.red,marginBottom:8}}>{codeErr}</div>}
-              <Btn onClick={createCode} disabled={codeSaving} bg={C.purple} size="sm">{codeSaving?<><Spin s={13} c="#fff"/>Creating…</>:"+ Create code"}</Btn>
+              <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+                <Btn onClick={createCode} disabled={codeSaving} bg={C.purple} size="sm">{codeSaving?<><Spin s={13} c="#fff"/>Creating…</>:"+ Create code"}</Btn>
+                <div style={{display:"flex",gap:8}}>
+                  {[["BETA30",30,30],["FRIEND7",1,7],["VIP90",5,90]].map(([c,l,d])=>(
+                    <button key={c} onClick={()=>setNewCode({code:c,limit:l,days:d,expires:""})} style={{padding:"6px 12px",borderRadius:7,border:`1px solid ${C.border}`,background:C.surface,fontSize:12,color:C.ink2,cursor:"pointer",fontFamily:"inherit",minHeight:"unset",minWidth:"unset"}}>Use {c}</button>
+                  ))}
+                </div>
+              </div>
+              {codeErr&&<div style={{marginTop:10,fontSize:13,color:C.red}}>{codeErr}</div>}
             </Card>
+
             <Card flat style={{overflow:"hidden"}}>
-              <div style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}`,fontSize:13,fontWeight:700,color:C.ink}}>{codes.length} invite codes</div>
-              {codes.length===0?<div style={{padding:"32px 20px",textAlign:"center",color:C.ink3}}>No codes yet.</div>
+              <div style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}`,fontSize:13.5,fontWeight:700,color:C.ink}}>{codes.length} invite codes</div>
+              {codes.length===0?<div style={{padding:"40px",textAlign:"center",color:C.ink3}}>No codes yet. Create one above.</div>
               :codes.map((c,i)=>(
-                <div key={c.id} style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:14,fontWeight:700,color:C.purple,fontFamily:"monospace",letterSpacing:1}}>{c.code}</div>
-                    <div style={{fontSize:12,color:C.ink3,marginTop:3}}>Used {c.used_count||0}/{c.usage_limit} · {c.access_days} days{c.expires_at?` · Expires ${new Date(c.expires_at).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}`:""}</div>
+                <div key={c.id} style={{padding:"13px 18px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"}}>
+                  <div style={{flex:1,minWidth:160}}>
+                    <div style={{fontSize:15,fontWeight:700,color:C.purple,fontFamily:"monospace",letterSpacing:1.5}}>{c.code}</div>
+                    <div style={{fontSize:12,color:C.ink3,marginTop:3}}>
+                      Used <strong>{c.used_count||0}</strong>/{c.usage_limit} · {c.access_days} days access
+                      {c.expires_at?` · Expires ${new Date(c.expires_at).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}`:` · No expiry`}
+                    </div>
                   </div>
-                  <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                    <Tag color={c.used_count>=(c.usage_limit||1)?C.red:C.sage}>{c.used_count>=(c.usage_limit||1)?"Exhausted":"Active"}</Tag>
-                    <button onClick={()=>{navigator.clipboard.writeText(c.code);toast("Copied!");}} style={{padding:"6px 12px",borderRadius:7,border:`1px solid ${C.border}`,background:C.surface,fontSize:12,color:C.ink2,cursor:"pointer",fontFamily:"inherit",minHeight:"unset"}}>Copy</button>
-                    <button onClick={()=>deleteCode(c.id)} style={{padding:"6px 12px",borderRadius:7,border:`1px solid ${C.red}30`,background:C.redBg,fontSize:12,color:C.red,cursor:"pointer",fontFamily:"inherit",minHeight:"unset"}}>Delete</button>
+                  {/* Usage bar */}
+                  <div style={{width:100,flexShrink:0}}>
+                    <div style={{height:4,borderRadius:99,background:C.border,overflow:"hidden"}}>
+                      <div style={{height:"100%",borderRadius:99,background:c.used_count>=(c.usage_limit||1)?C.red:C.sage,width:`${Math.min(100,((c.used_count||0)/(c.usage_limit||1))*100)}%`,transition:"width .3s"}}/>
+                    </div>
+                    <div style={{fontSize:11,color:C.ink3,marginTop:3}}>{Math.round(((c.used_count||0)/(c.usage_limit||1))*100)}% used</div>
+                  </div>
+                  <Tag color={c.used_count>=(c.usage_limit||1)?C.red:c.expires_at&&new Date(c.expires_at)<new Date()?C.stone:C.sage}>{c.used_count>=(c.usage_limit||1)?"Exhausted":c.expires_at&&new Date(c.expires_at)<new Date()?"Expired":"Active"}</Tag>
+                  <div style={{display:"flex",gap:7}}>
+                    <button onClick={()=>{navigator.clipboard.writeText(c.code);toast("Copied!");}} style={{padding:"6px 12px",borderRadius:7,border:`1px solid ${C.border}`,background:C.surface,fontSize:12,color:C.ink2,cursor:"pointer",fontFamily:"inherit",minHeight:"unset",minWidth:"unset"}}>Copy</button>
+                    <button onClick={()=>deleteCode(c.id)} style={{padding:"6px 12px",borderRadius:7,border:`1px solid ${C.red}30`,background:C.redBg,fontSize:12,color:C.red,cursor:"pointer",fontFamily:"inherit",minHeight:"unset",minWidth:"unset"}}>Delete</button>
                   </div>
                 </div>
               ))}
@@ -2377,72 +2667,145 @@ function AdminDashboard({ user, profile, onBack }) {
           </div>
         )}
 
+        {/* ══ ANALYSES ══ */}
         {!loading&&tab==="analyses"&&(
-          <Card flat style={{overflow:"hidden"}}>
-            <div style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}`,fontSize:13,fontWeight:700,color:C.ink}}>{analyses.length} recent analyses</div>
-            <div style={{maxHeight:600,overflowY:"auto"}}>
-              {analyses.map((a,i)=>{
-                const clr=a.gap_score>=70?C.sage:a.gap_score>=50?C.amber:C.red;
-                return <div key={a.id} style={{padding:"11px 18px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:12}}>
-                  <div style={{width:40,height:40,borderRadius:8,background:clr+"15",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,color:clr,fontSize:15,flexShrink:0}}>{a.gap_score??"-"}</div>
-                  <div style={{flex:1,minWidth:0}}><div style={{fontSize:13.5,fontWeight:600,color:C.ink,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.role||"Unknown"}{a.company?` @ ${a.company}`:""}</div><div style={{fontSize:11.5,color:C.ink3,marginTop:2}}>{new Date(a.created_at).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})}</div></div>
-                  <div style={{fontSize:12,color:C.ink3,flexShrink:0,textAlign:"right"}}><div>ATS: {a.ats_score??"-"}</div><div>Skills: {a.skill_score??"-"}</div></div>
-                </div>;
-              })}
-            </div>
-          </Card>
-        )}
-
-        {!loading&&tab==="reviews"&&(
-          <div style={{display:"flex",flexDirection:"column",gap:12}}>
-            {reviews.length===0
-              ?<div style={{padding:"48px 20px",textAlign:"center",color:C.ink3,background:C.surface,borderRadius:12,border:`1px solid ${C.border}`}}><div style={{fontSize:28,marginBottom:10}}>✅</div><div style={{fontSize:14}}>No pending reviews.</div></div>
-              :reviews.map((r,i)=>(
-                <Card key={r.id} flat style={{padding:"16px 18px"}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,flexWrap:"wrap"}}>
-                    <div style={{flex:1}}>
-                      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-                        <div style={{width:32,height:32,borderRadius:"50%",background:C.sageBg,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,color:C.sage}}>{r.name?.[0]}</div>
-                        <div><div style={{fontSize:13.5,fontWeight:700,color:C.ink}}>{r.name}</div>{r.role&&<div style={{fontSize:12,color:C.ink3}}>{r.role}</div>}</div>
-                        <Stars rating={r.rating}/>
-                      </div>
-                      <p style={{fontSize:13.5,color:C.ink2,lineHeight:1.75,fontStyle:"italic"}}>"{r.text}"</p>
-                      <div style={{fontSize:11.5,color:C.ink3,marginTop:8}}>{new Date(r.created_at).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}</div>
-                    </div>
-                    <div style={{display:"flex",gap:8}}>
-                      <Btn size="sm" bg={C.sage} onClick={()=>approveRev(r.id)}>✓ Approve</Btn>
-                      <OutBtn size="sm" onClick={()=>deleteRev(r.id)} style={{color:C.red,borderColor:C.red+"30"}}>✕ Delete</OutBtn>
-                    </div>
-                  </div>
+          <div style={{display:"flex",flexDirection:"column",gap:14}}>
+            {/* Score distribution */}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
+              {[["High (70+)",analyses.filter(a=>a.gap_score>=70).length,C.sage],["Medium (50-69)",analyses.filter(a=>a.gap_score>=50&&a.gap_score<70).length,C.amber],["Low (<50)",analyses.filter(a=>a.gap_score<50&&a.gap_score!=null).length,C.red]].map(([l,v,c])=>(
+                <Card key={l} style={{padding:"16px 18px"}}>
+                  <div style={{fontSize:26,fontWeight:800,color:c,marginBottom:4}}>{v}</div>
+                  <div style={{fontSize:12,color:C.ink3,fontWeight:600}}>{l}</div>
                 </Card>
-              ))
-            }
+              ))}
+            </div>
+            <Card flat style={{overflow:"hidden"}}>
+              <div style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}`,fontSize:13.5,fontWeight:700,color:C.ink}}>{analyses.length} analyses</div>
+              <div style={{maxHeight:560,overflowY:"auto"}}>
+                {analyses.map((a,i)=>{
+                  const clr=a.gap_score>=70?C.sage:a.gap_score>=50?C.amber:C.red;
+                  return <div key={a.id} style={{padding:"11px 18px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:12}}>
+                    <div style={{width:40,height:40,borderRadius:8,background:clr+"15",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,color:clr,fontSize:14,flexShrink:0}}>{a.gap_score??"-"}</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:13.5,fontWeight:600,color:C.ink,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.role||"Unknown"}{a.company?` @ ${a.company}`:""}</div>
+                      <div style={{fontSize:11.5,color:C.ink3,marginTop:2,fontFamily:"monospace"}}>{a.user_id?.slice(0,12)}…</div>
+                    </div>
+                    <div style={{fontSize:12,color:C.ink3,flexShrink:0,textAlign:"right"}}>
+                      <div>ATS: <strong>{a.ats_score??"-"}</strong></div>
+                      <div>Skills: <strong>{a.skill_score??"-"}</strong></div>
+                      <div style={{fontSize:11}}>{new Date(a.created_at).toLocaleDateString("en-IN",{day:"numeric",month:"short"})}</div>
+                    </div>
+                  </div>;
+                })}
+                {analyses.length===0&&<div style={{padding:"40px",textAlign:"center",color:C.ink3}}>No analyses yet</div>}
+              </div>
+            </Card>
           </div>
         )}
 
-        {!loading&&tab==="feedback"&&(
-          <Card flat style={{overflow:"hidden"}}>
-            <div style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}`,fontSize:13,fontWeight:700,color:C.ink}}>{feedback.length} feedback items</div>
-            <div style={{maxHeight:600,overflowY:"auto"}}>
-              {feedback.length===0?<div style={{padding:"32px 20px",textAlign:"center",color:C.ink3}}>No feedback yet.</div>
-              :feedback.map((f,i)=>(
-                <div key={f.id} style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}`}}>
-                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:f.comment?8:0}}>
-                    <span style={{padding:"3px 10px",borderRadius:99,background:f.helpful?C.sageBg:C.redBg,color:f.helpful?C.sage:C.red,fontSize:12,fontWeight:600}}>{f.helpful?"Helpful":"Needs work"}</span>
-                    {f.role&&<span style={{fontSize:13,color:C.ink2,fontWeight:500}}>{f.role}{f.company?` @ ${f.company}`:""}</span>}
-                    {f.gap_score&&<span style={{fontSize:12,color:C.ink3}}>Score: {f.gap_score}</span>}
-                    <span style={{fontSize:11.5,color:C.ink3,marginLeft:"auto"}}>{new Date(f.created_at).toLocaleDateString("en-IN",{day:"numeric",month:"short"})}</span>
-                  </div>
-                  {f.comment&&<p style={{fontSize:13,color:C.ink2,lineHeight:1.7}}>{f.comment}</p>}
+        {/* ══ REVIEWS ══ */}
+        {!loading&&tab==="reviews"&&(
+          <div style={{display:"flex",flexDirection:"column",gap:14}}>
+            {reviews.length>0&&(
+              <div style={{padding:"13px 18px",background:C.amberBg,borderRadius:10,border:`1px solid ${C.amber}30`,fontSize:13.5,color:C.amber,fontWeight:600}}>
+                ⏳ {reviews.length} review{reviews.length>1?"s":""} waiting for your approval
+              </div>
+            )}
+            {/* Pending */}
+            {reviews.length>0&&(
+              <div>
+                <div style={{fontSize:13,fontWeight:700,color:C.ink,marginBottom:10}}>Pending approval</div>
+                <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                  {reviews.map((r,i)=>(
+                    <Card key={r.id} flat style={{padding:"16px 18px"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,flexWrap:"wrap"}}>
+                        <div style={{flex:1}}>
+                          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                            <div style={{width:32,height:32,borderRadius:"50%",background:C.sageBg,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,color:C.sage,fontSize:14,flexShrink:0}}>{r.name?.[0]||"?"}</div>
+                            <div><div style={{fontSize:13.5,fontWeight:700,color:C.ink}}>{r.name}</div>{r.role&&<div style={{fontSize:12,color:C.ink3}}>{r.role}</div>}</div>
+                            <Stars rating={r.rating}/>
+                          </div>
+                          <p style={{fontSize:13.5,color:C.ink2,lineHeight:1.75,fontStyle:"italic",marginBottom:6}}>"{r.text}"</p>
+                          <div style={{fontSize:11.5,color:C.ink3}}>{new Date(r.created_at).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}</div>
+                        </div>
+                        <div style={{display:"flex",gap:8}}>
+                          <Btn size="sm" bg={C.sage} onClick={()=>approveRev(r.id)}>✓ Approve</Btn>
+                          <OutBtn size="sm" onClick={()=>deleteRev(r.id)} style={{color:C.red,borderColor:C.red+"30"}}>✕ Delete</OutBtn>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
                 </div>
+              </div>
+            )}
+            {/* All reviews */}
+            <div>
+              <div style={{fontSize:13,fontWeight:700,color:C.ink,marginBottom:10}}>All reviews ({allReviews.length})</div>
+              <Card flat style={{overflow:"hidden"}}>
+                <div style={{maxHeight:400,overflowY:"auto"}}>
+                  {allReviews.filter(r=>r.approved).map((r,i)=>(
+                    <div key={r.id} style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:12}}>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                          <span style={{fontSize:13.5,fontWeight:600,color:C.ink}}>{r.name}</span>
+                          {r.role&&<span style={{fontSize:12,color:C.ink3}}>{r.role}</span>}
+                          <Stars rating={r.rating}/>
+                          <Tag color={C.sage}>Approved</Tag>
+                        </div>
+                        <p style={{fontSize:13,color:C.ink2,lineHeight:1.65,fontStyle:"italic",marginTop:4}}>"{r.text?.slice(0,120)}{r.text?.length>120?"…":""}"</p>
+                      </div>
+                      <button onClick={()=>deleteRev(r.id)} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${C.red}30`,background:C.redBg,fontSize:12,color:C.red,cursor:"pointer",fontFamily:"inherit",minHeight:"unset",minWidth:"unset",flexShrink:0}}>Delete</button>
+                    </div>
+                  ))}
+                  {allReviews.filter(r=>r.approved).length===0&&<div style={{padding:"32px",textAlign:"center",color:C.ink3}}>No approved reviews yet</div>}
+                </div>
+              </Card>
+            </div>
+          </div>
+        )}
+
+        {/* ══ FEEDBACK ══ */}
+        {!loading&&tab==="feedback"&&(
+          <div style={{display:"flex",flexDirection:"column",gap:14}}>
+            {/* Summary */}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
+              {[
+                ["Total Feedback",feedback.length,C.blue],
+                ["Helpful",feedback.filter(f=>f.helpful).length,C.sage],
+                ["Needs Work",feedback.filter(f=>f.helpful===false).length,C.red],
+              ].map(([l,v,c])=>(
+                <Card key={l} style={{padding:"16px 18px"}}>
+                  <div style={{fontSize:26,fontWeight:800,color:c,marginBottom:4}}>{v}</div>
+                  <div style={{fontSize:12,color:C.ink3,fontWeight:600}}>{l}</div>
+                </Card>
               ))}
             </div>
-          </Card>
+            <Card flat style={{overflow:"hidden"}}>
+              <div style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}`,fontSize:13.5,fontWeight:700,color:C.ink}}>{feedback.length} feedback items</div>
+              <div style={{maxHeight:560,overflowY:"auto"}}>
+                {feedback.length===0&&<div style={{padding:"40px",textAlign:"center",color:C.ink3}}>No feedback yet</div>}
+                {feedback.map((f,i)=>(
+                  <div key={f.id} style={{padding:"13px 18px",borderBottom:`1px solid ${C.border}`}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:f.comment?8:0,flexWrap:"wrap"}}>
+                      <span style={{padding:"3px 10px",borderRadius:99,background:f.helpful?C.sageBg:C.redBg,color:f.helpful?C.sage:C.red,fontSize:12,fontWeight:600}}>{f.helpful?"✓ Helpful":"✗ Needs work"}</span>
+                      {f.role&&<span style={{fontSize:13,color:C.ink2,fontWeight:500}}>{f.role}{f.company?` @ ${f.company}`:""}</span>}
+                      {f.gap_score!=null&&<span style={{fontSize:12,color:C.ink3}}>Score: {f.gap_score}</span>}
+                      <span style={{fontSize:11.5,color:C.ink3,marginLeft:"auto"}}>{new Date(f.created_at).toLocaleDateString("en-IN",{day:"numeric",month:"short"})}</span>
+                    </div>
+                    {f.comment&&<p style={{fontSize:13.5,color:C.ink2,lineHeight:1.7,paddingLeft:4}}>{f.comment}</p>}
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
         )}
+
       </div>
     </div>
   );
 }
+
+
 /* ─── ROOT ───────────────────────────────────────────────── */
 export default function KrackHire() {
   const [view,        setView]        = useState("landing");
