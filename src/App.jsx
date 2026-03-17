@@ -1062,7 +1062,7 @@ const FAQS=[
 ];
 
 /* ─── LANDING PAGE ───────────────────────────────────────── */
-function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onProfileRefresh, toast }) {
+function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onProfileRefresh, toast, onAdmin }) {
   const [scrolled,setScrolled]=useState(false); const [menuOpen,setMenuOpen]=useState(false); const [faqOpen,setFaqOpen]=useState(null);
   const [reviews,setReviews]=useState([]); const [reviewsDone,setReviewsDone]=useState(false); const [showForm,setShowForm]=useState(false); const [page,setPage]=useState(0);
   const [showInvite,setShowInvite]=useState(false);
@@ -1361,6 +1361,11 @@ function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onP
             <span>© 2025 KrackHire. All rights reserved.</span>
             <span>Early beta — improving based on genuine feedback.</span>
           </div>
+          {["admin","founder"].includes(profile?.role)&&(
+            <div style={{ paddingTop:12, textAlign:"center" }}>
+              <button onClick={onAdmin} style={{ fontSize:11.5, color:"#3D3B38", cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", opacity:.5, minHeight:"unset" }}>⚙ Admin</button>
+            </div>
+          )}
         </div>
       </footer>
 
@@ -1783,9 +1788,369 @@ function AnalysisHistory({ userId }) {
   );
 }
 
+
+/* ─── ADMIN HELPERS ──────────────────────────────────────── */
+async function adminGetUsers()         { if(!sb)return[]; const{data}=await sb.from("profiles").select("id,role,plan,plan_expires_at,analyses_this_month,lifetime_accesses_remaining,created_at").order("created_at",{ascending:false}).limit(200); return data||[]; }
+async function adminUpdateUser(id,upd) { if(!sb)return; await sb.from("profiles").update(upd).eq("id",id); }
+async function adminGetInviteCodes()   { if(!sb)return[]; const{data}=await sb.from("invite_codes").select("*").order("created_at",{ascending:false}); return data||[]; }
+async function adminCreateCode(code,limit,days,expires){ if(!sb)return null; const{data,error}=await sb.from("invite_codes").insert({code:code.trim().toUpperCase(),usage_limit:limit,access_days:days,expires_at:expires||null}).select().single(); if(error)throw new Error(error.message); return data; }
+async function adminDeleteCode(id)     { if(!sb)return; await sb.from("invite_codes").delete().eq("id",id); }
+async function adminGetAnalyses()      { if(!sb)return[]; const{data}=await sb.from("analyses").select("id,user_id,company,role,gap_score,ats_score,skill_score,created_at").order("created_at",{ascending:false}).limit(100); return data||[]; }
+async function adminGetFeedback()      { if(!sb)return[]; const{data}=await sb.from("feedback").select("*").order("created_at",{ascending:false}).limit(100); return data||[]; }
+async function adminGetPendingReviews(){ if(!sb)return[]; const{data}=await sb.from("reviews").select("*").eq("approved",false).order("created_at",{ascending:false}); return data||[]; }
+async function adminApproveReview(id)  { if(!sb)return; await sb.from("reviews").update({approved:true}).eq("id",id); }
+async function adminDeleteReview(id)   { if(!sb)return; await sb.from("reviews").delete().eq("id",id); }
+async function adminCounts()           { if(!sb)return{}; const[u,a,r,f]=await Promise.all([sb.from("profiles").select("id,plan",{count:"exact"}),sb.from("analyses").select("id",{count:"exact"}),sb.from("reviews").select("id").eq("approved",true),sb.from("feedback").select("id",{count:"exact"})]); const plans={}; (u.data||[]).forEach(p=>{plans[p.plan||"free"]=(plans[p.plan||"free"]||0)+1;}); return{totalUsers:u.count||0,totalAnalyses:a.count||0,approvedReviews:(r.data||[]).length,totalFeedback:f.count||0,plans}; }
+
+/* ─── ADMIN DASHBOARD ────────────────────────────────────── */
+const ADMIN_PLANS = ["free","starter","pro","pro_monthly","pro_yearly","early_adopter","founding_user","beta_friend","college_basic","college_pro","premium"];
+
+function AdminDashboard({ user, profile, onBack }) {
+  const [tab, setTab]           = useState("overview");
+  const [counts, setCounts]     = useState(null);
+  const [users,  setUsers]      = useState([]);
+  const [analyses,setAnalyses]  = useState([]);
+  const [codes,  setCodes]      = useState([]);
+  const [reviews,setReviews]    = useState([]);
+  const [feedback,setFeedback]  = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [search,  setSearch]    = useState("");
+  const [newCode, setNewCode]   = useState({ code:"", limit:1, days:30, expires:"" });
+  const [codeErr, setCodeErr]   = useState("");
+  const [codeSaving,setCodeSaving] = useState(false);
+  const { toast, list:toastList, remove:removeToast } = useToast();
+
+  useEffect(()=>{
+    if(!["admin","founder"].includes(profile?.role)){ onBack(); return; }
+    load();
+  },[]);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const [c,u,a,cd,rv,fb] = await Promise.all([
+        adminCounts(), adminGetUsers(), adminGetAnalyses(),
+        adminGetInviteCodes(), adminGetPendingReviews(), adminGetFeedback()
+      ]);
+      setCounts(c); setUsers(u); setAnalyses(a); setCodes(cd); setReviews(rv); setFeedback(fb);
+    } catch(e){ toast("Load error: "+e.message,"error"); }
+    setLoading(false);
+  }
+
+  async function updateUserRole(id, role) {
+    await adminUpdateUser(id,{role});
+    setUsers(p=>p.map(u=>u.id===id?{...u,role}:u));
+    toast("Role updated ✓");
+  }
+
+  async function updateUserPlan(id, plan) {
+    const expires = plan==="founding_user"||plan==="early_adopter" ? null : new Date(Date.now()+30*86400000).toISOString();
+    await adminUpdateUser(id,{plan, plan_expires_at:expires});
+    setUsers(p=>p.map(u=>u.id===id?{...u,plan,plan_expires_at:expires}:u));
+    toast("Plan updated ✓");
+  }
+
+  async function createCode() {
+    if(!newCode.code.trim()){ setCodeErr("Enter a code."); return; }
+    setCodeSaving(true); setCodeErr("");
+    try {
+      const created = await adminCreateCode(newCode.code,newCode.limit,newCode.days,newCode.expires||null);
+      setCodes(p=>[created,...p]);
+      setNewCode({ code:"", limit:1, days:30, expires:"" });
+      toast("Invite code created ✓");
+    } catch(e){ setCodeErr(e.message); }
+    setCodeSaving(false);
+  }
+
+  async function deleteCode(id) {
+    if(!confirm("Delete this invite code?")) return;
+    await adminDeleteCode(id);
+    setCodes(p=>p.filter(c=>c.id!==id));
+    toast("Code deleted.");
+  }
+
+  async function approveReview(id) {
+    await adminApproveReview(id);
+    setReviews(p=>p.filter(r=>r.id!==id));
+    toast("Review approved ✓");
+  }
+
+  async function deleteRev(id) {
+    await adminDeleteReview(id);
+    setReviews(p=>p.filter(r=>r.id!==id));
+    toast("Review deleted.");
+  }
+
+  const filteredUsers = users.filter(u=>
+    !search || u.id?.includes(search) || u.plan?.includes(search) || u.role?.includes(search)
+  );
+
+  const TABS_ADMIN = [
+    {id:"overview",  label:"Overview",   icon:"📊"},
+    {id:"users",     label:"Users",      icon:"👥"},
+    {id:"invites",   label:"Invite Codes",icon:"🎟️"},
+    {id:"analyses",  label:"Analyses",   icon:"🔍"},
+    {id:"reviews",   label:"Reviews",    icon:"⭐"},
+    {id:"feedback",  label:"Feedback",   icon:"💬"},
+  ];
+
+  const planClr = {free:C.stone,starter:C.blue,pro:C.sage,pro_monthly:C.sage,pro_yearly:C.sage,founding_user:C.purple,early_adopter:C.purple,beta_friend:C.blue,premium:C.amber};
+
+  return (
+    <div style={{ minHeight:"100vh", background:C.bg }}>
+      <Toasts list={toastList} remove={removeToast}/>
+
+      {/* Header */}
+      <header style={{ position:"sticky", top:0, zIndex:100, height:52, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 clamp(12px,4vw,32px)", background:"rgba(249,248,246,.97)", backdropFilter:"blur(14px)", borderBottom:`1px solid ${C.border}` }}>
+        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          <Logo size="sm"/>
+          <Tag color={C.purple} bg={C.purpleBg}>Admin</Tag>
+          {profile?.role==="founder"&&<Tag color={C.amber} bg={C.amberBg}>Founder</Tag>}
+        </div>
+        <div style={{ display:"flex", gap:8 }}>
+          <OutBtn size="sm" onClick={load}>↻ Refresh</OutBtn>
+          <OutBtn size="sm" onClick={onBack}>← Back to site</OutBtn>
+        </div>
+      </header>
+
+      <div style={{ maxWidth:1100, margin:"0 auto", padding:"20px clamp(12px,4vw,24px) 80px" }}>
+
+        {/* Tabs */}
+        <div style={{ display:"flex", gap:2, borderBottom:`1px solid ${C.border}`, marginBottom:20, overflowX:"auto" }}>
+          {TABS_ADMIN.map(t=>(
+            <button key={t.id} onClick={()=>setTab(t.id)}
+              style={{ padding:"10px 14px", background:tab===t.id?C.surface:"transparent", border:`1px solid ${tab===t.id?C.border:"transparent"}`, borderBottom:tab===t.id?`2px solid ${C.purple}`:"1px solid transparent", borderRadius:"7px 7px 0 0", marginBottom:-1, color:tab===t.id?C.purple:C.ink3, fontWeight:tab===t.id?700:500, fontSize:13.5, cursor:"pointer", whiteSpace:"nowrap", fontFamily:"inherit", minHeight:42, display:"flex", alignItems:"center", gap:6 }}>
+              {t.icon} {t.label}
+              {t.id==="reviews"&&reviews.length>0&&<span style={{ background:C.red, color:"#fff", borderRadius:99, fontSize:10, padding:"1px 6px", fontWeight:700 }}>{reviews.length}</span>}
+            </button>
+          ))}
+        </div>
+
+        {loading&&<div style={{ display:"flex", justifyContent:"center", padding:60 }}><Spin s={32} c={C.purple}/></div>}
+
+        {/* OVERVIEW */}
+        {!loading&&tab==="overview"&&counts&&(
+          <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+            {/* Stat cards */}
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))", gap:10 }}>
+              {[
+                {label:"Total Users",    value:counts.totalUsers,    color:C.blue,   icon:"👥"},
+                {label:"Total Analyses", value:counts.totalAnalyses, color:C.sage,   icon:"🔍"},
+                {label:"Reviews Live",   value:counts.approvedReviews,color:C.amber, icon:"⭐"},
+                {label:"Feedback Items", value:counts.totalFeedback, color:C.stone,  icon:"💬"},
+                {label:"Invite Codes",   value:codes.length,         color:C.purple, icon:"🎟️"},
+                {label:"Pending Reviews",value:reviews.length,       color:C.red,    icon:"⏳"},
+              ].map((s,i)=>(
+                <Card key={i} style={{ padding:"16px 18px" }}>
+                  <div style={{ fontSize:22, marginBottom:6 }}>{s.icon}</div>
+                  <div style={{ fontSize:28, fontWeight:800, color:s.color, lineHeight:1 }}>{s.value}</div>
+                  <div style={{ fontSize:12, color:C.ink3, marginTop:4, fontWeight:600 }}>{s.label}</div>
+                </Card>
+              ))}
+            </div>
+
+            {/* Plan breakdown */}
+            <Card flat style={{ padding:"18px 20px" }}>
+              <div style={{ fontSize:13, fontWeight:700, color:C.ink, marginBottom:14 }}>Users by plan</div>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+                {Object.entries(counts.plans||{}).sort((a,b)=>b[1]-a[1]).map(([plan,count])=>(
+                  <div key={plan} style={{ padding:"8px 14px", borderRadius:99, background:(planClr[plan]||C.stone)+"15", color:planClr[plan]||C.stone, fontSize:13, fontWeight:600 }}>
+                    {planDisplayLabel(plan)}: {count}
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            {/* Recent analyses */}
+            <Card flat style={{ overflow:"hidden" }}>
+              <div style={{ padding:"12px 18px", borderBottom:`1px solid ${C.border}`, fontSize:13, fontWeight:700, color:C.ink }}>Recent analyses</div>
+              <div style={{ maxHeight:300, overflowY:"auto" }}>
+                {analyses.slice(0,10).map((a,i)=>(
+                  <div key={i} style={{ padding:"10px 18px", borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", gap:12, fontSize:13 }}>
+                    <div style={{ width:36, height:36, borderRadius:7, background:((a.gap_score>=70?C.sage:a.gap_score>=50?C.amber:C.red)+"15"), display:"flex", alignItems:"center", justifyContent:"center", fontWeight:800, color:a.gap_score>=70?C.sage:a.gap_score>=50?C.amber:C.red, flexShrink:0 }}>{a.gap_score??"-"}</div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontWeight:600, color:C.ink, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{a.role||"?"}{a.company?` @ ${a.company}`:""}</div>
+                      <div style={{ fontSize:11.5, color:C.ink3 }}>{new Date(a.created_at).toLocaleDateString("en-IN",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</div>
+                    </div>
+                    <div style={{ fontSize:11.5, color:C.ink3, flexShrink:0 }}>ATS:{a.ats_score??"-"} · Sk:{a.skill_score??"-"}</div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* USERS */}
+        {!loading&&tab==="users"&&(
+          <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+            <div style={{ display:"flex", gap:10, alignItems:"center" }}>
+              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Filter by plan, role, or ID…"
+                style={{ flex:1, padding:"10px 14px", borderRadius:9, border:`1.5px solid ${C.border}`, background:C.bg, fontSize:14, color:C.ink, fontFamily:"inherit", outline:"none" }}/>
+              <div style={{ fontSize:13, color:C.ink3, whiteSpace:"nowrap" }}>{filteredUsers.length} users</div>
+            </div>
+            <Card flat style={{ overflow:"hidden" }}>
+              <div style={{ maxHeight:600, overflowY:"auto" }}>
+                {filteredUsers.map((u,i)=>(
+                  <div key={u.id} style={{ padding:"12px 18px", borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", gap:12, flexWrap:"wrap" }}>
+                    <div style={{ flex:1, minWidth:200 }}>
+                      <div style={{ fontSize:12, color:C.ink3, fontFamily:"monospace" }}>{u.id?.slice(0,18)}…</div>
+                      <div style={{ fontSize:11.5, color:C.ink3, marginTop:2 }}>
+                        Joined {new Date(u.created_at).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})} · {u.analyses_this_month||0} analyses this month · {u.lifetime_accesses_remaining??3} lifetime left
+                      </div>
+                    </div>
+                    <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" }}>
+                      {/* Plan selector */}
+                      <select value={u.plan||"free"} onChange={e=>updateUserPlan(u.id,e.target.value)}
+                        style={{ padding:"6px 10px", borderRadius:7, border:`1.5px solid ${(planClr[u.plan||"free"]||C.stone)}30`, background:(planClr[u.plan||"free"]||C.stone)+"12", color:planClr[u.plan||"free"]||C.stone, fontSize:12, fontWeight:600, fontFamily:"inherit", cursor:"pointer", minHeight:"unset" }}>
+                        {ADMIN_PLANS.map(p=><option key={p} value={p}>{planDisplayLabel(p)}</option>)}
+                      </select>
+                      {/* Role selector */}
+                      <select value={u.role||"user"} onChange={e=>updateUserRole(u.id,e.target.value)}
+                        style={{ padding:"6px 10px", borderRadius:7, border:`1.5px solid ${C.border}`, background:C.bg, fontSize:12, fontWeight:600, fontFamily:"inherit", cursor:"pointer", color:u.role==="founder"?C.purple:u.role==="admin"?C.blue:C.ink2, minHeight:"unset" }}>
+                        {["user","admin","founder"].map(r=><option key={r} value={r}>{r}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* INVITE CODES */}
+        {!loading&&tab==="invites"&&(
+          <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+            {/* Create form */}
+            <Card flat style={{ padding:"18px 20px" }}>
+              <div style={{ fontSize:13, fontWeight:700, color:C.ink, marginBottom:14 }}>Create new invite code</div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:10, marginBottom:12 }} className="input-grid">
+                <Field label="Code" value={newCode.code} onChange={v=>setNewCode(p=>({...p,code:v.toUpperCase()}))} placeholder="BETA-XXXX" maxLen={30}/>
+                <Field label="Usage limit" value={String(newCode.limit)} onChange={v=>setNewCode(p=>({...p,limit:parseInt(v)||1}))} type="number"/>
+                <Field label="Access days" value={String(newCode.days)} onChange={v=>setNewCode(p=>({...p,days:parseInt(v)||30}))} type="number"/>
+                <Field label="Expires (optional)" value={newCode.expires} onChange={v=>setNewCode(p=>({...p,expires:v}))} type="date" accent={C.purple}/>
+              </div>
+              {codeErr&&<div style={{ fontSize:13, color:C.red, marginBottom:8 }}>{codeErr}</div>}
+              <Btn onClick={createCode} disabled={codeSaving} bg={C.purple} size="sm">
+                {codeSaving?<><Spin s={13} c="#fff"/>Creating…</>:"+ Create code"}
+              </Btn>
+            </Card>
+
+            {/* Existing codes */}
+            <Card flat style={{ overflow:"hidden" }}>
+              <div style={{ padding:"12px 18px", borderBottom:`1px solid ${C.border}`, fontSize:13, fontWeight:700, color:C.ink }}>{codes.length} invite codes</div>
+              {codes.length===0?<div style={{ padding:"32px 20px", textAlign:"center", color:C.ink3 }}>No invite codes yet.</div>
+              :codes.map((c,i)=>(
+                <div key={c.id} style={{ padding:"12px 18px", borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", gap:12, flexWrap:"wrap" }}>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontSize:14, fontWeight:700, color:C.purple, fontFamily:"monospace", letterSpacing:1 }}>{c.code}</div>
+                    <div style={{ fontSize:12, color:C.ink3, marginTop:3 }}>
+                      Used {c.used_count||0}/{c.usage_limit} · {c.access_days} days access
+                      {c.expires_at?` · Expires ${new Date(c.expires_at).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}`:" · No expiry"}
+                    </div>
+                  </div>
+                  <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+                    <div style={{ padding:"4px 12px", borderRadius:99, background:c.used_count>=(c.usage_limit||1)?C.redBg:C.sageBg, color:c.used_count>=(c.usage_limit||1)?C.red:C.sage, fontSize:12, fontWeight:600 }}>
+                      {c.used_count>=(c.usage_limit||1)?"Exhausted":"Active"}
+                    </div>
+                    <button onClick={()=>{ navigator.clipboard.writeText(c.code); toast("Code copied!"); }} style={{ padding:"6px 12px", borderRadius:7, border:`1px solid ${C.border}`, background:C.surface, fontSize:12, color:C.ink2, cursor:"pointer", fontFamily:"inherit", minHeight:"unset" }}>Copy</button>
+                    <button onClick={()=>deleteCode(c.id)} style={{ padding:"6px 12px", borderRadius:7, border:`1px solid ${C.red}30`, background:C.redBg, fontSize:12, color:C.red, cursor:"pointer", fontFamily:"inherit", minHeight:"unset" }}>Delete</button>
+                  </div>
+                </div>
+              ))}
+            </Card>
+          </div>
+        )}
+
+        {/* ANALYSES */}
+        {!loading&&tab==="analyses"&&(
+          <Card flat style={{ overflow:"hidden" }}>
+            <div style={{ padding:"12px 18px", borderBottom:`1px solid ${C.border}`, fontSize:13, fontWeight:700, color:C.ink }}>{analyses.length} recent analyses</div>
+            <div style={{ maxHeight:600, overflowY:"auto" }}>
+              {analyses.map((a,i)=>{
+                const clr=a.gap_score>=70?C.sage:a.gap_score>=50?C.amber:C.red;
+                return(
+                  <div key={a.id} style={{ padding:"11px 18px", borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", gap:12 }}>
+                    <div style={{ width:40, height:40, borderRadius:8, background:clr+"15", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:800, color:clr, fontSize:15, flexShrink:0 }}>{a.gap_score??"-"}</div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:13.5, fontWeight:600, color:C.ink, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{a.role||"Unknown role"}{a.company?` @ ${a.company}`:""}</div>
+                      <div style={{ fontSize:11.5, color:C.ink3, marginTop:2 }}>{new Date(a.created_at).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})}</div>
+                    </div>
+                    <div style={{ fontSize:12, color:C.ink3, flexShrink:0, textAlign:"right" }}>
+                      <div>ATS: {a.ats_score??"-"}</div>
+                      <div>Skills: {a.skill_score??"-"}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        )}
+
+        {/* REVIEWS */}
+        {!loading&&tab==="reviews"&&(
+          <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+            {reviews.length===0
+              ?<div style={{ padding:"48px 20px", textAlign:"center", color:C.ink3, background:C.surface, borderRadius:12, border:`1px solid ${C.border}` }}>
+                <div style={{ fontSize:28, marginBottom:10 }}>✅</div>
+                <div style={{ fontSize:14 }}>No pending reviews.</div>
+              </div>
+              :reviews.map((r,i)=>(
+                <Card key={r.id} flat style={{ padding:"16px 18px" }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:12, flexWrap:"wrap" }}>
+                    <div style={{ flex:1 }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
+                        <div style={{ width:32, height:32, borderRadius:"50%", background:C.sageBg, display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700, color:C.sage, flexShrink:0 }}>{r.name?.[0]}</div>
+                        <div>
+                          <div style={{ fontSize:13.5, fontWeight:700, color:C.ink }}>{r.name}</div>
+                          {r.role&&<div style={{ fontSize:12, color:C.ink3 }}>{r.role}</div>}
+                        </div>
+                        <Stars rating={r.rating}/>
+                      </div>
+                      <p style={{ fontSize:13.5, color:C.ink2, lineHeight:1.75, fontStyle:"italic" }}>"{r.text}"</p>
+                      <div style={{ fontSize:11.5, color:C.ink3, marginTop:8 }}>{new Date(r.created_at).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}</div>
+                    </div>
+                    <div style={{ display:"flex", gap:8 }}>
+                      <Btn size="sm" bg={C.sage} onClick={()=>approveReview(r.id)}>✓ Approve</Btn>
+                      <OutBtn size="sm" onClick={()=>deleteRev(r.id)} style={{ color:C.red, borderColor:C.red+"30" }}>✕ Delete</OutBtn>
+                    </div>
+                  </div>
+                </Card>
+              ))
+            }
+          </div>
+        )}
+
+        {/* FEEDBACK */}
+        {!loading&&tab==="feedback"&&(
+          <Card flat style={{ overflow:"hidden" }}>
+            <div style={{ padding:"12px 18px", borderBottom:`1px solid ${C.border}`, fontSize:13, fontWeight:700, color:C.ink }}>{feedback.length} feedback items</div>
+            <div style={{ maxHeight:600, overflowY:"auto" }}>
+              {feedback.length===0?<div style={{ padding:"32px 20px", textAlign:"center", color:C.ink3 }}>No feedback yet.</div>
+              :feedback.map((f,i)=>(
+                <div key={f.id} style={{ padding:"12px 18px", borderBottom:`1px solid ${C.border}` }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:f.comment?8:0 }}>
+                    <span style={{ padding:"3px 10px", borderRadius:99, background:f.helpful?C.sageBg:C.redBg, color:f.helpful?C.sage:C.red, fontSize:12, fontWeight:600 }}>{f.helpful?"Helpful":"Needs work"}</span>
+                    {f.role&&<span style={{ fontSize:13, color:C.ink2, fontWeight:500 }}>{f.role}{f.company?` @ ${f.company}`:""}</span>}
+                    {f.gap_score&&<span style={{ fontSize:12, color:C.ink3 }}>Score: {f.gap_score}</span>}
+                    <span style={{ fontSize:11.5, color:C.ink3, marginLeft:"auto" }}>{new Date(f.created_at).toLocaleDateString("en-IN",{day:"numeric",month:"short"})}</span>
+                  </div>
+                  {f.comment&&<p style={{ fontSize:13, color:C.ink2, lineHeight:1.7 }}>{f.comment}</p>}
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
 /* ─── ROOT ───────────────────────────────────────────────── */
 export default function KrackHire() {
-  const [view,        setView]        = useState("landing");
+  const [view,        setView]        = useState(
+    typeof window !== "undefined" && window.location.hash === "#admin" ? "admin" : "landing"
+  );
   const [user,        setUser]        = useState(null);
   const [profile,     setProfile]     = useState(null);
   const [showAuth,    setShowAuth]    = useState(false);
@@ -1836,15 +2201,29 @@ export default function KrackHire() {
     if (user) getProfile(user.id).then(setProfile).catch(()=>{});
   }
 
+  // Admin access: navigate to /#admin or press Ctrl+Shift+A
+  useEffect(()=>{
+    function onHash() { if(window.location.hash==="#admin") setView("admin"); }
+    function onKey(e) { if(e.ctrlKey&&e.shiftKey&&e.key==="A"){ window.location.hash="#admin"; setView("admin"); } }
+    window.addEventListener("hashchange", onHash);
+    window.addEventListener("keydown", onKey);
+    return()=>{ window.removeEventListener("hashchange",onHash); window.removeEventListener("keydown",onKey); };
+  },[]);
+
+  function goAdmin() { window.location.hash="#admin"; setView("admin"); }
+  function leaveAdmin() { window.location.hash=""; setView("landing"); }
+
   return (
     <>
       <Toasts list={toastList} remove={removeToast}/>
       {showAuth     &&<AuthModal onClose={()=>setShowAuth(false)}/>}
       {upgradeModal &&<UpgradeModal onClose={()=>setUpgradeModal(false)} onSelectPlan={handleUpgrade} user={user}/>}
       {payModal     &&<PaymentModal {...payModal} user={user} onClose={()=>setPayModal(null)} onSuccess={handlePaymentSuccess} toast={toast}/>}
-      {view==="tool"
-        ?<Tool onBack={()=>setView("landing")} user={user} profile={profile} onShowAuth={()=>setShowAuth(true)} onUpgrade={handleUpgrade} onProfileRefresh={refreshProfile}/>
-        :<Landing onEnter={()=>setView("tool")} user={user} profile={profile} onShowAuth={()=>setShowAuth(true)} onSignOut={handleSignOut} onUpgrade={handleUpgrade} onProfileRefresh={refreshProfile} toast={toast}/>
+      {view==="admin"
+        ? <AdminDashboard user={user} profile={profile} onBack={leaveAdmin}/>
+        : view==="tool"
+          ? <Tool onBack={()=>setView("landing")} user={user} profile={profile} onShowAuth={()=>setShowAuth(true)} onUpgrade={handleUpgrade} onProfileRefresh={refreshProfile}/>
+          : <Landing onEnter={()=>setView("tool")} user={user} profile={profile} onShowAuth={()=>setShowAuth(true)} onSignOut={handleSignOut} onUpgrade={handleUpgrade} onProfileRefresh={refreshProfile} toast={toast} onAdmin={goAdmin}/>
       }
     </>
   );
