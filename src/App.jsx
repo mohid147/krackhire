@@ -560,10 +560,10 @@ function JobTrackerModal({ user, onClose, toast }) {
         <div style={{ padding:"16px 20px", borderBottom:`1px solid ${C.border}`, background:C.bg, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
           <div>
             <div style={{ fontSize:16, fontWeight:700, color:C.ink }}>📋 Job Application Tracker</div>
-            <div style={{ fontSize:12, color:C.ink3 }}>{jobs.length} applications tracked</div>
+            <div style={{ fontSize:12, color:C.ink3 }}>{user?`${jobs.length} applications tracked`:"Sign in to save applications"}</div>
           </div>
           <div style={{ display:"flex", gap:8 }}>
-            <Btn size="sm" bg={C.sage} onClick={()=>{ resetForm(); setEditId(null); setShowAdd(!showAdd); }}>+ Add Job</Btn>
+            {user&&<Btn size="sm" bg={C.sage} onClick={()=>{ resetForm(); setEditId(null); setShowAdd(!showAdd); }}>+ Add Job</Btn>}
             <button onClick={onClose} style={{ fontSize:22, color:C.ink3, cursor:"pointer", lineHeight:1, minHeight:36, minWidth:36 }}>×</button>
           </div>
         </div>
@@ -1131,13 +1131,13 @@ function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onP
         </div>
         <div style={{ display:"flex", gap:8, alignItems:"center" }}>
           {user?<UserMenu user={user} profile={profile} onSignOut={onSignOut} onUpgrade={onUpgrade} onInvite={()=>setShowInvite(true)}/>
-               :<><OutBtn onClick={onShowAuth} size="sm" className="desktop-only" style={{ display:"none" }}>Sign in</OutBtn><Btn onClick={onEnter} size="sm" bg={C.sage}>Try free</Btn></>}
+               :<><OutBtn onClick={onShowAuth} size="sm" className="desktop-only">Sign in</OutBtn><Btn onClick={onEnter} size="sm" bg={C.sage}>Try free</Btn></>}
           <button className="mobile-only" onClick={()=>setMenuOpen(!menuOpen)} style={{ padding:"8px 10px", borderRadius:7, color:C.ink2, fontSize:20, lineHeight:1, minHeight:44, minWidth:44 }}>{menuOpen?"✕":"☰"}</button>
         </div>
       </nav>
 
       {menuOpen&&(
-        <div style={{ position:"fixed", top:106, left:0, right:0, zIndex:199, background:C.surface, borderBottom:`1px solid ${C.border}`, padding:"10px 14px", display:"flex", flexDirection:"column", gap:2, animation:"slideUp .2s ease", boxShadow:"0 6px 20px rgba(0,0,0,.08)" }}>
+        <div style={{ position:"fixed", top:"calc(35px + 52px)", left:0, right:0, zIndex:199, background:C.surface, borderBottom:`1px solid ${C.border}`, padding:"10px 14px", display:"flex", flexDirection:"column", gap:2, animation:"slideUp .2s ease", boxShadow:"0 6px 20px rgba(0,0,0,.08)" }}>
           {navLinks.map(([h,l])=><a key={l} href={h} onClick={()=>setMenuOpen(false)} style={{ padding:"12px 14px", borderRadius:8, fontSize:15, fontWeight:500, color:C.ink2, minHeight:48, display:"flex", alignItems:"center" }}>{l}</a>)}
           <div style={{ paddingTop:10, borderTop:`1px solid ${C.border}`, marginTop:6, display:"flex", flexDirection:"column", gap:8 }}>
             {!user&&<OutBtn onClick={()=>{setMenuOpen(false);onShowAuth();}} style={{ justifyContent:"center", width:"100%" }}>Sign in with Google</OutBtn>}
@@ -1375,7 +1375,7 @@ function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onP
               <h2 className="section-title" style={{ fontFamily:"'Lora',Georgia,serif", fontSize:"clamp(24px,3.5vw,36px)", lineHeight:1.2, margin:"12px 0 10px", color:C.ink }}>Get in touch.</h2>
               <p style={{ fontSize:15, color:C.ink2, maxWidth:380, margin:"0 auto", lineHeight:1.75 }}>For support, college tie-ups, or anything else.</p>
             </div>
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))", gap:12, marginBottom:24 }}>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))", gap:10, marginBottom:24 }}>
               {[
                 { icon:"👤", label:"Legal Name",  value:"Mohammad Mohid" },
                 { icon:"📧", label:"Email",        value:"hellokrackhire@gmail.com", link:"mailto:hellokrackhire@gmail.com" },
@@ -1402,6 +1402,58 @@ function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onP
         </div>
       </section>
 
+
+      {/* PRIVACY POLICY */}
+      <section id="privacy" className="section-pad" style={{ background:C.bg, borderTop:`1px solid ${C.border}`, padding:"64px clamp(16px,5vw,52px)" }}>
+        <div style={{ maxWidth:760, margin:"0 auto" }}>
+          <Reveal>
+            <Tag color={C.stone}>Legal</Tag>
+            <h2 style={{ fontFamily:"'Lora',Georgia,serif", fontSize:"clamp(22px,3vw,32px)", color:C.ink, margin:"12px 0 24px", fontWeight:700 }}>Privacy Policy</h2>
+            {[
+              ["Information we collect", "We collect your name, email address, and Google account details when you sign in. We also collect the resume text and job descriptions you paste into the tool for analysis purposes."],
+              ["How we use your information", "Your resume and job description are sent to our AI provider (Groq) for analysis and are not stored permanently on our servers. Your email and name are stored in our database to maintain your account and save your analysis history."],
+              ["Data storage", "Account data is stored securely on Supabase (a SOC 2 compliant platform). We do not sell your personal information to any third party."],
+              ["Cookies & tracking", "We use essential cookies for authentication only. We do not use advertising or tracking cookies."],
+              ["Payments", "Payment processing is handled by PayU. We do not store your card or UPI details. All transactions are encrypted and handled by PayU's secure infrastructure."],
+              ["Your rights", "You may request deletion of your account and data at any time by emailing hellokrackhire@gmail.com. We will process all requests within 7 business days."],
+              ["Contact", "For privacy-related queries, contact us at hellokrackhire@gmail.com or call +91 63032 79390."],
+            ].map(([title, text],i)=>(
+              <div key={i} style={{ marginBottom:20, paddingBottom:20, borderBottom:i<6?`1px solid ${C.border}`:"none" }}>
+                <div style={{ fontSize:15, fontWeight:700, color:C.ink, marginBottom:6 }}>{title}</div>
+                <p style={{ fontSize:14, color:C.ink2, lineHeight:1.8 }}>{text}</p>
+              </div>
+            ))}
+            <p style={{ fontSize:12.5, color:C.ink3 }}>Last updated: January 2025 · KrackHire, Hyderabad, Telangana, India</p>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* TERMS OF SERVICE */}
+      <section id="terms" className="section-pad" style={{ background:C.surface, borderTop:`1px solid ${C.border}`, padding:"64px clamp(16px,5vw,52px)" }}>
+        <div style={{ maxWidth:760, margin:"0 auto" }}>
+          <Reveal>
+            <Tag color={C.stone}>Legal</Tag>
+            <h2 style={{ fontFamily:"'Lora',Georgia,serif", fontSize:"clamp(22px,3vw,32px)", color:C.ink, margin:"12px 0 24px", fontWeight:700 }}>Terms of Service</h2>
+            {[
+              ["Acceptance", "By using KrackHire (www.krackhire.in), you agree to these terms. If you do not agree, please do not use the service."],
+              ["Service description", "KrackHire provides AI-powered resume analysis and career guidance tools. Results are generated by AI and are for informational purposes only. We do not guarantee job placement or interview success."],
+              ["Free & paid plans", "Free users receive 3 analyses per month. Paid plans provide unlimited analyses during the subscription period. Payments are non-refundable once an analysis has been performed. Refund requests for unused plans will be considered within 24 hours of purchase."],
+              ["Acceptable use", "You may not use KrackHire to upload malicious content, attempt to reverse-engineer our AI system, abuse free trial limits through multiple accounts, or resell our outputs commercially without permission."],
+              ["Intellectual property", "KrackHire and all its content are owned by Mohammad Mohid. The AI-generated content (resumes, cover letters) produced using your inputs belongs to you."],
+              ["Limitation of liability", "KrackHire is provided as-is. We are not liable for any decisions made based on our AI analysis. Career outcomes depend on many factors beyond our control."],
+              ["Governing law", "These terms are governed by the laws of India. Disputes shall be subject to the jurisdiction of courts in Hyderabad, Telangana."],
+              ["Contact", "For any queries regarding these terms, contact hellokrackhire@gmail.com or +91 63032 79390."],
+            ].map(([title, text],i)=>(
+              <div key={i} style={{ marginBottom:20, paddingBottom:20, borderBottom:i<7?`1px solid ${C.border}`:"none" }}>
+                <div style={{ fontSize:15, fontWeight:700, color:C.ink, marginBottom:6 }}>{title}</div>
+                <p style={{ fontSize:14, color:C.ink2, lineHeight:1.8 }}>{text}</p>
+              </div>
+            ))}
+            <p style={{ fontSize:12.5, color:C.ink3 }}>Last updated: January 2025 · KrackHire, Hyderabad, Telangana, India</p>
+          </Reveal>
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="section-pad" style={{ background:C.sageBg, borderTop:`1px solid ${C.sage}25`, padding:"72px clamp(16px,5vw,52px)", textAlign:"center" }}>
         <Reveal>
@@ -1419,17 +1471,17 @@ function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onP
       {/* FOOTER */}
       <footer style={{ background:"#1C1917", color:"#fff", padding:"44px clamp(16px,5vw,52px) 28px" }}>
         <div style={{ maxWidth:1060, margin:"0 auto" }}>
-          <div className="footer-grid" style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", gap:36, paddingBottom:32, borderBottom:"1px solid #292524" }}>
+          <div className="footer-grid" style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", gap:"clamp(16px,3vw,36px)", paddingBottom:32, borderBottom:"1px solid #292524" }}>
             <div className="footer-brand">
               <Logo dark/>
               <p style={{ fontSize:13, color:"#78716C", lineHeight:1.75, marginTop:10, maxWidth:240 }}>India's AI job readiness platform for freshers. Honest feedback. No hype.</p>
               <p style={{ fontSize:12, color:"#57534E", marginTop:8 }}>Made with care in Hyderabad, India</p>
             </div>
-            {[{title:"Product",links:["Features","How it works","Pricing","FAQ"]},{title:"Company",links:["About","Blog"]},{title:"Legal",links:["Privacy Policy","Terms of Service"]}].map(col=>(
+            {[{title:"Product",links:["Features","How it works","Pricing","FAQ"]},{title:"Product",links:[{label:"Features",href:"#features"},{label:"How it works",href:"#how"},{label:"Pricing",href:"#pricing"},{label:"FAQ",href:"#faq"}]},{title:"Company",links:[{label:"Contact",href:"#contact"},{label:"Email us",href:"mailto:hellokrackhire@gmail.com"}]},{title:"Legal",links:[{label:"Privacy Policy",href:"#privacy"},{label:"Terms of Service",href:"#terms"}]}].map(col=>(
               <div key={col.title}>
                 <div style={{ fontSize:11, fontWeight:700, color:"#78716C", textTransform:"uppercase", letterSpacing:.8, marginBottom:12 }}>{col.title}</div>
                 <div style={{ display:"flex", flexDirection:"column", gap:9 }}>
-                  {col.links.map(l=><a key={l} href="#" style={{ fontSize:13, color:"#78716C", minHeight:32, display:"flex", alignItems:"center" }}>{l}</a>)}
+                  {col.links.map(l=><a key={l.label} href={l.href} style={{ fontSize:13, color:"#78716C", minHeight:32, display:"flex", alignItems:"center" }}>{l.label}</a>)}
                 </div>
               </div>
             ))}
@@ -1583,11 +1635,11 @@ Type "start" to begin, or ask me anything about the role first.`}]);
           <Tag color={C.sage} bg={C.sageBg}>Beta</Tag>
           {anyLoad&&<span className="inline" style={{ fontSize:12, color:C.ink3, gap:5, minHeight:"unset", minWidth:"unset" }}><Spin s={12}/>Generating…</span>}
         </div>
-        <div className="tool-header-actions" style={{ display:"flex", gap:7, alignItems:"center" }}>
-          <OutBtn size="sm" onClick={()=>setShowTracker(true)}>📋 Tracker</OutBtn>
-          {user&&<OutBtn size="sm" onClick={()=>setShowDash(true)}>History</OutBtn>}
-          {ran&&<OutBtn size="sm" onClick={()=>{ setRan(false); setResults({gap:null,resume:null,cover:null,email:null}); setErrors({gap:null,resume:null,cover:null,email:null}); setChat([]); setShowFeedback(false); }}>New</OutBtn>}
-          <OutBtn size="sm" onClick={onBack}>← Home</OutBtn>
+        <div className="tool-header-actions" style={{ display:"flex", gap:6, alignItems:"center" }}>
+          <OutBtn size="sm" onClick={()=>setShowTracker(true)} style={{ minWidth:"unset" }}>📋</OutBtn>
+          {user&&<OutBtn size="sm" onClick={()=>setShowDash(true)} style={{ minWidth:"unset" }} className="desktop-only">History</OutBtn>}
+          {ran&&<OutBtn size="sm" onClick={()=>{ setRan(false); setResults({gap:null,resume:null,cover:null,email:null}); setErrors({gap:null,resume:null,cover:null,email:null}); setChat([]); setShowFeedback(false); }} style={{ minWidth:"unset" }}>↺ New</OutBtn>}
+          <OutBtn size="sm" onClick={onBack} style={{ minWidth:"unset" }}>← Home</OutBtn>
         </div>
       </header>
 
@@ -2170,8 +2222,14 @@ export default function KrackHire() {
     setUpgradeModal(false);
     if(!planId){ setUpgradeModal(true); return; }
     if(!user){ setShowAuth(true); return; }
-    const plans = { pro_monthly:{planLabel:"Pro Monthly",planAmount:"₹49/month"}, pro_yearly:{planLabel:"Pro Yearly",planAmount:"₹499/year"} };
-    setPayModal({ planId, ...plans[planId] });
+    const plans = {
+      pro_monthly:  { planLabel:"Pro Monthly",    planAmount:"₹49/month"  },
+      pro_yearly:   { planLabel:"Pro Yearly",      planAmount:"₹499/year"  },
+      starter:      { planLabel:"Starter (7 days)",planAmount:"₹49"        },
+      founding_user:{ planLabel:"Founding Member", planAmount:"₹49/month"  },
+    };
+    const plan = plans[planId] || { planLabel:"Pro", planAmount:"₹49/month" };
+    setPayModal({ planId, ...plan });
   }
 
   function handlePaymentSuccess() {
