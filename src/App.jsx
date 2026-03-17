@@ -1040,42 +1040,311 @@ function InviteCodeModal({ user, onClose, onSuccess, toast }) {
   );
 }
 
-/* ─── CONTACT MODAL ──────────────────────────────────────── */
-function ContactModal({ onClose }) {
+/* ─── CONTACT FORM ───────────────────────────────────────── */
+function ContactForm() {
+  const [form,    setForm]    = useState({name:"", email:"", subject:"", message:""});
+  const [sending, setSending] = useState(false);
+  const [sent,    setSent]    = useState(false);
+  const [err,     setErr]     = useState("");
+
+  async function submit() {
+    if(!form.name.trim())    return setErr("Please enter your name.");
+    if(!form.email.trim()||!form.email.includes("@")) return setErr("Please enter a valid email.");
+    if(!form.message.trim()) return setErr("Please enter your message.");
+    setSending(true); setErr("");
+    try {
+      // Save to Supabase feedback table (reusing existing table)
+      if(sb) await sb.from("feedback").insert({
+        helpful: true,
+        comment: `[CONTACT FORM]
+Name: ${form.name}
+Email: ${form.email}
+Subject: ${form.subject||"General"}
+Message: ${form.message}`,
+        user_id: null,
+      });
+      setSent(true);
+    } catch(e) { setErr("Could not send message. Please email us directly at hellokrackhire@gmail.com"); }
+    setSending(false);
+  }
+
+  if(sent) return (
+    <div style={{ textAlign:"center", padding:"40px 20px", background:C.sageBg, borderRadius:14, border:`1px solid ${C.sage}25` }}>
+      <div style={{ fontSize:40, marginBottom:14 }}>✅</div>
+      <div style={{ fontSize:18, fontWeight:700, color:C.sage, marginBottom:8 }}>Message sent!</div>
+      <div style={{ fontSize:14, color:C.ink2, lineHeight:1.7 }}>Thanks for reaching out. We'll get back to you within 24 hours.</div>
+    </div>
+  );
+
   return (
-    <div style={{ position:"fixed", inset:0, zIndex:1200, background:"rgba(0,0,0,.5)", backdropFilter:"blur(4px)", display:"flex", alignItems:"center", justifyContent:"center", padding:16 }} onClick={onClose}>
-      <div onClick={e=>e.stopPropagation()} style={{ background:C.surface, borderRadius:16, padding:"32px 28px", maxWidth:420, width:"100%", boxShadow:"0 20px 48px rgba(0,0,0,.18)", animation:"scaleIn .25s ease" }}>
-        <div style={{ textAlign:"center", marginBottom:24 }}>
-          <Logo size="md"/>
-          <h2 style={{ fontFamily:"'Lora',Georgia,serif", fontSize:22, color:C.ink, margin:"16px 0 6px", fontWeight:700 }}>Contact Us</h2>
-          <p style={{ fontSize:13.5, color:C.ink2, lineHeight:1.65 }}>We're here to help. Reach out anytime.</p>
+    <Card flat style={{ padding:"clamp(18px,4vw,28px)", border:`1px solid ${C.border}` }}>
+      <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+        <div className="input-grid" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+          <Field label="Your name *" value={form.name} onChange={v=>setForm(p=>({...p,name:v}))} placeholder="e.g. Rahul Kumar" maxLen={80}/>
+          <Field label="Email address *" value={form.email} onChange={v=>setForm(p=>({...p,email:v}))} placeholder="you@email.com" type="email" maxLen={120} accent={C.blue}/>
         </div>
-        <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
-          {[
-            { icon:"👤", label:"Legal Name",  value:"Mohammad Mohid" },
-            { icon:"📧", label:"Email",        value:"hellokrackhire@gmail.com", link:"mailto:hellokrackhire@gmail.com" },
-            { icon:"📞", label:"Phone",        value:"+91 63032 79390", link:"tel:+916303279390" },
-            { icon:"🌐", label:"Website",      value:"www.krackhire.in", link:"https://www.krackhire.in" },
-            { icon:"📍", label:"Address",      value:"H.No 6-57, Shimla Nagar Colony, Chattanpally Road, Shadnagar, Farooqnagar, Mahbubnagar, Telangana 509215, India" },
-          ].map((item,i)=>(
-            <div key={i} style={{ display:"flex", alignItems:"center", gap:14, padding:"13px 16px", background:C.bg, borderRadius:10, border:`1px solid ${C.border}` }}>
-              <span style={{ fontSize:20, flexShrink:0 }}>{item.icon}</span>
-              <div style={{ flex:1 }}>
-                <div style={{ fontSize:11.5, fontWeight:700, color:C.ink3, textTransform:"uppercase", letterSpacing:.5, marginBottom:3 }}>{item.label}</div>
-                {item.link
-                  ? <a href={item.link} style={{ fontSize:14, color:C.blue, fontWeight:500, textDecoration:"none" }}>{item.value}</a>
-                  : <div style={{ fontSize:14, color:C.ink, fontWeight:500 }}>{item.value}</div>
-                }
-              </div>
-            </div>
-          ))}
+        <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
+          <label style={{ fontSize:11.5, fontWeight:700, color:C.ink2, letterSpacing:.5, textTransform:"uppercase" }}>Subject</label>
+          <select value={form.subject} onChange={e=>setForm(p=>({...p,subject:e.target.value}))} style={{ padding:"12px 14px", borderRadius:9, border:`1.5px solid ${C.border}`, background:C.bg, fontSize:15, color:C.ink, fontFamily:"inherit", cursor:"pointer" }}>
+            <option value="">Select a topic…</option>
+            <option value="Support">Product support</option>
+            <option value="Billing">Billing / payment</option>
+            <option value="College">College partnership</option>
+            <option value="Feedback">Feedback / suggestion</option>
+            <option value="Other">Something else</option>
+          </select>
         </div>
-        <div style={{ marginTop:20, padding:"14px 16px", background:C.sageBg, borderRadius:10, fontSize:13, color:C.sage, lineHeight:1.65, textAlign:"center" }}>
-          For support, partnerships, or college tie-ups,<br/>email us at <strong>hellokrackhire@gmail.com</strong>
+        <Field label="Message *" value={form.message} onChange={v=>setForm(p=>({...p,message:v}))} placeholder="Tell us how we can help…" rows={5} maxLen={1000}/>
+        {err&&<div style={{ fontSize:13, color:C.red, padding:"9px 13px", background:C.redBg, borderRadius:8 }}>{err}</div>}
+        <Btn onClick={submit} disabled={sending} bg={C.sage} full size="lg">
+          {sending?<><Spin s={16} c="#fff"/>Sending…</>:"Send message →"}
+        </Btn>
+        <p style={{ fontSize:12.5, color:C.ink3, textAlign:"center", lineHeight:1.6 }}>
+          Or email us directly at{" "}
+          <a href="mailto:hellokrackhire@gmail.com" style={{ color:C.blue, fontWeight:600 }}>hellokrackhire@gmail.com</a>
+        </p>
+      </div>
+    </Card>
+  );
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   PAGE SHELL — shared wrapper for all legal/info pages
+══════════════════════════════════════════════════════════════ */
+function PageShell({ title, tag, tagColor, tagBg, children, onBack }) {
+  useEffect(()=>{ window.scrollTo({top:0,behavior:"instant"}); },[]);
+  return (
+    <div style={{ minHeight:"100vh", background:C.bg }}>
+      {/* Minimal nav */}
+      <nav style={{ position:"sticky", top:0, zIndex:200, height:52, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 clamp(14px,5vw,52px)", background:"rgba(249,248,246,.97)", backdropFilter:"blur(14px)", borderBottom:`1px solid ${C.border}` }}>
+        <button onClick={onBack} className="inline" style={{ display:"flex", alignItems:"center", gap:8, fontSize:14, fontWeight:600, color:C.ink2, cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", minHeight:"unset", minWidth:"unset" }}>
+          <span style={{ fontSize:18, lineHeight:1 }}>←</span> KrackHire
+        </button>
+        <Logo size="sm"/>
+        <button onClick={onBack} style={{ fontSize:13.5, fontWeight:600, color:C.sage, cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", padding:"7px 14px", borderRadius:8, border:`1px solid ${C.sage}30` }}>
+          Go to app →
+        </button>
+      </nav>
+      {/* Page header */}
+      <div style={{ background:C.surface, borderBottom:`1px solid ${C.border}`, padding:"clamp(32px,6vw,64px) clamp(16px,5vw,52px)" }}>
+        <div style={{ maxWidth:760, margin:"0 auto" }}>
+          <Tag color={tagColor||C.stone} bg={tagBg}>{tag}</Tag>
+          <h1 style={{ fontFamily:"'Lora',Georgia,serif", fontSize:"clamp(26px,4vw,40px)", color:C.ink, margin:"14px 0 10px", fontWeight:700, lineHeight:1.15 }}>{title}</h1>
+          <p style={{ fontSize:13.5, color:C.ink3 }}>Last updated: January 2025 · www.krackhire.in</p>
         </div>
-        <button onClick={onClose} style={{ width:"100%", marginTop:14, fontSize:13.5, color:C.ink3, cursor:"pointer", padding:8, minHeight:36 }}>Close</button>
+      </div>
+      {/* Content */}
+      <div style={{ maxWidth:760, margin:"0 auto", padding:"clamp(28px,5vw,56px) clamp(16px,5vw,52px)" }}>
+        {children}
+      </div>
+      {/* Footer strip */}
+      <div style={{ background:"#1C1917", padding:"24px clamp(16px,5vw,52px)", display:"flex", flexWrap:"wrap", justifyContent:"space-between", alignItems:"center", gap:12 }}>
+        <Logo dark size="sm"/>
+        <span style={{ fontSize:12, color:"#57534E" }}>© 2025 KrackHire. All rights reserved.</span>
+        <button onClick={onBack} style={{ fontSize:13, color:"#78716C", cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", minHeight:"unset" }}>← Back to site</button>
       </div>
     </div>
+  );
+}
+
+/* ── LEGAL SECTION BLOCK ── */
+function LegalSection({ items }) {
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:0 }}>
+      {items.map(([title, text], i) => (
+        <div key={i} style={{ padding:"22px 0", borderBottom:i<items.length-1?`1px solid ${C.border}`:"none" }}>
+          <div style={{ fontSize:15.5, fontWeight:700, color:C.ink, marginBottom:8 }}>{title}</div>
+          <p style={{ fontSize:14.5, color:C.ink2, lineHeight:1.85 }}>{text}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════
+   CONTACT PAGE
+══════════════════════════════════════════════════════════════ */
+function ContactPage({ onBack }) {
+  const [name,    setName]    = useState("");
+  const [email,   setEmail]   = useState("");
+  const [subject, setSubject] = useState("General enquiry");
+  const [message, setMessage] = useState("");
+  const [sent,    setSent]    = useState(false);
+  const [err,     setErr]     = useState("");
+
+  function validate() {
+    if (!name.trim())    { setErr("Please enter your name."); return false; }
+    if (!email.trim() || !email.includes("@")) { setErr("Please enter a valid email."); return false; }
+    if (!message.trim()) { setErr("Please write a message."); return false; }
+    return true;
+  }
+
+  function handleSend() {
+    setErr("");
+    if (!validate()) return;
+    const body = `Name: ${name}%0AEmail: ${email}%0ASubject: ${subject}%0A%0A${message}`;
+    window.location.href = `mailto:hellokrackhire@gmail.com?subject=${encodeURIComponent(subject)}&body=${body}`;
+    setSent(true);
+  }
+
+  useEffect(()=>{ window.scrollTo({top:0,behavior:"instant"}); },[]);
+
+  return (
+    <div style={{ minHeight:"100vh", background:C.bg }}>
+      {/* Nav */}
+      <nav style={{ position:"sticky", top:0, zIndex:200, height:52, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 clamp(14px,5vw,52px)", background:"rgba(249,248,246,.97)", backdropFilter:"blur(14px)", borderBottom:`1px solid ${C.border}` }}>
+        <button onClick={onBack} className="inline" style={{ display:"flex", alignItems:"center", gap:8, fontSize:14, fontWeight:600, color:C.ink2, cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", minHeight:"unset", minWidth:"unset" }}>
+          <span style={{ fontSize:18, lineHeight:1 }}>←</span> KrackHire
+        </button>
+        <Logo size="sm"/>
+        <button onClick={onBack} style={{ fontSize:13.5, fontWeight:600, color:C.sage, cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", padding:"7px 14px", borderRadius:8, border:`1px solid ${C.sage}30` }}>
+          Go to app →
+        </button>
+      </nav>
+
+      <div style={{ maxWidth:960, margin:"0 auto", padding:"clamp(32px,6vw,64px) clamp(16px,5vw,52px)" }}>
+        {/* Header */}
+        <div style={{ marginBottom:40 }}>
+          <Tag color={C.blue} bg={C.blueBg}>Contact</Tag>
+          <h1 style={{ fontFamily:"'Lora',Georgia,serif", fontSize:"clamp(26px,4vw,40px)", color:C.ink, margin:"14px 0 10px", fontWeight:700 }}>Get in touch.</h1>
+          <p style={{ fontSize:15, color:C.ink2, lineHeight:1.75, maxWidth:480 }}>We respond within 24 hours on business days. For urgent matters, email us directly.</p>
+        </div>
+
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1.4fr", gap:"clamp(20px,4vw,48px)", alignItems:"start" }} className="contact-grid">
+          {/* Left: contact info */}
+          <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+            <div style={{ fontSize:11.5, fontWeight:700, color:C.ink3, textTransform:"uppercase", letterSpacing:.8, marginBottom:2 }}>Contact details</div>
+            {[
+              { icon:"👤", label:"Legal Name",  value:"Mohammad Mohid" },
+              { icon:"📧", label:"Email",        value:"hellokrackhire@gmail.com", href:"mailto:hellokrackhire@gmail.com" },
+              { icon:"📞", label:"Phone",        value:"+91 63032 79390",          href:"tel:+916303279390" },
+              { icon:"📍", label:"Address",      value:"H.No 6-57, Shimla Nagar Colony, Chattanpally Road, Shadnagar, Farooqnagar, Mahbubnagar, Telangana 509215, India" },
+              { icon:"🌐", label:"Website",      value:"www.krackhire.in",          href:"https://www.krackhire.in" },
+            ].map((item, i) => (
+              <div key={i} style={{ display:"flex", gap:13, padding:"14px 16px", background:C.surface, borderRadius:10, border:`1px solid ${C.border}` }}>
+                <span style={{ fontSize:18, flexShrink:0, marginTop:1 }}>{item.icon}</span>
+                <div>
+                  <div style={{ fontSize:11.5, fontWeight:700, color:C.ink3, textTransform:"uppercase", letterSpacing:.4, marginBottom:3 }}>{item.label}</div>
+                  {item.href
+                    ? <a href={item.href} style={{ fontSize:13.5, color:C.blue, fontWeight:500, lineHeight:1.6, wordBreak:"break-word" }}>{item.value}</a>
+                    : <div style={{ fontSize:13.5, color:C.ink, lineHeight:1.6 }}>{item.value}</div>
+                  }
+                </div>
+              </div>
+            ))}
+            <div style={{ padding:"14px 16px", background:C.sageBg, borderRadius:10, fontSize:13, color:C.sage, lineHeight:1.65 }}>
+              💬 We typically reply within 24 hours. For college tie-ups or partnerships, mention it in the subject.
+            </div>
+          </div>
+
+          {/* Right: form */}
+          <div>
+            {sent ? (
+              <div style={{ textAlign:"center", padding:"48px 24px", background:C.surface, borderRadius:14, border:`1px solid ${C.border}` }}>
+                <div style={{ fontSize:44, marginBottom:16 }}>✅</div>
+                <div style={{ fontSize:20, fontWeight:700, color:C.sage, marginBottom:10 }}>Email client opened!</div>
+                <p style={{ fontSize:14, color:C.ink2, lineHeight:1.75 }}>Your email client should have opened with the message pre-filled. If not, email us directly at <a href="mailto:hellokrackhire@gmail.com" style={{ color:C.blue, fontWeight:600 }}>hellokrackhire@gmail.com</a></p>
+                <button onClick={()=>setSent(false)} style={{ marginTop:20, fontSize:13.5, color:C.ink3, cursor:"pointer", background:"none", border:"none", fontFamily:"inherit" }}>Send another message</button>
+              </div>
+            ) : (
+              <Card flat style={{ padding:"clamp(20px,4vw,32px)" }}>
+                <div style={{ fontSize:15, fontWeight:700, color:C.ink, marginBottom:20 }}>Send us a message</div>
+                <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+                  <div className="input-grid" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+                    <Field label="Your Name *" value={name} onChange={v=>{setName(v);setErr("");}} placeholder="e.g. Rahul Kumar" maxLen={80}/>
+                    <Field label="Your Email *" value={email} onChange={v=>{setEmail(v);setErr("");}} placeholder="you@email.com" type="email" maxLen={120} accent={C.blue}/>
+                  </div>
+                  <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
+                    <label style={{ fontSize:11.5, fontWeight:700, color:C.ink2, letterSpacing:.5, textTransform:"uppercase" }}>Subject</label>
+                    <select value={subject} onChange={e=>setSubject(e.target.value)} style={{ padding:"12px 14px", borderRadius:9, border:`1.5px solid ${C.border}`, background:C.bg, fontSize:15, color:C.ink, fontFamily:"inherit", cursor:"pointer", WebkitAppearance:"none", minHeight:48 }}>
+                      {["General enquiry","Support / Bug report","College partnership","Business enquiry","Payment issue","Feedback"].map(o=><option key={o}>{o}</option>)}
+                    </select>
+                  </div>
+                  <Field label="Message *" value={message} onChange={v=>{setMessage(v);setErr("");}} placeholder="Tell us what you need…" rows={5} maxLen={1000}/>
+                  {err&&<div style={{ padding:"10px 14px", background:C.redBg, borderRadius:8, fontSize:13, color:C.red }}>{err}</div>}
+                  <Btn onClick={handleSend} full bg={C.sage} style={{ fontSize:15 }}>Send message →</Btn>
+                  <p style={{ fontSize:12, color:C.ink3, textAlign:"center" }}>This opens your email client with the message pre-filled.</p>
+                </div>
+              </Card>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Footer strip */}
+      <div style={{ background:"#1C1917", padding:"24px clamp(16px,5vw,52px)", display:"flex", flexWrap:"wrap", justifyContent:"space-between", alignItems:"center", gap:12, marginTop:48 }}>
+        <Logo dark size="sm"/>
+        <span style={{ fontSize:12, color:"#57534E" }}>© 2025 KrackHire. All rights reserved.</span>
+        <button onClick={onBack} style={{ fontSize:13, color:"#78716C", cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", minHeight:"unset" }}>← Back to site</button>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PRIVACY POLICY PAGE
+══════════════════════════════════════════════════════════════ */
+function PrivacyPage({ onBack }) {
+  return (
+    <PageShell title="Privacy Policy" tag="Legal" tagColor={C.stone} onBack={onBack}>
+      <LegalSection items={[
+        ["Information we collect", "We collect your name and email when you sign in with Google. We also temporarily process the resume text and job descriptions you paste — these are sent to our AI provider for analysis and are not stored permanently."],
+        ["How we use your data", "Your account data (name, email) is stored to maintain your session and save your analysis history. Resume and job description content is processed in real-time and not retained after analysis."],
+        ["Third-party services", "We use Supabase for secure data storage, Groq for AI analysis, and PayU for payment processing. Each service has its own privacy policy and handles data according to their standards."],
+        ["Payment data", "We do not store any card, UPI, or net banking details. All payment processing is handled exclusively by PayU on their secure infrastructure."],
+        ["Cookies", "We use only essential cookies required for authentication and session management. No advertising or tracking cookies are used."],
+        ["Data retention", "Your account data is retained as long as your account is active. Analysis history is retained to provide you with your history dashboard."],
+        ["Your rights", "You may request deletion of your account and all associated data at any time by emailing hellokrackhire@gmail.com. Requests are processed within 7 business days."],
+        ["Contact for privacy", "For privacy-related concerns: hellokrackhire@gmail.com · +91 63032 79390 · H.No 6-57, Shimla Nagar Colony, Shadnagar, Mahbubnagar, Telangana 509215, India"],
+      ]}/>
+    </PageShell>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TERMS OF SERVICE PAGE
+══════════════════════════════════════════════════════════════ */
+function TermsPage({ onBack }) {
+  return (
+    <PageShell title="Terms of Service" tag="Legal" tagColor={C.stone} onBack={onBack}>
+      <LegalSection items={[
+        ["Acceptance of terms", "By accessing or using KrackHire (www.krackhire.in), you agree to be bound by these Terms of Service. If you do not agree, please do not use the service."],
+        ["Service description", "KrackHire provides AI-powered resume analysis, gap identification, and career guidance tools. All AI-generated content is for informational purposes only. We do not guarantee job placement or interview success."],
+        ["Free plan", "Free users receive 3 analyses per calendar month. Each account also receives 3 lifetime premium accesses at sign-up. These are non-transferable and non-refundable once used."],
+        ["Paid plans", "Paid subscriptions provide unlimited analyses for the subscription duration. Plans are billed as described at checkout. Subscriptions do not auto-renew unless explicitly stated."],
+        ["Refunds", "Refund requests must be submitted within 24 hours of purchase and only if no analysis has been performed. Once an analysis is run, the plan is considered used. Contact hellokrackhire@gmail.com for refund requests."],
+        ["Acceptable use", "You may not use KrackHire to: upload harmful or illegal content, attempt to bypass usage limits via multiple accounts, reverse-engineer our AI systems, or resell our outputs commercially without written permission."],
+        ["Intellectual property", "KrackHire, its logo, and all platform content are owned by Mohammad Mohid. AI-generated content produced using your resume and job description belongs to you."],
+        ["Limitation of liability", "KrackHire is provided on an as-is basis. We are not liable for any career decisions made based on our AI analysis. Results may vary based on input quality and job market conditions."],
+        ["Modifications", "We reserve the right to modify these terms at any time. Continued use of the platform after changes constitutes acceptance of the new terms."],
+        ["Governing law", "These terms are governed by the laws of India. All disputes are subject to the jurisdiction of courts in Hyderabad, Telangana."],
+        ["Contact", "For terms-related queries: hellokrackhire@gmail.com · +91 63032 79390 · Mohammad Mohid, H.No 6-57, Shimla Nagar Colony, Shadnagar, Mahbubnagar, Telangana 509215, India"],
+      ]}/>
+    </PageShell>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════
+   REFUND POLICY PAGE
+══════════════════════════════════════════════════════════════ */
+function RefundPage({ onBack }) {
+  return (
+    <PageShell title="Refund Policy" tag="Legal" tagColor={C.stone} onBack={onBack}>
+      <div style={{ padding:"20px 24px", background:C.amberBg, borderRadius:12, border:`1px solid ${C.amber}30`, marginBottom:28 }}>
+        <div style={{ fontSize:15, fontWeight:700, color:C.amber, marginBottom:6 }}>Summary</div>
+        <p style={{ fontSize:14, color:C.ink2, lineHeight:1.75 }}>Refunds are available within 24 hours of purchase, provided no analysis has been run. Email us at <a href="mailto:hellokrackhire@gmail.com" style={{ color:C.blue, fontWeight:600 }}>hellokrackhire@gmail.com</a> with your payment details.</p>
+      </div>
+      <LegalSection items={[
+        ["Eligibility for refund", "A full refund is available if: (1) the request is made within 24 hours of purchase, and (2) no analysis has been performed using the purchased plan."],
+        ["Non-refundable situations", "Refunds will not be issued if: an analysis has been run using the plan, the 24-hour window has passed, or the request is for a free plan or lifetime access."],
+        ["How to request a refund", "Email hellokrackhire@gmail.com with subject 'Refund Request' and include: your registered email, payment ID (from PayU), and reason for the request. We process within 5–7 business days."],
+        ["Refund method", "Refunds are credited back to the original payment method (UPI, card, or net banking). Processing time depends on your bank or payment provider (typically 5–7 business days after approval)."],
+        ["Subscription cancellation", "You may cancel your subscription at any time. Cancellation stops future billing but does not refund the current billing period."],
+        ["Disputes", "If you believe a payment was made in error or you were charged incorrectly, contact us immediately at hellokrackhire@gmail.com or +91 63032 79390."],
+        ["Contact for refunds", "Email: hellokrackhire@gmail.com · Phone: +91 63032 79390 · Available Mon–Sat, 10 AM – 6 PM IST"],
+      ]}/>
+    </PageShell>
   );
 }
 
@@ -1101,22 +1370,20 @@ const FAQS=[
 ];
 
 /* ─── LANDING PAGE ───────────────────────────────────────── */
-function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onProfileRefresh, toast, onAdmin }) {
+function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onProfileRefresh, toast, onAdmin, navigate }) {
   const [scrolled,setScrolled]=useState(false); const [menuOpen,setMenuOpen]=useState(false); const [faqOpen,setFaqOpen]=useState(null);
   const [reviews,setReviews]=useState([]); const [reviewsDone,setReviewsDone]=useState(false); const [showForm,setShowForm]=useState(false); const [page,setPage]=useState(0);
   const [showInvite,setShowInvite]=useState(false);
-  const [showContact,setShowContact]=useState(false);
   const PER=3;
   useEffect(()=>{ const fn=()=>setScrolled(window.scrollY>10); window.addEventListener("scroll",fn,{passive:true}); getApprovedRevs().then(d=>{setReviews(d);setReviewsDone(true);}).catch(()=>setReviewsDone(true)); return()=>window.removeEventListener("scroll",fn); },[]);
   const visible=reviews.slice(page*PER,(page+1)*PER); const totalPages=Math.ceil(reviews.length/PER);
   const avg=reviews.length?(reviews.reduce((s,r)=>s+r.rating,0)/reviews.length).toFixed(1):null;
-  const navLinks=[["#how","How it works"],["#features","Features"],["#pricing","Pricing"],["#reviews","Reviews"],["#faq","FAQ"],["#contact","Contact"]];
+  const navLinks=[["#how","How it works"],["#features","Features"],["#pricing","Pricing"],["#reviews","Reviews"],["#faq","FAQ"]];
   const isPro=isPremiumPlan(profile?.plan, profile?.plan_expires_at);
 
   return (
     <div style={{ minHeight:"100vh", background:C.bg }}>
       {showInvite&&user&&<InviteCodeModal user={user} onClose={()=>setShowInvite(false)} onSuccess={onProfileRefresh} toast={toast}/>}
-      {showContact&&<ContactModal onClose={()=>setShowContact(false)}/>}
       <div className="ann-bar" style={{ background:C.sage, color:"#fff", textAlign:"center", padding:"9px 16px", fontSize:13.5, fontWeight:500, lineHeight:1.5 }}>
         KrackHire is in early beta — free to use, no account needed.{" "}
         <button onClick={onEnter} className="inline" style={{ color:"#D4E6DA", fontWeight:700, textDecoration:"underline", cursor:"pointer", background:"none", border:"none", fontSize:13.5, fontFamily:"inherit", minHeight:"unset", minWidth:"unset" }}>Try it →</button>
@@ -1366,93 +1633,6 @@ function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onP
         </div>
       </section>
 
-      {/* CONTACT */}
-      <section id="contact" className="section-pad" style={{ background:C.surface, borderTop:`1px solid ${C.border}`, padding:"64px clamp(16px,5vw,52px)" }}>
-        <div style={{ maxWidth:860, margin:"0 auto" }}>
-          <Reveal>
-            <div style={{ textAlign:"center", marginBottom:36 }}>
-              <Tag color={C.blue} bg={C.blueBg}>Contact</Tag>
-              <h2 className="section-title" style={{ fontFamily:"'Lora',Georgia,serif", fontSize:"clamp(24px,3.5vw,36px)", lineHeight:1.2, margin:"12px 0 10px", color:C.ink }}>Get in touch.</h2>
-              <p style={{ fontSize:15, color:C.ink2, maxWidth:380, margin:"0 auto", lineHeight:1.75 }}>For support, college tie-ups, or anything else.</p>
-            </div>
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))", gap:10, marginBottom:24 }}>
-              {[
-                { icon:"👤", label:"Legal Name",  value:"Mohammad Mohid" },
-                { icon:"📧", label:"Email",        value:"hellokrackhire@gmail.com", link:"mailto:hellokrackhire@gmail.com" },
-                { icon:"📞", label:"Phone",        value:"+91 63032 79390",          link:"tel:+916303279390" },
-                { icon:"🌐", label:"Website",      value:"www.krackhire.in",     link:"https://www.krackhire.in" },
-                { icon:"📍", label:"Address",      value:"H.No 6-57, Shimla Nagar Colony, Chattanpally Road, Shadnagar, Farooqnagar, Mahbubnagar, Telangana 509215" },
-              ].map((item,i)=>(
-                <Card key={i} style={{ padding:"20px 18px", display:"flex", flexDirection:"column", gap:8 }}>
-                  <span style={{ fontSize:24 }}>{item.icon}</span>
-                  <div style={{ fontSize:11.5, fontWeight:700, color:C.ink3, textTransform:"uppercase", letterSpacing:.5 }}>{item.label}</div>
-                  {item.link
-                    ? <a href={item.link} style={{ fontSize:14, color:C.blue, fontWeight:600, textDecoration:"none", lineHeight:1.5 }}>{item.value}</a>
-                    : <div style={{ fontSize:14, color:C.ink, fontWeight:500, lineHeight:1.5 }}>{item.value}</div>
-                  }
-                </Card>
-              ))}
-            </div>
-            <div style={{ textAlign:"center" }}>
-              <p style={{ fontSize:14, color:C.ink2, lineHeight:1.75, marginBottom:16 }}>
-                Prefer email? Write to us at <a href="mailto:hellokrackhire@gmail.com" style={{ color:C.blue, fontWeight:600 }}>hellokrackhire@gmail.com</a> and we'll respond within 24 hours.
-              </p>
-            </div>
-          </Reveal>
-        </div>
-      </section>
-
-
-      {/* PRIVACY POLICY */}
-      <section id="privacy" className="section-pad" style={{ background:C.bg, borderTop:`1px solid ${C.border}`, padding:"64px clamp(16px,5vw,52px)" }}>
-        <div style={{ maxWidth:760, margin:"0 auto" }}>
-          <Reveal>
-            <Tag color={C.stone}>Legal</Tag>
-            <h2 style={{ fontFamily:"'Lora',Georgia,serif", fontSize:"clamp(22px,3vw,32px)", color:C.ink, margin:"12px 0 24px", fontWeight:700 }}>Privacy Policy</h2>
-            {[
-              ["Information we collect", "We collect your name, email address, and Google account details when you sign in. We also collect the resume text and job descriptions you paste into the tool for analysis purposes."],
-              ["How we use your information", "Your resume and job description are sent to our AI provider (Groq) for analysis and are not stored permanently on our servers. Your email and name are stored in our database to maintain your account and save your analysis history."],
-              ["Data storage", "Account data is stored securely on Supabase (a SOC 2 compliant platform). We do not sell your personal information to any third party."],
-              ["Cookies & tracking", "We use essential cookies for authentication only. We do not use advertising or tracking cookies."],
-              ["Payments", "Payment processing is handled by PayU. We do not store your card or UPI details. All transactions are encrypted and handled by PayU's secure infrastructure."],
-              ["Your rights", "You may request deletion of your account and data at any time by emailing hellokrackhire@gmail.com. We will process all requests within 7 business days."],
-              ["Contact", "For privacy-related queries, contact us at hellokrackhire@gmail.com or call +91 63032 79390."],
-            ].map(([title, text],i)=>(
-              <div key={i} style={{ marginBottom:20, paddingBottom:20, borderBottom:i<6?`1px solid ${C.border}`:"none" }}>
-                <div style={{ fontSize:15, fontWeight:700, color:C.ink, marginBottom:6 }}>{title}</div>
-                <p style={{ fontSize:14, color:C.ink2, lineHeight:1.8 }}>{text}</p>
-              </div>
-            ))}
-            <p style={{ fontSize:12.5, color:C.ink3 }}>Last updated: January 2025 · KrackHire, Hyderabad, Telangana, India</p>
-          </Reveal>
-        </div>
-      </section>
-
-      {/* TERMS OF SERVICE */}
-      <section id="terms" className="section-pad" style={{ background:C.surface, borderTop:`1px solid ${C.border}`, padding:"64px clamp(16px,5vw,52px)" }}>
-        <div style={{ maxWidth:760, margin:"0 auto" }}>
-          <Reveal>
-            <Tag color={C.stone}>Legal</Tag>
-            <h2 style={{ fontFamily:"'Lora',Georgia,serif", fontSize:"clamp(22px,3vw,32px)", color:C.ink, margin:"12px 0 24px", fontWeight:700 }}>Terms of Service</h2>
-            {[
-              ["Acceptance", "By using KrackHire (www.krackhire.in), you agree to these terms. If you do not agree, please do not use the service."],
-              ["Service description", "KrackHire provides AI-powered resume analysis and career guidance tools. Results are generated by AI and are for informational purposes only. We do not guarantee job placement or interview success."],
-              ["Free & paid plans", "Free users receive 3 analyses per month. Paid plans provide unlimited analyses during the subscription period. Payments are non-refundable once an analysis has been performed. Refund requests for unused plans will be considered within 24 hours of purchase."],
-              ["Acceptable use", "You may not use KrackHire to upload malicious content, attempt to reverse-engineer our AI system, abuse free trial limits through multiple accounts, or resell our outputs commercially without permission."],
-              ["Intellectual property", "KrackHire and all its content are owned by Mohammad Mohid. The AI-generated content (resumes, cover letters) produced using your inputs belongs to you."],
-              ["Limitation of liability", "KrackHire is provided as-is. We are not liable for any decisions made based on our AI analysis. Career outcomes depend on many factors beyond our control."],
-              ["Governing law", "These terms are governed by the laws of India. Disputes shall be subject to the jurisdiction of courts in Hyderabad, Telangana."],
-              ["Contact", "For any queries regarding these terms, contact hellokrackhire@gmail.com or +91 63032 79390."],
-            ].map(([title, text],i)=>(
-              <div key={i} style={{ marginBottom:20, paddingBottom:20, borderBottom:i<7?`1px solid ${C.border}`:"none" }}>
-                <div style={{ fontSize:15, fontWeight:700, color:C.ink, marginBottom:6 }}>{title}</div>
-                <p style={{ fontSize:14, color:C.ink2, lineHeight:1.8 }}>{text}</p>
-              </div>
-            ))}
-            <p style={{ fontSize:12.5, color:C.ink3 }}>Last updated: January 2025 · KrackHire, Hyderabad, Telangana, India</p>
-          </Reveal>
-        </div>
-      </section>
 
       {/* CTA */}
       <section className="section-pad" style={{ background:C.sageBg, borderTop:`1px solid ${C.sage}25`, padding:"72px clamp(16px,5vw,52px)", textAlign:"center" }}>
@@ -1471,24 +1651,59 @@ function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onP
       {/* FOOTER */}
       <footer style={{ background:"#1C1917", color:"#fff", padding:"44px clamp(16px,5vw,52px) 28px" }}>
         <div style={{ maxWidth:1060, margin:"0 auto" }}>
-          <div className="footer-grid" style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", gap:"clamp(16px,3vw,36px)", paddingBottom:32, borderBottom:"1px solid #292524" }}>
+          <div className="footer-grid" style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr", gap:"clamp(24px,4vw,48px)", paddingBottom:32, borderBottom:"1px solid #292524" }}>
+
+            {/* Brand */}
             <div className="footer-brand">
               <Logo dark/>
-              <p style={{ fontSize:13, color:"#78716C", lineHeight:1.75, marginTop:10, maxWidth:240 }}>India's AI job readiness platform for freshers. Honest feedback. No hype.</p>
-              <p style={{ fontSize:12, color:"#57534E", marginTop:8 }}>Made with care in Hyderabad, India</p>
+              <p style={{ fontSize:13, color:"#78716C", lineHeight:1.8, marginTop:12, maxWidth:260 }}>
+                India's AI job readiness platform for freshers and early-career professionals. Honest feedback. No hype.
+              </p>
+              <p style={{ fontSize:12, color:"#57534E", marginTop:8 }}>Made with care in Hyderabad, India 🇮🇳</p>
             </div>
-            {[{title:"Product",links:["Features","How it works","Pricing","FAQ"]},{title:"Product",links:[{label:"Features",href:"#features"},{label:"How it works",href:"#how"},{label:"Pricing",href:"#pricing"},{label:"FAQ",href:"#faq"}]},{title:"Company",links:[{label:"Contact",href:"#contact"},{label:"Email us",href:"mailto:hellokrackhire@gmail.com"}]},{title:"Legal",links:[{label:"Privacy Policy",href:"#privacy"},{label:"Terms of Service",href:"#terms"}]}].map(col=>(
-              <div key={col.title}>
-                <div style={{ fontSize:11, fontWeight:700, color:"#78716C", textTransform:"uppercase", letterSpacing:.8, marginBottom:12 }}>{col.title}</div>
-                <div style={{ display:"flex", flexDirection:"column", gap:9 }}>
-                  {col.links.map(l=><a key={l.label} href={l.href} style={{ fontSize:13, color:"#78716C", minHeight:32, display:"flex", alignItems:"center" }}>{l.label}</a>)}
-                </div>
+
+            {/* Product */}
+            <div>
+              <div style={{ fontSize:11, fontWeight:700, color:"#57534E", textTransform:"uppercase", letterSpacing:1, marginBottom:16 }}>Product</div>
+              <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                {[["#features","Features"],["#how","How it works"],["#pricing","Pricing"],["#faq","FAQ"]].map(([href,label])=>(
+                  <a key={label} href={href} style={{ fontSize:13.5, color:"#78716C", lineHeight:1, display:"flex", alignItems:"center", minHeight:"unset", transition:"color .15s" }}
+                    onMouseEnter={e=>e.target.style.color="#fff"} onMouseLeave={e=>e.target.style.color="#78716C"}>
+                    {label}
+                  </a>
+                ))}
               </div>
-            ))}
+            </div>
+
+            {/* Legal */}
+            <div>
+              <div style={{ fontSize:11, fontWeight:700, color:"#57534E", textTransform:"uppercase", letterSpacing:1, marginBottom:16 }}>Legal & Support</div>
+              <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                {[
+                  {label:"Contact Us",     page:"contact"},
+                  {label:"Privacy Policy", page:"privacy"},
+                  {label:"Terms of Service",page:"terms"},
+                  {label:"Refund Policy",  page:"refund"},
+                ].map(({label,page})=>(
+                  <button key={page} onClick={()=>navigate(page)}
+                    style={{ fontSize:13.5, color:"#78716C", cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", textAlign:"left", padding:0, minHeight:"unset", minWidth:"unset", display:"flex", alignItems:"center", lineHeight:1, transition:"color .15s" }}
+                    onMouseEnter={e=>e.currentTarget.style.color="#fff"} onMouseLeave={e=>e.currentTarget.style.color="#78716C"}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
+
+          {/* Bottom bar */}
           <div style={{ paddingTop:20, display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:10, fontSize:12, color:"#57534E" }}>
             <span>© 2025 KrackHire. All rights reserved.</span>
-            <span>Early beta — improving based on genuine feedback.</span>
+            <div style={{ display:"flex", gap:16 }}>
+              <button onClick={()=>navigate("privacy")} style={{ fontSize:12, color:"#57534E", cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", minHeight:"unset", minWidth:"unset" }}>Privacy</button>
+              <button onClick={()=>navigate("terms")} style={{ fontSize:12, color:"#57534E", cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", minHeight:"unset", minWidth:"unset" }}>Terms</button>
+              <button onClick={()=>navigate("refund")} style={{ fontSize:12, color:"#57534E", cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", minHeight:"unset", minWidth:"unset" }}>Refund</button>
+              <button onClick={()=>navigate("contact")} style={{ fontSize:12, color:"#57534E", cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", minHeight:"unset", minWidth:"unset" }}>Contact</button>
+            </div>
           </div>
           {["admin","founder"].includes(profile?.role)&&(
             <div style={{paddingTop:10,textAlign:"center"}}>
@@ -1497,6 +1712,7 @@ function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onP
           )}
         </div>
       </footer>
+
 
       <div className="mobile-cta" style={{ display:"none", position:"fixed", bottom:0, left:0, right:0, zIndex:198, padding:"10px 16px", background:"rgba(249,248,246,.97)", backdropFilter:"blur(12px)", borderTop:`1px solid ${C.border}`, alignItems:"center", justifyContent:"space-between", gap:12 }}>
         <div><div style={{ fontSize:13, fontWeight:700, color:C.ink }}>KrackHire</div><div style={{ fontSize:11.5, color:C.ink3 }}>Free resume analysis tool</div></div>
@@ -2215,6 +2431,7 @@ export default function KrackHire() {
   },[]);
 
   async function handleSignOut(){ await doSignOut(); setUser(null); setProfile(null); }
+  function navigate(page){ setView(page); window.scrollTo({top:0,behavior:"instant"}); }
   function goAdmin(){ window.location.hash="#admin"; setView("admin"); }
   function leaveAdmin(){ window.location.hash=""; setView("landing"); }
 
@@ -2255,11 +2472,13 @@ export default function KrackHire() {
       {showAuth     &&<AuthModal onClose={()=>setShowAuth(false)}/>}
       {upgradeModal &&<UpgradeModal onClose={()=>setUpgradeModal(false)} onSelectPlan={handleUpgrade} user={user}/>}
       {payModal     &&<PaymentModal {...payModal} user={user} onClose={()=>setPayModal(null)} onSuccess={handlePaymentSuccess} toast={toast}/>}
-      {view==="admin"
-        ?<AdminDashboard user={user} profile={profile} onBack={leaveAdmin}/>
-        :view==="tool"
-          ?<Tool onBack={()=>setView("landing")} user={user} profile={profile} onShowAuth={()=>setShowAuth(true)} onUpgrade={handleUpgrade} onProfileRefresh={refreshProfile}/>
-          :<Landing onEnter={()=>setView("tool")} user={user} profile={profile} onShowAuth={()=>setShowAuth(true)} onSignOut={handleSignOut} onUpgrade={handleUpgrade} onProfileRefresh={refreshProfile} toast={toast} onAdmin={goAdmin}/>
+      {view==="admin"   ? <AdminDashboard user={user} profile={profile} onBack={leaveAdmin}/> :
+       view==="contact" ? <ContactPage  onBack={()=>navigate("landing")}/> :
+       view==="privacy" ? <PrivacyPage  onBack={()=>navigate("landing")}/> :
+       view==="terms"   ? <TermsPage    onBack={()=>navigate("landing")}/> :
+       view==="refund"  ? <RefundPage   onBack={()=>navigate("landing")}/> :
+       view==="tool"    ? <Tool onBack={()=>navigate("landing")} user={user} profile={profile} onShowAuth={()=>setShowAuth(true)} onUpgrade={handleUpgrade} onProfileRefresh={refreshProfile}/> :
+       <Landing onEnter={()=>navigate("tool")} user={user} profile={profile} onShowAuth={()=>setShowAuth(true)} onSignOut={handleSignOut} onUpgrade={handleUpgrade} onProfileRefresh={refreshProfile} toast={toast} onAdmin={goAdmin} navigate={navigate}/>
       }
     </>
   );
