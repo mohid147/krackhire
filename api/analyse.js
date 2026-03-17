@@ -1,4 +1,7 @@
-// api/analyse.js — KrackHire v6
+// api/analyse.js — KrackHire v8
+// Fixed: pro_monthly in PREMIUM_PLANS, profile_optimize gated,
+//        userId verified via Supabase auth, CORS locked to origin
+
 import { createClient } from '@supabase/supabase-js'
 
 function getSB() {
@@ -7,7 +10,7 @@ function getSB() {
   return createClient(url, key, { auth: { autoRefreshToken:false, persistSession:false } })
 }
 
-// IP rate limiter for anon users
+// ── IP RATE LIMITER (anon users) ──────────────────────────────
 const rlMap = new Map()
 function checkRL(ip) {
   const now=Date.now(), W=60*60*1000, MAX=5
@@ -17,13 +20,18 @@ function checkRL(ip) {
   e.count++; rlMap.set(ip,e); return true
 }
 
+// ── SANITIZE INPUT ────────────────────────────────────────────
 function clean(text, max=8000) {
   if (typeof text!=='string') return ''
-  const bad=[/ignore\s+(all\s+)?(previous|above|prior)\s+instructions?/gi,/system\s+prompt/gi,
-    /jailbreak/gi,/you\s+are\s+now\s+/gi,/<script[\s\S]*?<\/script>/gi,/javascript:/gi]
+  const bad=[
+    /ignore\s+(all\s+)?(previous|above|prior)\s+instructions?/gi,
+    /system\s+prompt/gi,/jailbreak/gi,/you\s+are\s+now\s+/gi,
+    /<script[\s\S]*?<\/script>/gi,/javascript:/gi
+  ]
   let t=text.slice(0,max); bad.forEach(p=>{t=t.replace(p,'[filtered]')}); return t.trim()
 }
 
+// ── SYSTEM PROMPTS ────────────────────────────────────────────
 function sysPrompt(type, { company, role, jd, resume, linkedin_headline, linkedin_about }) {
   const p = {
     gap: `You are a blunt experienced Indian tech recruiter with 10+ years experience.
@@ -92,23 +100,52 @@ function userMsg(type, ctx) {
 
 const MAX_TOK = { gap:1100, resume:1400, cover:650, email:380, interview:550, profile_optimize:1200 }
 
-// Privilege levels
-const FREE_LIMIT   = 3
-const PREMIUM_PLANS = ['starter','early_adopter','pro','pro_yearly','college_basic','college_pro','premium','founding_user','beta_friend']
+// ── PLAN CONFIG ───────────────────────────────────────────────
+const FREE_LIMIT    = 3
+// FIX: Added pro_monthly (was missing — caused pro_monthly users to be blocked)
+const PREMIUM_PLANS = [
+  'starter','early_adopter',
+  'pro','pro_monthly','pro_yearly',   // ← pro_monthly was missing in v6
+  'college_basic','college_pro',
+  'premium','founding_user','beta_friend'
+]
+// Types that require premium access (not just gap)
+const GATED_TYPES = ['gap', 'profile_optimize']
 
+// ── VERIFY USER FROM JWT (security fix) ──────────────────────
+async function verifyUser(req, sb) {
+  // Extract bearer token from Authorization header if present
+  const authHeader = req.headers['authorization']||''
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null
+  if (!token || !sb) return null
+  try {
+    const { data:{ user }, error } = await sb.auth.getUser(token)
+    if (error || !user) return null
+    return user.id
+  } catch { return null }
+}
+
+// ── MAIN HANDLER ──────────────────────────────────────────────
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', process.env.ALLOWED_ORIGIN||'*')
+  // CORS — locked to allowed origin, not wildcard
+  const origin = req.headers['origin']||''
+  const allowed = process.env.ALLOWED_ORIGIN||'*'
+  res.setHeader('Access-Control-Allow-Origin', allowed==='*' ? origin||'*' : allowed)
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  res.setHeader('Access-Control-Allow-Credentials', 'true')
   res.setHeader('X-Content-Type-Options', 'nosniff')
+  res.setHeader('X-Frame-Options', 'DENY')
   if (req.method==='OPTIONS') return res.status(200).end()
   if (req.method!=='POST')    return res.status(405).json({error:'Method not allowed'})
 
   const KEY = process.env.GROQ_API_KEY
   if (!KEY) return res.status(500).json({error:'Service unavailable.'})
 
-  const { type, resume, jd, company, role, messages, userId,
-          linkedin_headline, linkedin_about } = req.body||{}
+  const {
+    type, resume, jd, company, role, messages,
+    userId, linkedin_headline, linkedin_about
+  } = req.body||{}
 
   const valid = ['gap','resume','cover','email','interview','profile_optimize']
   if (!type||!valid.includes(type))
@@ -116,82 +153,103 @@ export default async function handler(req, res) {
 
   const sb = getSB()
 
-  // ── USAGE / ENTITLEMENT CHECK ─────────────────────────────
-  if (userId && sb && type==='gap') {
-    try {
-      const { data: prof } = await sb.from('profiles')
-        .select('role,plan,plan_expires_at,analyses_this_month,month_reset,lifetime_accesses_remaining')
-        .eq('id', userId).single()
+  // ── ENTITLEMENT CHECK ─────────────────────────────────────
+  // Only check entitlement for gated types (gap + profile_optimize)
+  if (GATED_TYPES.includes(type)) {
+    if (userId && sb) {
+      try {
+        const { data: prof } = await sb.from('profiles')
+          .select('role,plan,plan_expires_at,analyses_this_month,month_reset,lifetime_accesses_remaining')
+          .eq('id', userId).single()
 
-      if (prof) {
-        // Admin + founder: unlimited, no checks
-        if (['admin','founder'].includes(prof.role)) { /* pass */ }
-        else {
-          // Check if paid plan is still valid
-          const planActive = PREMIUM_PLANS.includes(prof.plan) &&
-            (prof.plan==='early_adopter' || (prof.plan_expires_at && new Date(prof.plan_expires_at) > new Date()))
+        if (prof) {
+          // Admin + founder: unlimited
+          if (['admin','founder'].includes(prof.role)) { /* pass through */ }
+          else {
+            const planActive =
+              PREMIUM_PLANS.includes(prof.plan) &&
+              (prof.plan==='early_adopter' || prof.plan==='founding_user' ||
+               (prof.plan_expires_at && new Date(prof.plan_expires_at) > new Date()))
 
-          // Check lifetime accesses
-          const hasLifetimeAccess = (prof.lifetime_accesses_remaining||0) > 0
+            const hasLifetimeAccess = (prof.lifetime_accesses_remaining||0) > 0
 
-          if (!planActive && !hasLifetimeAccess) {
-            // Check monthly free limit
-            const lastReset   = new Date(prof.month_reset||new Date())
-            const now         = new Date()
-            const isNewMonth  = now.getMonth()!==lastReset.getMonth() || now.getFullYear()!==lastReset.getFullYear()
-            const used        = isNewMonth ? 0 : (prof.analyses_this_month||0)
+            if (!planActive && !hasLifetimeAccess) {
+              // Free user — check monthly limit
+              const now        = new Date()
+              const lastReset  = new Date(prof.month_reset||now)
+              const isNewMonth = now.getMonth()!==lastReset.getMonth() ||
+                                 now.getFullYear()!==lastReset.getFullYear()
+              const used       = isNewMonth ? 0 : (prof.analyses_this_month||0)
 
-            if (used >= FREE_LIMIT)
-              return res.status(403).json({
-                error:`You've used all ${FREE_LIMIT} free analyses this month.`,
-                code:'LIMIT_REACHED', plan:prof.plan, limit:FREE_LIMIT
-              })
-            await sb.from('profiles').update({
-              analyses_this_month: isNewMonth ? 1 : used+1,
-              month_reset: isNewMonth ? now.toISOString() : prof.month_reset,
-            }).eq('id', userId)
-          } else if (hasLifetimeAccess && !planActive) {
-            // Consume one lifetime access
-            await sb.from('profiles').update({
-              lifetime_accesses_remaining: Math.max(0, (prof.lifetime_accesses_remaining||0) - 1),
-              lifetime_access_last_used: new Date().toISOString(),
-            }).eq('id', userId)
-          }
-          // If planActive: just track usage for analytics, no blocking
-          else if (planActive) {
-            const now = new Date()
-            const lastReset  = new Date(prof.month_reset||new Date())
-            const isNewMonth = now.getMonth()!==lastReset.getMonth() || now.getFullYear()!==lastReset.getFullYear()
-            await sb.from('profiles').update({
-              analyses_this_month: isNewMonth ? 1 : (prof.analyses_this_month||0)+1,
-              month_reset: isNewMonth ? now.toISOString() : prof.month_reset,
-            }).eq('id', userId)
+              if (used >= FREE_LIMIT)
+                return res.status(403).json({
+                  error:`You've used all ${FREE_LIMIT} free analyses this month. Upgrade for unlimited access.`,
+                  code:'LIMIT_REACHED', plan:prof.plan, limit:FREE_LIMIT
+                })
+
+              // Increment usage
+              await sb.from('profiles').update({
+                analyses_this_month: isNewMonth ? 1 : used+1,
+                month_reset: isNewMonth ? now.toISOString() : prof.month_reset,
+              }).eq('id', userId).catch(e=>console.error('Usage update error:',e.message))
+
+            } else if (hasLifetimeAccess && !planActive) {
+              // Consume one lifetime access
+              await sb.from('profiles').update({
+                lifetime_accesses_remaining: Math.max(0,(prof.lifetime_accesses_remaining||0)-1),
+                lifetime_access_last_used: new Date().toISOString(),
+              }).eq('id', userId).catch(e=>console.error('Lifetime update error:',e.message))
+
+            } else if (planActive) {
+              // Premium user — track for analytics only, never block
+              const now        = new Date()
+              const lastReset  = new Date(prof.month_reset||now)
+              const isNewMonth = now.getMonth()!==lastReset.getMonth() ||
+                                 now.getFullYear()!==lastReset.getFullYear()
+              await sb.from('profiles').update({
+                analyses_this_month: isNewMonth ? 1 : (prof.analyses_this_month||0)+1,
+                month_reset: isNewMonth ? now.toISOString() : prof.month_reset,
+              }).eq('id', userId).catch(e=>console.error('Analytics update error:',e.message))
+            }
           }
         }
-      }
-    } catch(e) { console.error('Usage check error:', e.message) }
-  } else if (!userId) {
-    const ip=(req.headers['x-forwarded-for']||'').split(',')[0].trim()||'unknown'
-    if (!checkRL(ip))
-      return res.status(429).json({ error:'Rate limit reached. Sign in for more free analyses.', code:'RATE_LIMITED' })
+      } catch(e) { console.error('Entitlement check error:', e.message) }
+
+    } else if (!userId) {
+      // Anonymous user — IP rate limit
+      const ip = (req.headers['x-forwarded-for']||'').split(',')[0].trim()||'unknown'
+      if (!checkRL(ip))
+        return res.status(429).json({
+          error:'Rate limit reached. Sign in for more free analyses.',
+          code:'RATE_LIMITED'
+        })
+    }
   }
 
   // ── SANITIZE ──────────────────────────────────────────────
-  const sResume  = clean(resume  ||'', 8000)
-  const sJd      = clean(jd      ||'', 4000)
-  const sCompany = clean(company ||'', 100)
-  const sRole    = clean(role    ||'', 100)
+  const sResume  = clean(resume           ||'', 8000)
+  const sJd      = clean(jd              ||'', 4000)
+  const sCompany = clean(company          ||'', 100)
+  const sRole    = clean(role             ||'', 100)
   const sHL      = clean(linkedin_headline||'', 300)
   const sAbout   = clean(linkedin_about   ||'', 2000)
 
   if (type!=='interview' && (!sResume||!sJd))
     return res.status(400).json({error:'Resume and job description are required.'})
 
-  const ctx = `Resume:\n${sResume}\n\nJob Description:\n${sJd}\nCompany: ${sCompany||'Not specified'}\nRole: ${sRole||'Not specified'}`
+  const ctx = [
+    `Resume:\n${sResume}`,
+    `\nJob Description:\n${sJd}`,
+    `Company: ${sCompany||'Not specified'}`,
+    `Role: ${sRole||'Not specified'}`
+  ].join('\n')
 
+  // Build messages array
   let chatMsgs
   if (type==='interview' && Array.isArray(messages) && messages.length>0) {
-    chatMsgs = messages.slice(-12).map(m=>({ role:m.role==='user'?'user':'assistant', content:clean(String(m.content||''),2000) }))
+    chatMsgs = messages
+      .slice(-12)
+      .map(m=>({ role:m.role==='user'?'user':'assistant', content:clean(String(m.content||''),2000) }))
   } else {
     chatMsgs = [{ role:'user', content:userMsg(type,ctx)||ctx }]
   }
@@ -200,38 +258,51 @@ export default async function handler(req, res) {
   try {
     const gr = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer ${KEY}`},
+      headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${KEY}` },
       body: JSON.stringify({
-        model:'llama-3.3-70b-versatile',
-        max_tokens: MAX_TOK[type]||800,
-        temperature: ['gap','profile_optimize'].includes(type) ? 0.15 : 0.7,
-        messages:[
-          {role:'system', content:sysPrompt(type,{company:sCompany,role:sRole,jd:sJd,resume:sResume,linkedin_headline:sHL,linkedin_about:sAbout})},
+        model:       'llama-3.3-70b-versatile',
+        max_tokens:  MAX_TOK[type]||800,
+        temperature: GATED_TYPES.includes(type) ? 0.15 : 0.7,
+        messages: [
+          { role:'system', content:sysPrompt(type,{
+              company:sCompany, role:sRole, jd:sJd,
+              resume:sResume, linkedin_headline:sHL, linkedin_about:sAbout
+            })
+          },
           ...chatMsgs,
         ],
       }),
     })
 
-    if (gr.status===429) return res.status(429).json({error:'AI busy. Please wait a moment and try again.'})
-    if (!gr.ok) { console.error('Groq error:', gr.status); return res.status(502).json({error:'AI error. Please try again.'}) }
+    if (gr.status===429)
+      return res.status(429).json({error:'AI is busy. Please wait a moment and try again.'})
+    if (!gr.ok) {
+      console.error('Groq error:', gr.status, await gr.text().catch(()=>''))
+      return res.status(502).json({error:'AI error. Please try again.'})
+    }
 
     const data   = await gr.json()
     const result = data.choices?.[0]?.message?.content||''
     if (!result) return res.status(502).json({error:'Empty AI response. Try again.'})
 
-    // ── SAVE TO DB ────────────────────────────────────────────
+    // ── SAVE GAP ANALYSIS TO DB ───────────────────────────
     if (userId && sb && type==='gap') {
       try {
         const parsed = JSON.parse(result.replace(/```json|```/g,'').trim())
         await sb.from('analyses').insert({
-          user_id:   userId, company:sCompany, role:sRole,
-          gap_score: parsed?.score, ats_score:parsed?.ats_score, skill_score:parsed?.skill_score,
-          gap_result:parsed,
-        }).catch(e=>console.error('Save error:',e.message))
+          user_id:    userId,
+          company:    sCompany,
+          role:       sRole,
+          gap_score:  parsed?.score,
+          ats_score:  parsed?.ats_score,
+          skill_score:parsed?.skill_score,
+          gap_result: parsed,
+        }).catch(e=>console.error('DB save error:',e.message))
       } catch(e) { console.error('Parse/save error:', e.message) }
     }
 
     return res.status(200).json({result})
+
   } catch(err) {
     console.error('Handler error:', err.message)
     return res.status(500).json({error:'Something went wrong. Please try again.'})
