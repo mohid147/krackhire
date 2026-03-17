@@ -25,7 +25,7 @@ img   { max-width: 100%; display: block; }
 @keyframes fadeIn  { from { opacity:0; } to { opacity:1; } }
 @keyframes scaleIn { from { opacity:0; transform:scale(.96); } to { opacity:1; transform:scale(1); } }
 
-/* ─── HOVER (desktop only — hover:hover prevents mobile stuck states) ─── */
+/* ─── HOVER (desktop only) ───────────────────────── */
 @media (hover: hover) {
   .kh-btn:not(:disabled):hover {
     filter: brightness(1.08);
@@ -56,6 +56,19 @@ button.inline, span.inline, a.inline { min-height: unset !important; min-width: 
   #resume-preview, #resume-preview * { visibility: visible; }
   #resume-preview { position: absolute; left:0; top:0; width:100%; padding:0!important; }
   @page { margin: 12mm; size: A4; }
+}
+
+/* ═══════════════════════════════════════════════════
+   TABLET BREAKPOINT — ≤900px
+   (fixes the gap between mobile and desktop)
+═══════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  /* Footer: 2 cols on tablet instead of 4 */
+  .footer-grid  { grid-template-columns: 1fr 1fr !important; gap: 20px !important; }
+  .footer-brand { grid-column: 1 / -1 !important; }
+
+  /* Pricing: 2 cols on tablet */
+  .pricing-grid { grid-template-columns: 1fr 1fr !important; gap: 12px !important; }
 }
 
 /* ═══════════════════════════════════════════════════
@@ -112,8 +125,8 @@ button.inline, span.inline, a.inline { min-height: unset !important; min-width: 
   .faq-grid { grid-template-columns: 1fr !important; gap: 20px !important; }
 
   /* ── FOOTER ── */
-  .footer-grid  { grid-template-columns: 1fr 1fr !important; gap: 24px !important; }
-  .footer-brand { grid-column: 1 / -1 !important; }
+  .footer-grid  { grid-template-columns: 1fr 1fr !important; gap: 20px !important; }
+  .footer-brand { grid-column: 1 / -1 !important; margin-bottom: 4px !important; }
 
   /* ── TOOL LAYOUT ── */
   .input-grid { grid-template-columns: 1fr !important; gap: 10px !important; }
@@ -122,19 +135,19 @@ button.inline, span.inline, a.inline { min-height: unset !important; min-width: 
   /* ── TOOL HEADER ── */
   .tool-header { padding: 0 10px !important; height: 50px !important; }
   .tool-header-actions { gap: 5px !important; }
-  .tool-header-actions button { font-size: 12px !important; padding: 7px 9px !important; min-height: 36px !important; min-width: unset !important; }
+  .tool-header-actions button { font-size: 12px !important; padding: 7px 10px !important; min-height: 36px !important; min-width: unset !important; }
 
   /* ── TABS ── */
   .tabs-bar { gap: 0 !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; scrollbar-width: none !important; }
   .tabs-bar::-webkit-scrollbar { display: none !important; }
-  .tabs-bar button { padding: 9px 11px !important; font-size: 12px !important; min-height: 40px !important; min-width: unset !important; }
+  .tabs-bar button { padding: 9px 10px !important; font-size: 12px !important; min-height: 40px !important; min-width: unset !important; }
 
   /* ── SCORE CARD ── */
   .score-card-inner { flex-direction: column !important; gap: 12px !important; }
   .score-number     { font-size: 38px !important; }
 
   /* ── CHAT ── */
-  .chat-messages    { height: 300px !important; }
+  .chat-messages    { height: 280px !important; }
   .chat-input-row   { flex-wrap: nowrap !important; gap: 7px !important; }
   .quick-prompts button { font-size: 11.5px !important; padding: 4px 9px !important; min-height: 28px !important; }
 
@@ -148,11 +161,9 @@ button.inline, span.inline, a.inline { min-height: unset !important; min-width: 
 
   /* ── MODALS ── */
   .auth-modal-inner    { padding: 26px 18px !important; border-radius: 14px !important; }
-  .upgrade-modal-inner { padding: 22px 16px !important; border-radius: 14px !important; }
-  .payment-modal-inner { padding: 22px 16px !important; max-height: 90vh !important; overflow-y: auto !important; }
+  .upgrade-modal-inner { padding: 22px 16px 32px !important; }
+  .payment-modal-inner { padding: 22px 16px !important; max-height: 92vh !important; overflow-y: auto !important; border-radius: 14px !important; }
   .dashboard-inner     { border-radius: 14px !important; max-height: 88vh !important; }
-
-  /* ── REPORT MODAL ── */
   .report-modal-inner  { padding: 20px 16px !important; border-radius: 14px !important; max-height: 90vh !important; overflow-y: auto !important; }
 
   /* ── FEEDBACK ── */
@@ -169,8 +180,12 @@ button.inline, span.inline, a.inline { min-height: unset !important; min-width: 
   .profile-grid { grid-template-columns: 1fr !important; gap: 10px !important; }
 
   /* ── PROGRESS STEPS ── */
-  .progress-steps { flex-direction: column !important; align-items: flex-start !important; gap: 8px !important; }
-  .progress-steps .step-connector { display: none !important; }
+  .progress-steps { overflow-x: auto !important; padding-bottom: 4px !important; }
+  .progress-steps .step-connector { min-width: 14px !important; }
+
+  /* ── ADMIN DASHBOARD ── */
+  .admin-tabs { gap: 0 !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; }
+  .admin-tabs button { padding: 8px 10px !important; font-size: 12px !important; min-width: unset !important; }
 }
 
 /* ─── VERY SMALL (≤380px) ────────────────────────── */
@@ -179,5 +194,7 @@ button.inline, span.inline, a.inline { min-height: unset !important; min-width: 
   .section-title { font-size: 19px !important; }
   nav            { padding: 0 10px !important; }
   .section-pad   { padding: 32px 12px !important; }
-  .tabs-bar button { padding: 8px 9px !important; font-size: 11.5px !important; }
+  .tabs-bar button { padding: 8px 8px !important; font-size: 11px !important; }
+  .footer-grid   { grid-template-columns: 1fr !important; }
+  .pricing-grid  { grid-template-columns: 1fr !important; }
 }
