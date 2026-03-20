@@ -1934,6 +1934,7 @@ function Tool({ onBack, user, profile, onShowAuth, onUpgrade, onProfileRefresh }
   const [showPDFModal, setShowPDFModal]   = useState(false);
   const [showTracker,  setShowTracker]    = useState(false);
   const [showDash,     setShowDash]       = useState(false);
+  const analysisCountRef = useRef(0); // tracks analysis count for history refresh
   const [showInvite,   setShowInvite]     = useState(false);
   const chatEnd = useRef(null);
 
@@ -1956,7 +1957,8 @@ function Tool({ onBack, user, profile, onShowAuth, onUpgrade, onProfileRefresh }
     if(resume.length>8000){ toast("Resume too long — max 8000 characters.","error"); return; }
     if(jd.length>4000)    { toast("Job description too long — max 4000 characters.","error"); return; }
 
-    setRan(true); setTab("gap"); setShowFeedback(false); setAnalysisCount(c=>c+1);
+    setRan(true); setTab("gap"); setShowFeedback(false);
+    analysisCountRef.current += 1;
     setResults({gap:null,resume:null,cover:null,email:null});
     setErrors({gap:null,resume:null,cover:null,email:null});
     setLoading({gap:true,resume:true,cover:true,email:true});
@@ -2057,7 +2059,7 @@ Type "start" to begin, or ask me anything about the role first.`}]);
               <div style={{ fontSize:15, fontWeight:700, color:C.ink }}>My Analyses</div>
               <button onClick={()=>setShowDash(false)} style={{ fontSize:22, color:C.ink3, cursor:"pointer", lineHeight:1, minHeight:36, minWidth:36 }}>×</button>
             </div>
-            <AnalysisHistory userId={user.id} key={"history_"+analysisCount+(showDash?"_open":"_closed")}/>
+            <AnalysisHistory userId={user.id} key={"history_"+analysisCountRef.current+(showDash?"_open":"_closed")}/>
           </div>
         </div>
       )}
