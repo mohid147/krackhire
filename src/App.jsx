@@ -3080,6 +3080,7 @@ function AdminDashboard({ user, profile, onBack }) {
 /* ─── ROOT ───────────────────────────────────────────────── */
 export default function KrackHire() {
   const [view,        setView]        = useState("landing");
+  const [showWelcome, setShowWelcome] = useState(false);
   const [user,        setUser]        = useState(null);
   const [profile,     setProfile]     = useState(null);
   const [showAuth,    setShowAuth]    = useState(false);
