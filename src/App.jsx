@@ -62,6 +62,21 @@ async function callAPI(type, payload) {
   } catch(e) { clearTimeout(tid); if(e.name==="AbortError") throw new Error("Timed out. Please try again."); throw e; }
 }
 
+async function callEmail(type, userId, data) {
+  try {
+    const res = await fetch("/api/email", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({type, userId, data}),
+    });
+    const d = await res.json();
+    return d;
+  } catch(e) {
+    console.warn("callEmail error:", e.message);
+    return {success:false};
+  }
+}
+
 async function callPayU(action, body) {
   try {
     const res  = await fetch("/api/payment", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({action,...body}) });
@@ -895,7 +910,7 @@ function UserMenu({ user, profile, onSignOut, onUpgrade, onInvite, onAdmin }) {
               <Tag color={planClr} bg={planBg}>{pLabel}</Tag>
               {!isPro&&<span className="inline" style={{ fontSize:11, color:C.ink3, minHeight:"unset", minWidth:"unset" }}>{profile?.analyses_this_month||0}/3 used</span>}
             </div>
-            {!isPro&&lifetimeLeft>0&&<div style={{ marginTop:6, fontSize:12, color:C.purple, fontWeight:600 }}>⚡ {lifetimeLeft} lifetime {lifetimeLeft===1?"access":"accesses"} remaining</div>}
+            {!isPro&&lifetimeLeft>0&&!["admin","founder"].includes(profile?.role)&&<div style={{ marginTop:6, fontSize:12, color:C.purple, fontWeight:600 }}>⚡ {lifetimeLeft} lifetime {lifetimeLeft===1?"access":"accesses"} remaining</div>}
             {isPro&&profile?.plan_expires_at&&profile?.plan!=="founding_user"&&<div style={{ marginTop:5, fontSize:11.5, color:C.ink3 }}>Active until {new Date(profile.plan_expires_at).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}</div>}
           </div>
           {!isPro&&<button onClick={onUpgrade} style={{ width:"100%", padding:"11px 14px", textAlign:"left", fontSize:13.5, fontWeight:600, color:C.amber, cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", borderBottom:`1px solid ${C.border}`, minHeight:44 }}>⚡ Upgrade to Pro</button>}
@@ -1397,6 +1412,91 @@ function RefundPage({ onBack }) {
   );
 }
 
+
+/* ─── WELCOME POPUP ──────────────────────────────────────── */
+function WelcomePopup({ user, profile, onClose }) {
+  const name = user?.user_metadata?.name?.split(" ")[0] || "there";
+  const isNew = profile?.analyses_this_month === 0;
+
+  useEffect(()=>{
+    const timer = setTimeout(onClose, 8000);
+    return ()=>clearTimeout(timer);
+  },[]);
+
+  return (
+    <div style={{ position:"fixed", bottom:24, right:24, zIndex:1100, maxWidth:340, animation:"slideUp .4s ease" }}>
+      <div style={{ background:C.surface, borderRadius:16, padding:"20px 22px", boxShadow:"0 8px 40px rgba(0,0,0,.14)", border:`1px solid ${C.border}` }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:12 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            <div style={{ width:38, height:38, borderRadius:10, background:C.sageBg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:20 }}>👋</div>
+            <div>
+              <div style={{ fontSize:14, fontWeight:700, color:C.ink }}>
+                {isNew ? `Welcome, ${name}!` : `Welcome back, ${name}!`}
+              </div>
+              <div style={{ fontSize:12, color:C.ink3 }}>KrackHire</div>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ fontSize:18, color:C.ink3, cursor:"pointer", background:"none", border:"none", minHeight:"unset", minWidth:"unset", lineHeight:1, padding:2 }}>×</button>
+        </div>
+        {isNew ? (
+          <p style={{ fontSize:13.5, color:C.ink2, lineHeight:1.7, marginBottom:14 }}>
+            You have <strong>3 free analyses</strong> and <strong>3 lifetime premium accesses</strong> ready. Start by pasting your resume below! 🚀
+          </p>
+        ) : (
+          <p style={{ fontSize:13.5, color:C.ink2, lineHeight:1.7, marginBottom:14 }}>
+            Good to have you back! You have <strong>{profile?.lifetime_accesses_remaining||0} lifetime accesses</strong> remaining this month.
+          </p>
+        )}
+        <div style={{ display:"flex", gap:8 }}>
+          <Btn size="sm" bg={C.sage} onClick={onClose} full style={{ fontSize:13 }}>
+            {isNew ? "Start analysing →" : "Continue →"}
+          </Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── ANNOUNCEMENT BANNER ────────────────────────────────── */
+function AnnouncementBanner({ navigate }) {
+  const [ann, setAnn] = useState(null);
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(()=>{
+    if(!sb) return;
+    sb.from("announcements")
+      .select("*")
+      .eq("active", true)
+      .order("created_at", {ascending:false})
+      .limit(1)
+      .single()
+      .then(({data})=>{ if(data) setAnn(data); })
+      .catch(()=>{});
+  },[]);
+
+  if(!ann || dismissed) return null;
+
+  const bgClr = {info:C.blueBg, success:C.sageBg, warning:C.amberBg, promo:C.purpleBg}[ann.type]||C.blueBg;
+  const txtClr = {info:C.blue, success:C.sage, warning:C.amber, promo:C.purple}[ann.type]||C.blue;
+
+  return (
+    <div style={{ background:bgClr, borderBottom:`1px solid ${txtClr}20`, padding:"10px clamp(14px,4vw,40px)", display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, flexWrap:"wrap" }}>
+      <div style={{ display:"flex", alignItems:"center", gap:10, flex:1 }}>
+        <span style={{ fontSize:14, color:txtClr, fontWeight:600 }}>{ann.title}</span>
+        <span style={{ fontSize:13.5, color:C.ink2 }}>{ann.message}</span>
+      </div>
+      <div style={{ display:"flex", gap:8, alignItems:"center", flexShrink:0 }}>
+        {ann.cta_text&&ann.cta_action&&(
+          <Btn size="sm" bg={txtClr} onClick={()=>{ if(ann.cta_action.startsWith("nav:")) navigate(ann.cta_action.slice(4)); else window.open(ann.cta_action); }}>
+            {ann.cta_text}
+          </Btn>
+        )}
+        <button onClick={()=>setDismissed(true)} style={{ fontSize:16, color:C.ink3, cursor:"pointer", background:"none", border:"none", minHeight:"unset", minWidth:"unset" }}>×</button>
+      </div>
+    </div>
+  );
+}
+
 /* ─── STATIC DATA ────────────────────────────────────────── */
 const FEATURES=[
   {icon:"🔍",title:"Resume Score /100",         desc:"Hirability score based on ATS compatibility, skill match, and clarity — specific to the job you're targeting.",color:C.sage, bg:C.sageBg},
@@ -1827,8 +1927,32 @@ function Tool({ onBack, user, profile, onShowAuth, onUpgrade, onProfileRefresh }
 
     await Promise.allSettled([
       callAPI("gap",payload)
-        .then(raw=>{ const p=parseJSON(raw); p?setR("gap",p):setE("gap","Could not parse result. Please try again."); })
-        .catch(e=>{ setE("gap",e.message); if(e.message.includes("LIMIT_REACHED")){ toast("Monthly limit reached. Upgrade to Pro.","warn"); setTimeout(()=>onUpgrade(),1600); } })
+        .then(raw=>{
+        const p=parseJSON(raw);
+        if(p) {
+          setR("gap",p);
+          // Send analysis done email (only for signed-in users)
+          if(user?.email) callEmail("analysis_done", user.id, {
+            email:   user.email,
+            name:    user.user_metadata?.name||user.email?.split("@")[0]||"there",
+            score:   p?.score||p?.gap_score||0,
+            role:    payload?.role||"",
+            company: payload?.company||"",
+          }).catch(()=>{});
+        } else {
+          setE("gap","Could not parse result. Please try again.");
+        }
+      })
+        .catch(e=>{ setE("gap",e.message); if(e.message.includes("LIMIT_REACHED")){
+            toast("Monthly limit reached. Upgrade to Pro.","warn");
+            // Send limit reached email
+            if(user) callEmail("limit_reached", user.id, {
+              email: user.email,
+              name:  user.user_metadata?.name||user.email?.split("@")[0]||"there",
+              used:  3,
+            }).catch(()=>{});
+            setTimeout(()=>onUpgrade(),1600);
+          } })
         .finally(()=>{ setL("gap",false); setShowFeedback(true); }),
       callAPI("resume",payload).then(r=>setR("resume",r)).catch(e=>setE("resume",e.message)).finally(()=>setL("resume",false)),
       callAPI("cover", payload).then(r=>setR("cover", r)).catch(e=>setE("cover", e.message)).finally(()=>setL("cover", false)),
@@ -1929,7 +2053,7 @@ Type "start" to begin, or ask me anything about the role first.`}]);
                       <button onClick={()=>onUpgrade()} style={{ fontSize:12, color:C.amber, fontWeight:700, textDecoration:"underline", cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", minHeight:"unset" }}>Upgrade →</button>
                     </div>
                   )}
-                  {lifetimeLeft>0&&<div style={{ display:"inline-flex", alignItems:"center", gap:6, padding:"7px 14px", borderRadius:99, background:C.purpleBg, border:`1px solid ${C.purple}25` }}><span className="inline" style={{ fontSize:13, color:C.purple, fontWeight:600, minHeight:"unset", minWidth:"unset" }}>⚡ {lifetimeLeft} lifetime {lifetimeLeft===1?"access":"accesses"} remaining</span></div>}
+                  {lifetimeLeft>0&&!["admin","founder"].includes(profile?.role)&&<div style={{ display:"inline-flex", alignItems:"center", gap:6, padding:"7px 14px", borderRadius:99, background:C.purpleBg, border:`1px solid ${C.purple}25` }}><span className="inline" style={{ fontSize:13, color:C.purple, fontWeight:600, minHeight:"unset", minWidth:"unset" }}>⚡ {lifetimeLeft} lifetime {lifetimeLeft===1?"access":"accesses"} remaining</span></div>}
                   <button onClick={()=>setShowInvite(true)} style={{ fontSize:12.5, color:C.blue, fontWeight:600, textDecoration:"underline", cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", minHeight:"unset" }}>🎟️ Have an invite code?</button>
                 </div>
               )}
@@ -2213,6 +2337,50 @@ function AnalysisHistory({ userId }) {
   );
 }
 
+
+/* ─── COLLEGE FORM ───────────────────────────────────────── */
+function CollegeForm({ onSave, initial }) {
+  const [form, setForm] = useState(initial || {
+    name:"", contact_name:"", contact_email:"", contact_phone:"",
+    city:"", state:"", student_count:"", plan:"college_basic", status:"enquiry", notes:""
+  });
+  const [saving, setSaving] = useState(false);
+  const F = (k) => ({ value:form[k]||"", onChange:v=>setForm(p=>({...p,[k]:v})) });
+
+  async function save() {
+    if(!form.name.trim()||!form.contact_email.trim()){ return; }
+    setSaving(true);
+    await onSave({...form, student_count: parseInt(form.student_count)||null });
+    if(!initial) setForm({name:"",contact_name:"",contact_email:"",contact_phone:"",city:"",state:"",student_count:"",plan:"college_basic",status:"enquiry",notes:""});
+    setSaving(false);
+  }
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:12}}>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}} className="input-grid">
+        <Field label="College Name *"    {...F("name")}           placeholder="ABC Engineering College" maxLen={100}/>
+        <Field label="Contact Person"    {...F("contact_name")}   placeholder="Prof. Sharma" maxLen={80}/>
+        <Field label="Contact Email *"   {...F("contact_email")}  placeholder="placement@college.edu" maxLen={120}/>
+        <Field label="Phone"             {...F("contact_phone")}  placeholder="+91 9999999999" maxLen={15}/>
+        <Field label="City"              {...F("city")}           placeholder="Hyderabad" maxLen={50}/>
+        <Field label="State"             {...F("state")}          placeholder="Telangana" maxLen={50}/>
+        <Field label="Student Count"     {...F("student_count")}  placeholder="500" type="number" maxLen={6}/>
+        <div style={{display:"flex",flexDirection:"column",gap:5}}>
+          <label style={{fontSize:11.5,fontWeight:700,color:C.ink2,letterSpacing:.5,textTransform:"uppercase"}}>Plan</label>
+          <select value={form.plan} onChange={e=>setForm(p=>({...p,plan:e.target.value}))} style={{padding:"12px 14px",borderRadius:9,border:`1.5px solid ${C.border}`,background:C.bg,fontSize:15,color:C.ink,fontFamily:"inherit",minHeight:48}}>
+            <option value="college_basic">College Basic</option>
+            <option value="college_pro">College Pro</option>
+          </select>
+        </div>
+      </div>
+      <Field label="Notes" {...F("notes")} placeholder="Any notes about this lead…" rows={2} maxLen={500}/>
+      <Btn onClick={save} disabled={saving||!form.name.trim()||!form.contact_email.trim()} bg={C.purple} size="sm">
+        {saving?<><Spin s={13} c="#fff"/>Saving…</>:initial?"Update college":"+ Add college"}
+      </Btn>
+    </div>
+  );
+}
+
 /* ─── ADMIN HELPERS ──────────────────────────────────────── */
 async function adminGetUsers()         { if(!sb)return[]; try{ const{data}=await sb.from("profiles").select("id,email,name,role,plan,plan_expires_at,analyses_this_month,lifetime_accesses_remaining,created_at").order("created_at",{ascending:false}).limit(500); return data||[]; }catch(e){return[];} }
 async function adminUpdateUser(id,upd) { if(!sb)return; await sb.from("profiles").update({...upd,updated_at:new Date().toISOString()}).eq("id",id); }
@@ -2227,6 +2395,9 @@ async function adminApproveReview(id)  { if(!sb)return; await sb.from("reviews")
 async function adminDeleteReview(id)   { if(!sb)return; await sb.from("reviews").delete().eq("id",id); }
 async function adminGetTransactions()  { if(!sb)return[]; try{ const{data}=await sb.from("transactions").select("*").order("created_at",{ascending:false}).limit(200); return data||[]; }catch(e){return[];} }
 async function adminDeleteUser(id)     { if(!sb)return; await sb.from("profiles").delete().eq("id",id); }
+async function adminGetColleges()      { if(!sb)return[]; try{ const{data}=await sb.from("colleges").select("*").order("created_at",{ascending:false}); return data||[]; }catch(e){return[];} }
+async function adminGetEmailStats()    { if(!sb)return[]; try{ const{data}=await sb.from("email_logs").select("type,status,sent_at").order("sent_at",{ascending:false}).limit(200); return data||[]; }catch(e){return[];} }
+async function adminSaveCollege(col)   { if(!sb)return null; const{data,error}=await sb.from("colleges").upsert({...col,updated_at:new Date().toISOString()}).select().single(); if(error)throw new Error(error.message); return data; }
 async function adminCounts()           {
   if(!sb)return{totalUsers:0,totalAnalyses:0,approvedReviews:0,totalFeedback:0,plans:{},revenue:0,successTxns:0};
   try {
@@ -2257,6 +2428,8 @@ function AdminDashboard({ user, profile, onBack }) {
   const [allReviews,  setAllReviews]  = useState([]);
   const [feedback,    setFeedback]    = useState([]);
   const [transactions,setTransactions]= useState([]);
+  const [colleges,    setColleges]    = useState([]);
+  const [emailStats,  setEmailStats]  = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [tabLoading,  setTabLoading]  = useState(false);
   const [search,      setSearch]      = useState("");
@@ -2279,12 +2452,14 @@ function AdminDashboard({ user, profile, onBack }) {
   async function loadAll() {
     setLoading(true);
     try {
-      const[c,u,a,cd,rv,arv,fb,txn]=await Promise.all([
+      const[c,u,a,cd,rv,arv,fb,txn,col,es]=await Promise.all([
         adminCounts(),adminGetUsers(),adminGetAnalyses(),adminGetInviteCodes(),
-        adminGetPendingReviews(),adminGetAllReviews(),adminGetFeedback(),adminGetTransactions()
+        adminGetPendingReviews(),adminGetAllReviews(),adminGetFeedback(),
+        adminGetTransactions(),adminGetColleges(),adminGetEmailStats()
       ]);
       setCounts(c);setUsers(u);setAnalyses(a);setCodes(cd);
       setReviews(rv);setAllReviews(arv);setFeedback(fb);setTransactions(txn);
+      setColleges(col);setEmailStats(es);
     } catch(e){ toast("Load error: "+e.message,"error"); }
     setLoading(false);
   }
@@ -2349,6 +2524,8 @@ function AdminDashboard({ user, profile, onBack }) {
     {id:"overview",  label:"Overview",     icon:"📊"},
     {id:"users",     label:"Users",        icon:"👥", badge:users.length},
     {id:"payments",  label:"Payments",     icon:"💰", badge:transactions.filter(t=>t.status==="success").length},
+    {id:"b2b",       label:"B2B / Colleges",icon:"🏫"},
+    {id:"emails",    label:"Emails",       icon:"📧", badge:emailStats.length>0?null:null},
     {id:"invites",   label:"Invite Codes", icon:"🎟️"},
     {id:"analyses",  label:"Analyses",     icon:"🔍", badge:analyses.length},
     {id:"reviews",   label:"Reviews",      icon:"⭐", badge:reviews.length>0?reviews.length:null,badgeColor:reviews.length>0?C.red:null},
@@ -2765,6 +2942,99 @@ function AdminDashboard({ user, profile, onBack }) {
           </div>
         )}
 
+        {/* ══ B2B / COLLEGES ══ */}
+        {!loading&&tab==="b2b"&&(
+          <div style={{display:"flex",flexDirection:"column",gap:14}}>
+            {/* Summary */}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12}}>
+              {[
+                ["Total Colleges", colleges.length, C.blue],
+                ["Active",         colleges.filter(c=>c.status==="active").length, C.sage],
+                ["Trial",          colleges.filter(c=>c.status==="trial").length, C.amber],
+                ["Enquiries",      colleges.filter(c=>c.status==="enquiry").length, C.purple],
+              ].map(([l,v,c])=>(
+                <Card key={l} style={{padding:"16px 18px"}}>
+                  <div style={{fontSize:26,fontWeight:800,color:c,marginBottom:4}}>{v}</div>
+                  <div style={{fontSize:12,color:C.ink3,fontWeight:600}}>{l}</div>
+                </Card>
+              ))}
+            </div>
+            {/* Add college form */}
+            <Card flat style={{padding:"18px 20px"}}>
+              <div style={{fontSize:13.5,fontWeight:700,color:C.ink,marginBottom:14}}>Add college / B2B lead</div>
+              <CollegeForm onSave={async(col)=>{ try{ const d=await adminSaveCollege(col); setColleges(p=>[d,...p.filter(c=>c.id!==d.id)]); toast("Saved ✓"); }catch(e){ toast(e.message,"error"); } }}/>
+            </Card>
+            {/* College list */}
+            <Card flat style={{overflow:"hidden"}}>
+              <div style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}`,fontSize:13.5,fontWeight:700,color:C.ink}}>{colleges.length} colleges</div>
+              {colleges.length===0
+                ?<div style={{padding:"40px",textAlign:"center",color:C.ink3}}>No colleges yet. Add your first B2B lead above.</div>
+                :colleges.map((c,i)=>{
+                  const stClr={active:C.sage,trial:C.amber,enquiry:C.purple,inactive:C.stone};
+                  return <div key={c.id} style={{padding:"13px 18px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+                    <div style={{flex:1,minWidth:200}}>
+                      <div style={{fontSize:14,fontWeight:700,color:C.ink}}>{c.name}</div>
+                      <div style={{fontSize:12,color:C.ink3,marginTop:2}}>{c.contact_email} · {c.city||"—"} · {c.student_count||"?"} students</div>
+                    </div>
+                    <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+                      <Tag color={stClr[c.status]||C.stone}>{c.status}</Tag>
+                      <select value={c.status} onChange={async e=>{ await adminSaveCollege({...c,status:e.target.value}); setColleges(p=>p.map(x=>x.id===c.id?{...x,status:e.target.value}:x)); toast("Updated ✓"); }}
+                        style={{padding:"5px 10px",borderRadius:7,border:`1px solid ${C.border}`,background:C.bg,fontSize:12,fontFamily:"inherit",cursor:"pointer",minHeight:"unset"}}>
+                        {["enquiry","trial","active","inactive"].map(s=><option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </div>
+                  </div>;
+                })
+              }
+            </Card>
+          </div>
+        )}
+
+        {/* ══ EMAIL STATS ══ */}
+        {!loading&&tab==="emails"&&(
+          <div style={{display:"flex",flexDirection:"column",gap:14}}>
+            {/* Email type breakdown */}
+            {(() => {
+              const byType = {};
+              emailStats.forEach(e=>{ byType[e.type]=(byType[e.type]||{total:0,sent:0,failed:0}); byType[e.type].total++; if(e.status==="sent") byType[e.type].sent++; else byType[e.type].failed++; });
+              return (
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:10}}>
+                  {Object.entries(byType).map(([type,s])=>(
+                    <Card key={type} style={{padding:"14px 16px"}}>
+                      <div style={{fontSize:12,fontWeight:700,color:C.ink3,textTransform:"uppercase",letterSpacing:.5,marginBottom:8}}>{type.replace(/_/g," ")}</div>
+                      <div style={{display:"flex",gap:12}}>
+                        <div><div style={{fontSize:20,fontWeight:800,color:C.sage}}>{s.sent}</div><div style={{fontSize:11,color:C.ink3}}>sent</div></div>
+                        {s.failed>0&&<div><div style={{fontSize:20,fontWeight:800,color:C.red}}>{s.failed}</div><div style={{fontSize:11,color:C.ink3}}>failed</div></div>}
+                      </div>
+                    </Card>
+                  ))}
+                  {Object.keys(byType).length===0&&<div style={{padding:"40px",textAlign:"center",color:C.ink3,gridColumn:"1/-1"}}>No emails sent yet. Set up BREVO_API_KEY in Vercel to enable emails.</div>}
+                </div>
+              );
+            })()}
+            {/* Recent email log */}
+            <Card flat style={{overflow:"hidden"}}>
+              <div style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}`,fontSize:13.5,fontWeight:700,color:C.ink}}>Recent emails ({emailStats.length})</div>
+              <div style={{maxHeight:480,overflowY:"auto"}}>
+                {emailStats.slice(0,50).map((e,i)=>(
+                  <div key={i} style={{padding:"10px 18px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:12}}>
+                    <Tag color={e.status==="sent"?C.sage:C.red}>{e.status}</Tag>
+                    <div style={{flex:1}}><div style={{fontSize:13,fontWeight:600,color:C.ink}}>{e.type.replace(/_/g," ")}</div></div>
+                    <div style={{fontSize:11.5,color:C.ink3}}>{new Date(e.sent_at).toLocaleDateString("en-IN",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+            {/* Setup guide */}
+            <Card flat style={{padding:"18px 20px",background:C.amberBg,border:`1px solid ${C.amber}20`}}>
+              <div style={{fontSize:13.5,fontWeight:700,color:C.amber,marginBottom:8}}>📧 Email Setup</div>
+              <p style={{fontSize:13.5,color:C.ink2,lineHeight:1.75}}>
+                To enable emails: <strong>1.</strong> Sign up at <a href="https://brevo.com" target="_blank" style={{color:C.blue}}>brevo.com</a> (free — 300 emails/day) <strong>2.</strong> Go to SMTP &amp; API → API Keys → Create key <strong>3.</strong> Add <code style={{background:C.bg,padding:"2px 6px",borderRadius:4}}>BREVO_API_KEY</code> to Vercel env vars <strong>4.</strong> Redeploy.
+              </p>
+            </Card>
+          </div>
+        )}
+
         {/* ══ FEEDBACK ══ */}
         {!loading&&tab==="feedback"&&(
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
@@ -2828,10 +3098,22 @@ export default function KrackHire() {
       }).catch(e=>console.error("[KH] Profile fetch error:",e.message));
       setAuthLoading(false);
     });
-    const {data:{subscription}}=sb.auth.onAuthStateChange((_,session)=>{
+    const {data:{subscription}}=sb.auth.onAuthStateChange((event,session)=>{
       setUser(session?.user||null);
-      if(session?.user) getProfile(session.user.id).then(p=>{ if(p) setProfile(p); }).catch(()=>{});
-      else setProfile(null);
+      if(session?.user) {
+        getProfile(session.user.id).then(p=>{ if(p) setProfile(p); }).catch(()=>{});
+        // Send welcome email + show popup on sign in
+        if(event==="SIGNED_IN") {
+          const isNew = session.user.created_at && (Date.now()-new Date(session.user.created_at).getTime()) < 30000;
+          if(isNew) {
+            callEmail("welcome",session.user.id,{
+              email: session.user.email,
+              name:  session.user.user_metadata?.name||session.user.email?.split("@")[0]||"there",
+            }).catch(()=>{});
+          }
+          setTimeout(()=>setShowWelcome(true), 1500);
+        }
+      } else setProfile(null);
     });
     return()=>subscription.unsubscribe();
   },[]);
@@ -2895,8 +3177,20 @@ export default function KrackHire() {
   function handlePaymentSuccess() {
     setPayModal(null);
     toast("Payment successful! Your plan is now active. 🎉","success");
-    // Refresh profile from DB to get updated plan
-    if(user) getProfile(user.id).then(p=>{ if(p) setProfile(p); }).catch(()=>{});
+    if(user) {
+      getProfile(user.id).then(p=>{
+        if(p) {
+          setProfile(p);
+          // Send payment success email
+          callEmail("payment_success", user.id, {
+            email:  user.email,
+            name:   user.user_metadata?.name||user.email?.split("@")[0]||"there",
+            plan:   planDisplayLabel(p.plan),
+            amount: payModal?.planAmount||"",
+          }).catch(()=>{});
+        }
+      }).catch(()=>{});
+    }
   }
 
   if(authLoading) return (
@@ -2913,6 +3207,7 @@ export default function KrackHire() {
   return (
     <>
       <Toasts list={toastList} remove={removeToast}/>
+      {showWelcome&&user&&profile&&<WelcomePopup user={user} profile={profile} onClose={()=>setShowWelcome(false)}/>}
       {showAuth     &&<AuthModal onClose={()=>setShowAuth(false)}/>}
       {upgradeModal &&<UpgradeModal onClose={()=>setUpgradeModal(false)} onSelectPlan={handleUpgrade} user={user}/>}
       {payModal     &&<PaymentModal {...payModal} user={user} onClose={()=>setPayModal(null)} onSuccess={handlePaymentSuccess} toast={toast}/>}
