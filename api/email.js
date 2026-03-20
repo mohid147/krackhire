@@ -1,6 +1,5 @@
-// api/email.js — KrackHire Email Engine v1
-// Uses Brevo (free tier: 300 emails/day, no credit card needed)
-// Sign up at brevo.com → SMTP & API → API Keys → Create → add BREVO_API_KEY to Vercel env vars
+// api/email.js — KrackHire Email Engine v2 (Premium Templates)
+// Uses Brevo — sign up at brevo.com, add BREVO_API_KEY to Vercel env vars
 
 import { createClient } from '@supabase/supabase-js'
 
@@ -11,211 +10,333 @@ function getSB() {
   return createClient(url, key, { auth: { autoRefreshToken:false, persistSession:false } })
 }
 
-const BREVO_KEY   = process.env.BREVO_API_KEY || ''
-const FROM_EMAIL  = { name: 'KrackHire', email: 'hellokrackhire@gmail.com' }
-const SITE_URL    = process.env.VITE_SITE_URL || 'https://www.krackhire.in'
+const BREVO_KEY = process.env.BREVO_API_KEY || ''
+const FROM      = { name: 'KrackHire', email: 'hellokrackhire@gmail.com' }
+const SITE      = process.env.VITE_SITE_URL || 'https://www.krackhire.in'
 
-// ── Send email via Brevo (free: 300/day, no monthly cap) ────────
-async function sendEmail({ to, subject, html }) {
-  if (!BREVO_KEY) {
-    console.warn('[email] BREVO_API_KEY not set — skipping email')
-    return { ok: false, reason: 'no_key' }
-  }
+// ── Send via Brevo ────────────────────────────────────────────
+async function send({ to, subject, html }) {
+  if (!BREVO_KEY) { console.warn('[email] BREVO_API_KEY missing'); return { ok:false } }
   try {
     const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: {
-        'api-key': BREVO_KEY,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify({
-        sender:  FROM_EMAIL,
-        to:      [{ email: to }],
-        subject,
-        htmlContent: html,
-      }),
+      method:  'POST',
+      headers: { 'api-key': BREVO_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sender: FROM, to: [{ email: to }], subject, htmlContent: html }),
     })
     const data = await res.json()
-    if (!res.ok) { console.error('[email] Brevo error:', data); return { ok: false, data } }
-    return { ok: true, id: data.messageId }
-  } catch (e) {
-    console.error('[email] Send failed:', e.message)
-    return { ok: false, error: e.message }
-  }
+    if (!res.ok) { console.error('[email] Brevo error:', data); return { ok:false, data } }
+    return { ok:true, id: data.messageId }
+  } catch(e) { console.error('[email] Send error:', e.message); return { ok:false } }
 }
 
-// ── Email Templates ───────────────────────────────────────────
-const T = {
-  base: (content) => `
-<!DOCTYPE html>
-<html>
+// ── Log to DB ─────────────────────────────────────────────────
+async function log(sb, { userId, type, to, status, error }) {
+  if (!sb) return
+  await sb.from('email_logs').insert({
+    user_id: userId||null, type, to, status, error: error||null,
+    sent_at: new Date().toISOString(),
+  }).catch(()=>{})
+}
+
+// ══════════════════════════════════════════════════════════════
+// EMAIL TEMPLATES — Premium SaaS quality
+// ══════════════════════════════════════════════════════════════
+
+const css = `
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#F4F4F0; font-family:'DM Sans',system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+  .outer { background:#F4F4F0; padding:40px 16px; }
+  .card  { background:#FFFFFF; border-radius:20px; max-width:560px; margin:0 auto;
+           overflow:hidden; box-shadow:0 4px 24px rgba(0,0,0,.06); }
+  .header { background:#1A1A1A; padding:28px 36px; display:flex; align-items:center; gap:12px; }
+  .logo-box { width:38px; height:38px; background:#4CAF82; border-radius:9px;
+              display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .logo-name { color:#FFFFFF; font-size:20px; font-weight:700; letter-spacing:-.3px; }
+  .logo-name span { color:#4CAF82; }
+  .body { padding:36px 36px 28px; }
+  .body h1 { font-size:24px; font-weight:700; color:#111111; line-height:1.25; margin-bottom:14px; letter-spacing:-.4px; }
+  .body p  { font-size:15px; color:#555555; line-height:1.75; margin-bottom:16px; }
+  .btn { display:inline-block; background:#4CAF82; color:#FFFFFF !important; text-decoration:none;
+         font-size:15px; font-weight:600; padding:14px 28px; border-radius:10px; margin:8px 0 20px; }
+  .btn-outline { display:inline-block; border:2px solid #E0E0E0; color:#333333 !important;
+                 text-decoration:none; font-size:14px; font-weight:500; padding:11px 24px; border-radius:9px; margin:0 0 20px; }
+  .divider { height:1px; background:#F0F0F0; margin:24px 0; }
+  .highlight { background:#F6FBF8; border-radius:12px; padding:20px 22px; margin:18px 0; border-left:3px solid #4CAF82; }
+  .highlight strong { color:#222; }
+  .check-row { display:flex; align-items:flex-start; gap:10px; margin-bottom:10px; font-size:14.5px; color:#444; line-height:1.5; }
+  .check-icon { color:#4CAF82; font-weight:700; font-size:15px; flex-shrink:0; margin-top:1px; }
+  .score-box { text-align:center; padding:28px; background:linear-gradient(135deg,#1A1A1A 0%,#2D2D2D 100%);
+               border-radius:14px; margin:20px 0; }
+  .score-num { font-size:64px; font-weight:800; line-height:1; letter-spacing:-2px; }
+  .score-label { font-size:13px; color:#999; margin-top:6px; text-transform:uppercase; letter-spacing:1px; }
+  .score-sub { font-size:15px; color:#ccc; margin-top:10px; }
+  .stat-row { display:flex; gap:16px; margin:16px 0; }
+  .stat-box { flex:1; background:#F8F8F8; border-radius:10px; padding:14px 16px; text-align:center; }
+  .stat-num { font-size:22px; font-weight:700; color:#222; }
+  .stat-lbl { font-size:12px; color:#888; margin-top:3px; }
+  .alert { background:#FFF8F0; border-radius:10px; padding:16px 20px; border-left:3px solid #F59E0B; margin:16px 0; }
+  .alert p { color:#92400E; margin:0; font-size:14.5px; }
+  .fail-box { background:#FEF2F2; border-radius:12px; padding:20px 22px; margin:18px 0; border-left:3px solid #EF4444; }
+  .footer { background:#F9F9F9; padding:24px 36px; border-top:1px solid #F0F0F0; }
+  .footer p { font-size:12.5px; color:#AAAAAA; line-height:1.7; margin:0; }
+  .footer a { color:#4CAF82; text-decoration:none; }
+  @media(max-width:600px){
+    .body { padding:24px 20px 20px; }
+    .header { padding:22px 22px; }
+    .footer { padding:20px 22px; }
+    .stat-row { flex-direction:column; gap:10px; }
+  }
+`
+
+function base(content, footerNote='') {
+  return `<!DOCTYPE html>
+<html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width"/>
-<style>
-  *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:'DM Sans',system-ui,sans-serif;background:#F9F8F6;color:#1C1917}
-  .wrap{max-width:560px;margin:0 auto;padding:32px 16px}
-  .card{background:#fff;border-radius:16px;padding:32px;border:1px solid #E7E5E4}
-  .logo{display:flex;align-items:center;gap:8px;margin-bottom:28px}
-  .logo-box{width:36px;height:36px;background:#3D6B4F;border-radius:8px;display:flex;align-items:center;justify-content:center}
-  .logo-text{font-size:18px;font-weight:700;color:#1C1917}
-  .logo-text span{color:#3D6B4F}
-  h1{font-size:22px;font-weight:700;color:#1C1917;margin-bottom:12px;line-height:1.3}
-  p{font-size:15px;color:#57534E;line-height:1.75;margin-bottom:16px}
-  .btn{display:inline-block;padding:14px 28px;background:#3D6B4F;color:#fff;border-radius:10px;font-size:15px;font-weight:600;text-decoration:none;margin:8px 0 16px}
-  .divider{height:1px;background:#E7E5E4;margin:24px 0}
-  .small{font-size:13px;color:#A8A29E;line-height:1.6}
-  .highlight{background:#F0F5F2;border-radius:10px;padding:16px 20px;margin:16px 0;border-left:3px solid #3D6B4F}
-  .badge{display:inline-block;padding:4px 12px;border-radius:99px;font-size:12px;font-weight:700}
-  .badge-green{background:#F0F5F2;color:#3D6B4F}
-  .badge-amber{background:#FFFBEB;color:#B45309}
-  .footer{text-align:center;padding:24px 0 0;font-size:13px;color:#A8A29E}
-  .footer a{color:#3D6B4F;text-decoration:none}
-</style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>KrackHire</title>
+<style>${css}</style>
 </head>
 <body>
-<div class="wrap">
+<div class="outer">
   <div class="card">
-    <div class="logo">
+    <div class="header">
       <div class="logo-box">
-        <svg width="20" height="20" viewBox="0 0 40 40" fill="none">
+        <svg width="22" height="22" viewBox="0 0 40 40" fill="none">
           <path d="M11 10H16V19L23 10H29.5L21.5 20L30 30H23.5L16 21V30H11V10Z" fill="white"/>
         </svg>
       </div>
-      <div class="logo-text">Krack<span>Hire</span></div>
+      <div class="logo-name">Krack<span>Hire</span></div>
     </div>
-    ${content}
-  </div>
-  <div class="footer">
-    <p>© 2025 KrackHire · <a href="${SITE_URL}">www.krackhire.in</a> · Made in Hyderabad 🇮🇳</p>
-    <p style="margin-top:6px"><a href="${SITE_URL}/contact">Contact us</a> · <a href="${SITE_URL}/privacy">Privacy</a></p>
+    <div class="body">
+      ${content}
+    </div>
+    <div class="footer">
+      <p>
+        ${footerNote ? footerNote + '<br/>' : ''}
+        © 2025 KrackHire &nbsp;·&nbsp; <a href="${SITE}">www.krackhire.in</a>
+        &nbsp;·&nbsp; <a href="mailto:hellokrackhire@gmail.com">hellokrackhire@gmail.com</a>
+      </p>
+      <p style="margin-top:6px">
+        Made with ❤️ in Hyderabad, India 🇮🇳
+      </p>
+    </div>
   </div>
 </div>
 </body>
-</html>`,
+</html>`
+}
 
-  welcome: (name) => T.base(`
+// ── 1. WELCOME ────────────────────────────────────────────────
+function tplWelcome(name) {
+  return base(`
     <h1>Welcome to KrackHire, ${name}! 🎉</h1>
-    <p>You've just taken the first step toward landing your dream job. KrackHire uses AI to help you understand exactly why your resume gets rejected — and how to fix it.</p>
-    <div class="highlight">
-      <strong>You get for free:</strong><br/>
-      ✓ 3 resume analyses per month<br/>
-      ✓ 3 lifetime premium accesses<br/>
-      ✓ Gap analysis, cover letter, cold email<br/>
-      ✓ Interview prep coach
-    </div>
-    <a href="${SITE_URL}" class="btn">Start your first analysis →</a>
-    <div class="divider"></div>
-    <p class="small">Tip: Paste the full job description for the most accurate results. The more detail you give, the better the analysis.</p>
-  `),
+    <p>You just made a smart move. KrackHire uses AI to show you <strong>exactly</strong> why your resume gets rejected — and how to fix it before you apply.</p>
 
-  payment_success: (name, plan, amount) => T.base(`
-    <h1>Payment successful! ✅</h1>
-    <p>Hi ${name}, your payment of <strong>${amount}</strong> was successful.</p>
     <div class="highlight">
-      <strong>Your plan:</strong> <span class="badge badge-green">${plan}</span><br/>
-      <strong>Access:</strong> Unlimited analyses, PDF reports, all features<br/>
-      <strong>Support:</strong> hellokrackhire@gmail.com
+      <div class="check-row"><span class="check-icon">✓</span><span><strong>3 free analyses</strong> every month — no credit card needed</span></div>
+      <div class="check-row"><span class="check-icon">✓</span><span><strong>3 lifetime premium accesses</strong> already in your account</span></div>
+      <div class="check-row"><span class="check-icon">✓</span><span>Resume rewrite, cover letter &amp; cold email — all AI-powered</span></div>
+      <div class="check-row"><span class="check-icon">✓</span><span>Interview prep coach &amp; LinkedIn profile optimizer</span></div>
     </div>
-    <a href="${SITE_URL}" class="btn">Go to KrackHire →</a>
-    <div class="divider"></div>
-    <p class="small">Keep your payment ID for records. If you have any issues, reply to this email or contact us at hellokrackhire@gmail.com</p>
-  `),
 
-  payment_failed: (name, plan, amount) => T.base(`
-    <h1>Payment not completed 😔</h1>
+    <p>Most job seekers apply blindly. You're about to know exactly what recruiters see.</p>
+
+    <a href="${SITE}" class="btn">Start your first analysis →</a>
+
+    <div class="divider"></div>
+    <p style="font-size:14px;color:#888">
+      <strong>Pro tip:</strong> Paste the full job description along with your resume for the most accurate results. The more detail you give, the better the analysis.
+    </p>
+  `, 'You\'re receiving this because you signed up at KrackHire.')
+}
+
+// ── 2. PAYMENT SUCCESS ────────────────────────────────────────
+function tplPaymentSuccess(name, plan, amount, txnId) {
+  return base(`
+    <h1>You're all set, ${name}! ✅</h1>
+    <p>Your payment was successful and your <strong>${plan}</strong> plan is now active.</p>
+
+    <div class="highlight">
+      <div class="check-row"><span class="check-icon">✓</span><span><strong>Plan:</strong> ${plan}</span></div>
+      <div class="check-row"><span class="check-icon">✓</span><span><strong>Amount paid:</strong> ${amount}</span></div>
+      <div class="check-row"><span class="check-icon">✓</span><span><strong>Status:</strong> Active</span></div>
+      ${txnId ? `<div class="check-row"><span class="check-icon">✓</span><span><strong>Transaction ID:</strong> ${txnId}</span></div>` : ''}
+    </div>
+
+    <p>You now have <strong>unlimited analyses</strong>, PDF career reports, job tracker, and all premium features.</p>
+
+    <a href="${SITE}" class="btn">Go to KrackHire →</a>
+
+    <div class="divider"></div>
+    <p style="font-size:14px;color:#888">
+      Keep this email for your records. For any billing issues, reply to this email or contact us at
+      <a href="mailto:hellokrackhire@gmail.com" style="color:#4CAF82">hellokrackhire@gmail.com</a>
+    </p>
+  `, 'This is a payment confirmation from KrackHire.')
+}
+
+// ── 3. PAYMENT FAILED ─────────────────────────────────────────
+function tplPaymentFailed(name, plan, amount) {
+  return base(`
+    <h1>Payment not completed</h1>
     <p>Hi ${name}, your payment of <strong>${amount}</strong> for <strong>${plan}</strong> was not completed.</p>
-    <p>This can happen due to:</p>
-    <ul style="margin:0 0 16px 20px;color:#57534E;font-size:15px;line-height:2">
-      <li>Insufficient balance</li>
-      <li>Bank declined the transaction</li>
-      <li>Payment timeout</li>
-      <li>Network issue during payment</li>
-    </ul>
-    <a href="${SITE_URL}" class="btn">Try again →</a>
-    <div class="divider"></div>
-    <p class="small">No money has been deducted. If you see a deduction, contact us immediately at hellokrackhire@gmail.com or +91 63032 79390</p>
-  `),
 
-  limit_reached: (name, used) => T.base(`
-    <h1>You've used all ${used} free analyses this month 📊</h1>
-    <p>Hi ${name}, you've been using KrackHire actively — that's great!</p>
-    <p>To continue improving your job applications, upgrade to Pro for just <strong>₹49/month</strong>.</p>
-    <div class="highlight">
-      <strong>Pro plan includes:</strong><br/>
-      ✓ Unlimited analyses<br/>
-      ✓ PDF career reports<br/>
-      ✓ LinkedIn & Naukri optimizer<br/>
-      ✓ Job application tracker
+    <div class="fail-box">
+      <p>Don't worry — <strong>no money has been deducted</strong> from your account. This happens sometimes due to a bank timeout, network issue, or insufficient balance.</p>
     </div>
-    <a href="${SITE_URL}" class="btn">Upgrade to Pro — ₹49/month →</a>
+
+    <p>The good news? You can try again in seconds:</p>
+
+    <a href="${SITE}" class="btn">Try payment again →</a>
+    <br/>
+    <a href="mailto:hellokrackhire@gmail.com?subject=Payment%20issue" class="btn-outline">Contact support</a>
+
     <div class="divider"></div>
-    <p class="small">Your free analyses reset on the 1st of every month. Or use one of your 3 lifetime premium accesses if you have them.</p>
-  `),
-
-  plan_expiring: (name, plan, daysLeft) => T.base(`
-    <h1>Your ${plan} plan expires in ${daysLeft} days ⏰</h1>
-    <p>Hi ${name}, your KrackHire Pro access expires in <strong>${daysLeft} days</strong>.</p>
-    <p>Renew now to keep your unlimited analyses, PDF reports, and all premium features.</p>
-    <a href="${SITE_URL}" class="btn">Renew my plan →</a>
-    <div class="divider"></div>
-    <p class="small">After expiry, your account moves to the free plan (3 analyses/month). Your history and data are always saved.</p>
-  `),
-
-  inactive_reminder: (name, daysSince) => T.base(`
-    <h1>Your resume is waiting, ${name} 👋</h1>
-    <p>It's been ${daysSince} days since you last used KrackHire. Job hunting is tough — but you don't have to figure it out alone.</p>
-    <div class="highlight">
-      Come back and:<br/>
-      ✓ Check your resume against new job descriptions<br/>
-      ✓ Improve your LinkedIn profile<br/>
-      ✓ Practice interview questions with AI
-    </div>
-    <a href="${SITE_URL}" class="btn">Pick up where you left off →</a>
-    <div class="divider"></div>
-    <p class="small">You still have free analyses available this month. Use them before they reset.</p>
-  `),
-
-  analysis_done: (name, score, role, company) => T.base(`
-    <h1>Your analysis is ready! 📊</h1>
-    <p>Hi ${name}, here's a quick summary of your KrackHire analysis${role ? ` for <strong>${role}</strong>` : ''}${company ? ` at <strong>${company}</strong>` : ''}:</p>
-    <div class="highlight" style="text-align:center">
-      <div style="font-size:48px;font-weight:800;color:${score>=70?'#3D6B4F':score>=50?'#B45309':'#C0392B'}">${score}</div>
-      <div style="font-size:14px;color:#57534E;margin-top:4px">Job Readiness Score / 100</div>
-    </div>
-    <p>${score>=70 ? 'Great score! You\'re well-positioned for this role. Focus on the gap areas to maximise your chances.' : score>=50 ? 'Good start. With a few targeted improvements you can significantly boost your chances.' : 'Your resume needs work before applying. Check the gap analysis for specific fixes.'}</p>
-    <a href="${SITE_URL}" class="btn">View full analysis →</a>
-  `),
-
-  college_enquiry: (collegeName, contactName, email, phone, students) => T.base(`
-    <h1>New college partnership enquiry 🏫</h1>
-    <div class="highlight">
-      <strong>College:</strong> ${collegeName}<br/>
-      <strong>Contact:</strong> ${contactName}<br/>
-      <strong>Email:</strong> ${email}<br/>
-      <strong>Phone:</strong> ${phone||'Not provided'}<br/>
-      <strong>Students:</strong> ${students||'Not specified'}
-    </div>
-    <a href="mailto:${email}" class="btn">Reply to enquiry →</a>
-  `),
+    <p style="font-size:14px;color:#888">
+      Common reasons for payment failure: insufficient balance, bank declined the transaction, or session timeout.
+      If money was deducted, contact us immediately at
+      <a href="mailto:hellokrackhire@gmail.com" style="color:#4CAF82">hellokrackhire@gmail.com</a>
+      or <a href="tel:+916303279390" style="color:#4CAF82">+91 63032 79390</a>.
+    </p>
+  `, 'This is an automated payment notification from KrackHire.')
 }
 
-// ── Log email to DB ───────────────────────────────────────────
-async function logEmail(sb, { userId, type, to, status, error }) {
-  if (!sb) return
-  await sb.from('email_logs').insert({
-    user_id: userId || null,
-    type,
-    to,
-    status,
-    error: error || null,
-    sent_at: new Date().toISOString(),
-  }).catch(e => console.error('[email] Log error:', e.message))
+// ── 4. ANALYSIS DONE ─────────────────────────────────────────
+function tplAnalysisDone(name, score, atsScore, skillScore, role, company) {
+  const scoreColor = score >= 70 ? '#4CAF82' : score >= 50 ? '#F59E0B' : '#EF4444'
+  const scoreMsg   = score >= 70
+    ? 'Strong score! Focus on the gap areas to maximise your chances.'
+    : score >= 50
+    ? 'Good start. A few targeted improvements can significantly boost your chances.'
+    : 'Your resume needs work before applying. Check the detailed analysis for specific fixes.'
+
+  return base(`
+    <h1>Your analysis is ready 📊</h1>
+    <p>Hi ${name}, here's a summary of your KrackHire analysis${role ? ` for <strong>${role}</strong>` : ''}${company ? ` at <strong>${company}</strong>` : ''}.</p>
+
+    <div class="score-box">
+      <div class="score-num" style="color:${scoreColor}">${score}</div>
+      <div class="score-label">Job Readiness Score</div>
+      <div class="score-sub">${scoreMsg}</div>
+    </div>
+
+    ${(atsScore || skillScore) ? `
+    <div class="stat-row">
+      ${atsScore ? `<div class="stat-box"><div class="stat-num" style="color:#4CAF82">${atsScore}</div><div class="stat-lbl">ATS Score</div></div>` : ''}
+      ${skillScore ? `<div class="stat-box"><div class="stat-num" style="color:#6366F1">${skillScore}</div><div class="stat-lbl">Skills Score</div></div>` : ''}
+    </div>` : ''}
+
+    <p>Your full analysis — including resume rewrite, cover letter, and interview prep — is ready on KrackHire.</p>
+
+    <a href="${SITE}" class="btn">View full analysis →</a>
+
+    <div class="divider"></div>
+    <p style="font-size:14px;color:#888">
+      <strong>Next step:</strong> Use the Resume tab to get an ATS-optimised version of your resume tailored to this specific job.
+    </p>
+  `, 'You\'re receiving this because you ran an analysis on KrackHire.')
 }
 
-// ── Main handler ──────────────────────────────────────────────
+// ── 5. LIMIT REACHED ─────────────────────────────────────────
+function tplLimitReached(name) {
+  return base(`
+    <h1>You've used all your free analyses 🚀</h1>
+    <p>Hi ${name}, you've been using KrackHire actively this month — that tells us you're serious about your job search.</p>
+
+    <p>Your free analyses reset on the 1st of next month. But if you can't wait, upgrade to Pro for unlimited access.</p>
+
+    <div class="highlight">
+      <div class="check-row"><span class="check-icon">✓</span><span><strong>Unlimited</strong> resume analyses</span></div>
+      <div class="check-row"><span class="check-icon">✓</span><span><strong>PDF career reports</strong> with detailed improvement plans</span></div>
+      <div class="check-row"><span class="check-icon">✓</span><span><strong>LinkedIn &amp; Naukri</strong> profile optimizer</span></div>
+      <div class="check-row"><span class="check-icon">✓</span><span><strong>Job tracker</strong> to manage all applications</span></div>
+    </div>
+
+    <a href="${SITE}" class="btn">Upgrade to Pro — ₹49/month →</a>
+
+    <div class="divider"></div>
+    <div class="alert">
+      <p>💡 You still have <strong>lifetime premium accesses</strong> available. Check your account — you may be able to run more analyses right now without upgrading.</p>
+    </div>
+  `, 'You\'re receiving this because you reached your monthly analysis limit on KrackHire.')
+}
+
+// ── 6. PLAN EXPIRING ─────────────────────────────────────────
+function tplPlanExpiring(name, plan, daysLeft) {
+  return base(`
+    <h1>Your ${plan} plan expires in ${daysLeft} day${daysLeft === 1 ? '' : 's'} ⏰</h1>
+    <p>Hi ${name}, just a heads up — your KrackHire <strong>${plan}</strong> plan expires in <strong>${daysLeft} day${daysLeft === 1 ? '' : 's'}</strong>.</p>
+
+    <p>Renew now to keep your unlimited access, PDF reports, and all premium features without interruption.</p>
+
+    <a href="${SITE}" class="btn">Renew my plan →</a>
+
+    <div class="divider"></div>
+    <p style="font-size:14px;color:#888">
+      After expiry, your account automatically moves to the free plan (3 analyses/month).
+      Your analysis history and data are always saved — you won't lose anything.
+    </p>
+  `, 'You\'re receiving this as a reminder about your KrackHire subscription.')
+}
+
+// ── 7. INACTIVE REMINDER ─────────────────────────────────────
+function tplInactiveReminder(name, daysSince) {
+  return base(`
+    <h1>Still looking for that job, ${name}? 👋</h1>
+    <p>It's been ${daysSince} days since you last used KrackHire. Job hunting can be tough — but you don't have to figure it out alone.</p>
+
+    <div class="highlight">
+      <div class="check-row"><span class="check-icon">→</span><span>Check your resume against new job descriptions</span></div>
+      <div class="check-row"><span class="check-icon">→</span><span>Improve your LinkedIn headline and About section</span></div>
+      <div class="check-row"><span class="check-icon">→</span><span>Practice interview questions with the AI coach</span></div>
+      <div class="check-row"><span class="check-icon">→</span><span>Track all your applications in one place</span></div>
+    </div>
+
+    <p>You still have free analyses available this month. Use them before they reset.</p>
+
+    <a href="${SITE}" class="btn">Pick up where you left off →</a>
+  `, 'You\'re receiving this because you have an account on KrackHire.')
+}
+
+// ── 8. COLLEGE ENQUIRY (admin notification) ──────────────────
+function tplCollegeEnquiry(collegeName, contactName, email, phone, students) {
+  return base(`
+    <h1>New B2B enquiry 🏫</h1>
+    <p>A new college partnership enquiry has been submitted on KrackHire.</p>
+
+    <div class="highlight">
+      <div class="check-row"><span class="check-icon">🏫</span><span><strong>College:</strong> ${collegeName}</span></div>
+      <div class="check-row"><span class="check-icon">👤</span><span><strong>Contact:</strong> ${contactName||'—'}</span></div>
+      <div class="check-row"><span class="check-icon">📧</span><span><strong>Email:</strong> <a href="mailto:${email}" style="color:#4CAF82">${email}</a></span></div>
+      <div class="check-row"><span class="check-icon">📞</span><span><strong>Phone:</strong> ${phone||'Not provided'}</span></div>
+      <div class="check-row"><span class="check-icon">👥</span><span><strong>Students:</strong> ${students||'Not specified'}</span></div>
+    </div>
+
+    <a href="mailto:${email}?subject=KrackHire%20College%20Partnership" class="btn">Reply to enquiry →</a>
+  `)
+}
+
+// ── 9. ADMIN: new payment notification ───────────────────────
+function tplAdminNewPayment(userEmail, plan, amount, txnId) {
+  return base(`
+    <h1>💰 New payment received!</h1>
+
+    <div class="highlight">
+      <div class="check-row"><span class="check-icon">✓</span><span><strong>User:</strong> ${userEmail}</span></div>
+      <div class="check-row"><span class="check-icon">✓</span><span><strong>Plan:</strong> ${plan}</span></div>
+      <div class="check-row"><span class="check-icon">✓</span><span><strong>Amount:</strong> ${amount}</span></div>
+      ${txnId ? `<div class="check-row"><span class="check-icon">✓</span><span><strong>Txn ID:</strong> ${txnId}</span></div>` : ''}
+    </div>
+
+    <a href="${SITE}" class="btn">Open admin panel →</a>
+  `)
+}
+
+// ══════════════════════════════════════════════════════════════
+// MAIN HANDLER
+// ══════════════════════════════════════════════════════════════
 export default async function handler(req, res) {
   res.setHeader('X-Content-Type-Options', 'nosniff')
   if (req.method === 'OPTIONS') return res.status(200).end()
@@ -228,184 +349,156 @@ export default async function handler(req, res) {
   let result
 
   try {
-    switch (type) {
+    switch(type) {
 
       case 'welcome': {
-        const { email, name } = data || {}
+        const { email, name } = data||{}
         if (!email) return res.status(400).json({ success:false, message:'Missing email' })
-        result = await sendEmail({
+        result = await send({
           to: email,
           subject: `Welcome to KrackHire, ${name||'friend'}! 🎉`,
-          html: T.welcome(name||'there'),
+          html: tplWelcome(name||'there'),
         })
-        await logEmail(sb, { userId, type, to:email, status: result.ok?'sent':'failed', error: result.error })
+        await log(sb, { userId, type, to:email, status:result.ok?'sent':'failed' })
         break
       }
 
       case 'payment_success': {
-        const { email, name, plan, amount } = data || {}
+        const { email, name, plan, amount, txnId } = data||{}
         if (!email) return res.status(400).json({ success:false, message:'Missing email' })
-        result = await sendEmail({
+        // Email user
+        result = await send({
           to: email,
-          subject: `Payment confirmed — ${plan} is active ✅`,
-          html: T.payment_success(name||'there', plan, amount),
+          subject: `Payment confirmed — ${plan} is now active ✅`,
+          html: tplPaymentSuccess(name||'there', plan, amount, txnId),
         })
-        // Also notify admin
-        await sendEmail({
-          to: 'hellokrackhire@gmail.com',
+        // Notify admin
+        await send({
+          to: FROM.email,
           subject: `💰 New payment: ${amount} for ${plan}`,
-          html: T.base(`<h1>New payment received!</h1><div class="highlight"><strong>User:</strong> ${email}<br/><strong>Plan:</strong> ${plan}<br/><strong>Amount:</strong> ${amount}</div>`),
+          html: tplAdminNewPayment(email, plan, amount, txnId),
         })
-        await logEmail(sb, { userId, type, to:email, status: result.ok?'sent':'failed', error: result.error })
+        await log(sb, { userId, type, to:email, status:result.ok?'sent':'failed' })
         break
       }
 
       case 'payment_failed': {
-        const { email, name, plan, amount } = data || {}
+        const { email, name, plan, amount } = data||{}
         if (!email) return res.status(400).json({ success:false, message:'Missing email' })
-        result = await sendEmail({
+        result = await send({
           to: email,
           subject: `Payment not completed — please try again`,
-          html: T.payment_failed(name||'there', plan, amount),
+          html: tplPaymentFailed(name||'there', plan, amount),
         })
-        await logEmail(sb, { userId, type, to:email, status: result.ok?'sent':'failed', error: result.error })
-        break
-      }
-
-      case 'limit_reached': {
-        const { email, name, used } = data || {}
-        if (!email) return res.status(400).json({ success:false, message:'Missing email' })
-        result = await sendEmail({
-          to: email,
-          subject: `You've used all your free analyses — upgrade for unlimited access`,
-          html: T.limit_reached(name||'there', used||3),
-        })
-        await logEmail(sb, { userId, type, to:email, status: result.ok?'sent':'failed', error: result.error })
-        break
-      }
-
-      case 'plan_expiring': {
-        const { email, name, plan, daysLeft } = data || {}
-        if (!email) return res.status(400).json({ success:false, message:'Missing email' })
-        result = await sendEmail({
-          to: email,
-          subject: `Your ${plan} plan expires in ${daysLeft} days`,
-          html: T.plan_expiring(name||'there', plan, daysLeft),
-        })
-        await logEmail(sb, { userId, type, to:email, status: result.ok?'sent':'failed', error: result.error })
-        break
-      }
-
-      case 'inactive_reminder': {
-        const { email, name, daysSince } = data || {}
-        if (!email) return res.status(400).json({ success:false, message:'Missing email' })
-        result = await sendEmail({
-          to: email,
-          subject: `${name||'Hey'}, your resume is waiting 👋`,
-          html: T.inactive_reminder(name||'there', daysSince||7),
-        })
-        await logEmail(sb, { userId, type, to:email, status: result.ok?'sent':'failed', error: result.error })
+        await log(sb, { userId, type, to:email, status:result.ok?'sent':'failed' })
         break
       }
 
       case 'analysis_done': {
-        const { email, name, score, role, company } = data || {}
+        const { email, name, score, atsScore, skillScore, role, company } = data||{}
         if (!email) return res.status(400).json({ success:false, message:'Missing email' })
-        result = await sendEmail({
+        result = await send({
           to: email,
-          subject: `Your analysis is ready — Score: ${score}/100`,
-          html: T.analysis_done(name||'there', score, role, company),
+          subject: `Your analysis is ready — Score: ${score}/100 📊`,
+          html: tplAnalysisDone(name||'there', score, atsScore, skillScore, role, company),
         })
-        await logEmail(sb, { userId, type, to:email, status: result.ok?'sent':'failed', error: result.error })
+        await log(sb, { userId, type, to:email, status:result.ok?'sent':'failed' })
+        break
+      }
+
+      case 'limit_reached': {
+        const { email, name } = data||{}
+        if (!email) return res.status(400).json({ success:false, message:'Missing email' })
+        result = await send({
+          to: email,
+          subject: `You've used all your free analyses this month`,
+          html: tplLimitReached(name||'there'),
+        })
+        await log(sb, { userId, type, to:email, status:result.ok?'sent':'failed' })
+        break
+      }
+
+      case 'plan_expiring': {
+        const { email, name, plan, daysLeft } = data||{}
+        if (!email) return res.status(400).json({ success:false, message:'Missing email' })
+        result = await send({
+          to: email,
+          subject: `Your ${plan} plan expires in ${daysLeft} day${daysLeft===1?'':'s'} ⏰`,
+          html: tplPlanExpiring(name||'there', plan, daysLeft),
+        })
+        await log(sb, { userId, type, to:email, status:result.ok?'sent':'failed' })
+        break
+      }
+
+      case 'inactive_reminder': {
+        const { email, name, daysSince } = data||{}
+        if (!email) return res.status(400).json({ success:false, message:'Missing email' })
+        result = await send({
+          to: email,
+          subject: `${name||'Hey'}, still looking for that job? 👋`,
+          html: tplInactiveReminder(name||'there', daysSince||7),
+        })
+        await log(sb, { userId, type, to:email, status:result.ok?'sent':'failed' })
         break
       }
 
       case 'college_enquiry': {
-        const { collegeName, contactName, email, phone, students } = data || {}
-        result = await sendEmail({
-          to: 'hellokrackhire@gmail.com',
+        const { collegeName, contactName, email, phone, students } = data||{}
+        result = await send({
+          to: FROM.email,
           subject: `🏫 New college partnership: ${collegeName}`,
-          html: T.college_enquiry(collegeName, contactName, email, phone, students),
+          html: tplCollegeEnquiry(collegeName, contactName, email, phone, students),
         })
-        await logEmail(sb, { userId:null, type, to:'hellokrackhire@gmail.com', status: result.ok?'sent':'failed', error: result.error })
+        await log(sb, { userId:null, type, to:FROM.email, status:result.ok?'sent':'failed' })
         break
       }
 
+      // Bulk jobs (called by cron)
       case 'bulk_inactive': {
-        // Called by a cron job — send reminders to inactive users
         if (!sb) return res.status(500).json({ success:false, message:'DB unavailable' })
-        const cutoff = new Date(Date.now() - 7*86400000).toISOString()
-        const { data: inactive } = await sb
-          .from('profiles')
-          .select('id, email, name')
-          .lt('updated_at', cutoff)
-          .eq('plan', 'free')
-          .limit(50)
-
+        const cutoff = new Date(Date.now()-7*86400000).toISOString()
+        const { data: inactive } = await sb.from('profiles').select('id,email,name')
+          .lt('updated_at', cutoff).eq('plan','free').limit(50)
         let sent = 0
-        for (const u of inactive || []) {
+        for (const u of inactive||[]) {
           if (!u.email) continue
-          // Check not already emailed recently
-          const { data: recent } = await sb
-            .from('email_logs')
-            .select('id')
-            .eq('user_id', u.id)
-            .eq('type', 'inactive_reminder')
-            .gte('sent_at', cutoff)
-            .single()
+          const { data: recent } = await sb.from('email_logs').select('id')
+            .eq('user_id',u.id).eq('type','inactive_reminder').gte('sent_at',cutoff).single()
           if (recent) continue
-
-          const r = await sendEmail({
-            to: u.email,
-            subject: `${u.name||'Hey'}, your resume is waiting 👋`,
-            html: T.inactive_reminder(u.name||'there', 7),
-          })
-          await logEmail(sb, { userId:u.id, type:'inactive_reminder', to:u.email, status:r.ok?'sent':'failed' })
+          const r = await send({ to:u.email, subject:`${u.name||'Hey'}, still looking for that job? 👋`, html:tplInactiveReminder(u.name||'there',7) })
+          await log(sb, { userId:u.id, type:'inactive_reminder', to:u.email, status:r.ok?'sent':'failed' })
           if (r.ok) sent++
-          // Rate limit: 1 per 100ms
-          await new Promise(r => setTimeout(r, 100))
+          await new Promise(r=>setTimeout(r,120))
         }
         return res.status(200).json({ success:true, message:`Sent ${sent} reminders` })
       }
 
       case 'bulk_expiring': {
-        // Send plan expiry reminders
         if (!sb) return res.status(500).json({ success:false, message:'DB unavailable' })
-        const in3days  = new Date(Date.now() + 3*86400000).toISOString()
-        const now      = new Date().toISOString()
-        const { data: expiring } = await sb
-          .from('profiles')
-          .select('id, email, name, plan, plan_expires_at')
-          .neq('plan', 'free')
-          .neq('plan', 'founding_user')
-          .neq('plan', 'early_adopter')
-          .lte('plan_expires_at', in3days)
-          .gte('plan_expires_at', now)
-          .limit(50)
-
+        const in3 = new Date(Date.now()+3*86400000).toISOString()
+        const now = new Date().toISOString()
+        const { data: expiring } = await sb.from('profiles').select('id,email,name,plan,plan_expires_at')
+          .neq('plan','free').neq('plan','founding_user').neq('plan','early_adopter')
+          .lte('plan_expires_at',in3).gte('plan_expires_at',now).limit(50)
         let sent = 0
-        for (const u of expiring || []) {
+        for (const u of expiring||[]) {
           if (!u.email) continue
-          const daysLeft = Math.ceil((new Date(u.plan_expires_at) - new Date()) / 86400000)
-          const r = await sendEmail({
-            to: u.email,
-            subject: `Your ${u.plan} plan expires in ${daysLeft} days`,
-            html: T.plan_expiring(u.name||'there', u.plan, daysLeft),
-          })
-          await logEmail(sb, { userId:u.id, type:'plan_expiring', to:u.email, status:r.ok?'sent':'failed' })
+          const daysLeft = Math.ceil((new Date(u.plan_expires_at)-new Date())/86400000)
+          const r = await send({ to:u.email, subject:`Your ${u.plan} expires in ${daysLeft} day${daysLeft===1?'':'s'} ⏰`, html:tplPlanExpiring(u.name||'there',u.plan,daysLeft) })
+          await log(sb, { userId:u.id, type:'plan_expiring', to:u.email, status:r.ok?'sent':'failed' })
           if (r.ok) sent++
-          await new Promise(r => setTimeout(r, 100))
+          await new Promise(r=>setTimeout(r,120))
         }
         return res.status(200).json({ success:true, message:`Sent ${sent} expiry reminders` })
       }
 
       default:
-        return res.status(400).json({ success:false, message:`Unknown email type: ${type}` })
+        return res.status(400).json({ success:false, message:`Unknown type: ${type}` })
     }
 
     return res.status(200).json({ success: result?.ok||false, message: result?.ok ? 'Email sent' : 'Email failed' })
 
-  } catch (err) {
+  } catch(err) {
     console.error('[email] Handler error:', err.message)
     return res.status(500).json({ success:false, message:'Email service error' })
   }
