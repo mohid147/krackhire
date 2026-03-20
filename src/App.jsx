@@ -4,7 +4,17 @@ import { createClient } from "@supabase/supabase-js";
 /* ─── SUPABASE ───────────────────────────────────────────── */
 const SUPA_URL  = import.meta.env.VITE_SUPABASE_URL  || "";
 const SUPA_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
-const SITE_URL  = import.meta.env.VITE_SITE_URL || (typeof window !== "undefined" ? window.location.origin : "");
+const SITE_URL = (()=>{
+  // Always use canonical domain for OAuth redirects
+  // This ensures sign-in always goes back to www.krackhire.in
+  const env = import.meta.env.VITE_SITE_URL;
+  if (env) return env;
+  if (typeof window === "undefined") return "https://www.krackhire.in";
+  const host = window.location.hostname;
+  // Redirect any non-www or vercel URL to canonical
+  if (host.includes("vercel.app") || host === "krackhire.in") return "https://www.krackhire.in";
+  return window.location.origin;
+})();
 
 const sb = SUPA_URL && SUPA_ANON
   ? createClient(SUPA_URL, SUPA_ANON, { auth:{ autoRefreshToken:true, persistSession:true, detectSessionInUrl:true }})
@@ -13,7 +23,7 @@ const sb = SUPA_URL && SUPA_ANON
 /* ─── SUPABASE HELPERS ───────────────────────────────────── */
 async function signInGoogle() {
   if (!sb) return;
-  await sb.auth.signInWithOAuth({ provider:"google", options:{ redirectTo:SITE_URL, queryParams:{ access_type:"offline", prompt:"consent" }}});
+  await sb.auth.signInWithOAuth({ provider:"google", options:{ redirectTo:"https://www.krackhire.in", queryParams:{ access_type:"offline", prompt:"consent" }}});
 }
 async function doSignOut()        { if (sb) await sb.auth.signOut().catch(()=>{}); }
 async function getProfile(uid)    { if (!sb) return null; const { data } = await sb.from("profiles").select("*").eq("id",uid).single(); return data; }
@@ -296,8 +306,8 @@ function ShareScoreCard({ score, atsScore, skillScore, role, onClose }) {
   function share(platform) {
     if(platform==="copy") { navigator.clipboard.writeText(shareText).catch(()=>{}); setCopied(true); setTimeout(()=>setCopied(false),2500); return; }
     if(platform==="whatsapp") { window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`,"_blank"); return; }
-    if(platform==="linkedin") { window.open(`https://www.linkedin.com/sharing/share-offsite/?url=www.krackhire.in&summary=${encodeURIComponent(shareText)}`,"_blank"); return; }
-    if(platform==="telegram") { window.open(`https://t.me/share/url?url=www.krackhire.in&text=${encodeURIComponent(shareText)}`,"_blank"); return; }
+    if(platform==="linkedin") { window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(import.meta.env.VITE_SITE_URL||"https://www.krackhire.in")}&summary=${encodeURIComponent(shareText)}`,"_blank"); return; }
+    if(platform==="telegram") { window.open(`https://t.me/share/url?url=${encodeURIComponent(import.meta.env.VITE_SITE_URL||"https://www.krackhire.in")}&text=${encodeURIComponent(shareText)}`,"_blank"); return; }
     navigator.share?.({ text:shareText }).catch(()=>{});
   }
 
