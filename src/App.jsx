@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo, memo } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo, memo } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 /* ─── SUPABASE ───────────────────────────────────────────── */
@@ -51,6 +51,10 @@ async function redeemInviteCode(code, uid) {
 
 /* ─── API CALLS ──────────────────────────────────────────── */
 async function callAPI(type, payload) {
+  // Check network before calling
+  if(typeof navigator !== "undefined" && !navigator.onLine) {
+    throw new Error("No internet connection. Please check your network and try again.");
+  }
   const ctrl = new AbortController();
   const tid  = setTimeout(()=>ctrl.abort(), 50000);
   try {
@@ -136,6 +140,32 @@ function Toasts({ list, remove }) {
     </div>
   );
 }
+/* ─── ERROR BOUNDARY ────────────────────────────────────── */
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { hasError:false, error:null }; }
+  static getDerivedStateFromError(error) { return { hasError:true, error }; }
+  componentDidCatch(error, info) { console.error("[KH] ErrorBoundary caught:", error, info); }
+  render() {
+    if (!this.state.hasError) return this.props.children;
+    return (
+      <div style={{ minHeight:"100vh", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:"#F9F8F6", padding:24, textAlign:"center" }}>
+        <div style={{ fontSize:40, marginBottom:16 }}>⚠️</div>
+        <h2 style={{ fontFamily:"'Lora',Georgia,serif", fontSize:22, color:"#1C1917", marginBottom:10 }}>Something went wrong</h2>
+        <p style={{ fontSize:15, color:"#78716C", marginBottom:24, maxWidth:360, lineHeight:1.7 }}>
+          We hit an unexpected error. Your data is safe. Please refresh the page.
+        </p>
+        <button onClick={()=>window.location.reload()}
+          style={{ padding:"12px 28px", background:"#3D6B4F", color:"#fff", borderRadius:10, fontSize:15, fontWeight:600, cursor:"pointer", border:"none", fontFamily:"inherit" }}>
+          Refresh page
+        </button>
+        <p style={{ fontSize:12, color:"#A8A29E", marginTop:16 }}>
+          If this keeps happening, contact <a href="mailto:hellokrackhire@gmail.com" style={{ color:"#3D6B4F" }}>hellokrackhire@gmail.com</a>
+        </p>
+      </div>
+    );
+  }
+}
+
 function useToast() {
   const [list,setList] = useState([]);
   const toast  = useCallback((msg,type="success")=>{ const id=`${Date.now()}-${Math.random()}`; setList(p=>[...p.slice(-3),{id,msg,type}]); },[]);
@@ -821,7 +851,7 @@ function PaymentModal({ planId, planLabel, planAmount, user, onClose, onSuccess,
             <Btn onClick={startPayment} disabled={loading} full bg={C.sage} style={{ marginBottom:12, fontSize:15 }}>
               {loading?<><Spin s={16} c="#fff"/>Processing…</>:`Pay ${planAmount} via PayU`}
             </Btn>
-            <button onClick={onClose} style={{ width:"100%", textAlign:"center", fontSize:13.5, color:C.ink3, cursor:"pointer", padding:8, minHeight:36 }}>Cancel</button>
+            <button onClick={onClose} disabled={loading} style={{ width:"100%", textAlign:"center", fontSize:13.5, color:C.ink3, cursor:"pointer", padding:8, minHeight:36, opacity:loading?.4:1 }}>Cancel</button>
             <p style={{ marginTop:12, fontSize:11.5, color:C.ink3, textAlign:"center" }}>Secured by PayU · UPI · Cards · Net Banking</p>
           </>
         )}
@@ -1884,6 +1914,8 @@ const TABS=[
 function Tool({ onBack, user, profile, onShowAuth, onUpgrade, onProfileRefresh }) {
   const { toast, list:toastList, remove:removeToast } = useToast();
   const [resume,  setResume]  = useState("");
+  // Note: Tool works for both signed-in and anonymous users
+  // Anonymous users get 3 free analyses via IP rate limiting on backend
   const [jd,      setJd]      = useState("");
   const [company, setCompany] = useState("");
   const [role,    setRole]    = useState("");
@@ -2384,7 +2416,7 @@ function CollegeForm({ onSave, initial }) {
 }
 
 /* ─── ADMIN HELPERS ──────────────────────────────────────── */
-async function adminGetUsers()         { if(!sb)return[]; try{ const{data}=await sb.from("profiles").select("id,email,name,role,plan,plan_expires_at,analyses_this_month,lifetime_accesses_remaining,created_at").order("created_at",{ascending:false}).limit(500); return data||[]; }catch(e){return[];} }
+async function adminGetUsers(page=0)    { if(!sb)return[]; try{ const from=page*100; const{data}=await sb.from("profiles").select("id,email,name,role,plan,plan_expires_at,analyses_this_month,lifetime_accesses_remaining,created_at").order("created_at",{ascending:false}).range(from,from+99); return data||[]; }catch(e){return[];} }
 async function adminUpdateUser(id,upd) { if(!sb)return; await sb.from("profiles").update({...upd,updated_at:new Date().toISOString()}).eq("id",id); }
 async function adminGetInviteCodes()   { if(!sb)return[]; try{ const{data}=await sb.from("invite_codes").select("*").order("created_at",{ascending:false}); return data||[]; }catch(e){return[];} }
 async function adminCreateCode(code,limit,days,expires){ if(!sb)return null; const{data,error}=await sb.from("invite_codes").insert({code:code.trim().toUpperCase(),usage_limit:limit,access_days:days,expires_at:expires||null}).select().single(); if(error)throw new Error(error.message); return data; }
@@ -3118,6 +3150,14 @@ export default function KrackHire() {
       setAuthLoading(false);
     });
     const {data:{subscription}}=sb.auth.onAuthStateChange((event,session)=>{
+      // Handle session expiry and sign out
+      if(event==="SIGNED_OUT" || event==="TOKEN_REFRESHED" && !session) {
+        setUser(null); setProfile(null); return;
+      }
+      if(event==="USER_UPDATED" && session?.user) {
+        getProfile(session.user.id).then(p=>{ if(p) setProfile(p); }).catch(()=>{});
+        return;
+      }
       setUser(session?.user||null);
       if(session?.user) {
         getProfile(session.user.id).then(p=>{ if(p) setProfile(p); }).catch(()=>{});
@@ -3215,9 +3255,10 @@ export default function KrackHire() {
   }
 
   if(authLoading) return (
-    <div style={{ minHeight:"100vh", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:C.bg, gap:16 }}>
+    <div style={{ minHeight:"100vh", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:C.bg, gap:20 }}>
       <Logo size="lg"/>
-      <Spin s={26} c={C.sage}/>
+      <Spin s={28} c={C.sage}/>
+      <p style={{ fontSize:14, color:C.ink3, animation:"pulse 1.5s infinite" }}>Loading your account…</p>
     </div>
   );
 
@@ -3226,7 +3267,7 @@ export default function KrackHire() {
   }
 
   return (
-    <>
+    <ErrorBoundary>
       <Toasts list={toastList} remove={removeToast}/>
       {showWelcome&&user&&profile&&<WelcomePopup user={user} profile={profile} onClose={()=>setShowWelcome(false)}/>}
       {showAuth     &&<AuthModal onClose={()=>setShowAuth(false)}/>}
@@ -3240,6 +3281,6 @@ export default function KrackHire() {
        view==="tool"    ? <Tool onBack={()=>navigate("landing")} user={user} profile={profile} onShowAuth={()=>setShowAuth(true)} onUpgrade={handleUpgrade} onProfileRefresh={refreshProfile}/> :
        <Landing onEnter={()=>navigate("tool")} user={user} profile={profile} onShowAuth={()=>setShowAuth(true)} onSignOut={handleSignOut} onUpgrade={handleUpgrade} onProfileRefresh={refreshProfile} toast={toast} onAdmin={goAdmin} navigate={navigate}/>
       }
-    </>
+    </ErrorBoundary>
   );
 }
