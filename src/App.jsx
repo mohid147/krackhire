@@ -3094,8 +3094,24 @@ export default function KrackHire() {
     sb.auth.getSession().then(({data:{session}})=>{
       setUser(session?.user||null);
       if(session?.user) getProfile(session.user.id).then(p=>{
-        if(p){ setProfile(p); console.log("[KH] Profile loaded:", {role:p.role, plan:p.plan, id:p.id?.slice(0,8)}); }
-        else { console.warn("[KH] Profile returned null for user:", session.user.id?.slice(0,8)); }
+        if(p){
+          setProfile(p);
+          console.log("[KH] Profile loaded:", {role:p.role, plan:p.plan, id:p.id?.slice(0,8)});
+          // Check plan expiry — send reminder if expires in ≤3 days
+          if(p.plan_expires_at && !["founding_user","early_adopter","free"].includes(p.plan)) {
+            const daysLeft = Math.ceil((new Date(p.plan_expires_at)-Date.now())/86400000);
+            if(daysLeft > 0 && daysLeft <= 3) {
+              callEmail("plan_expiring", session.user.id, {
+                email:    session.user.email,
+                name:     session.user.user_metadata?.name||session.user.email?.split("@")[0]||"there",
+                plan:     planDisplayLabel(p.plan),
+                daysLeft,
+              }).catch(()=>{});
+            }
+          }
+        } else {
+          console.warn("[KH] Profile returned null for user:", session.user.id?.slice(0,8));
+        }
       }).catch(e=>console.error("[KH] Profile fetch error:",e.message));
       setAuthLoading(false);
     });
@@ -3105,9 +3121,11 @@ export default function KrackHire() {
         getProfile(session.user.id).then(p=>{ if(p) setProfile(p); }).catch(()=>{});
         // Send welcome email + show popup on sign in
         if(event==="SIGNED_IN") {
-          const isNew = session.user.created_at && (Date.now()-new Date(session.user.created_at).getTime()) < 30000;
+          // Welcome email: send if account created within last 5 minutes
+          const isNew = session.user.created_at &&
+            (Date.now()-new Date(session.user.created_at).getTime()) < 5*60*1000;
           if(isNew) {
-            callEmail("welcome",session.user.id,{
+            callEmail("welcome", session.user.id, {
               email: session.user.email,
               name:  session.user.user_metadata?.name||session.user.email?.split("@")[0]||"there",
             }).catch(()=>{});
