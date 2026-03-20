@@ -1,19 +1,16 @@
 // GoogleAnalytics.jsx - Add this to: src/components/GoogleAnalytics.jsx
 
 import { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
 
-// Track page views on route changes
+// Track page views
 export function usePageTracking() {
-  const location = useLocation();
-
   useEffect(() => {
     if (typeof window.gtag !== 'undefined') {
-      window.gtag('config', 'G-XXXXXXXXXX', {
-        page_path: location.pathname + location.search,
+      window.gtag('config', 'G-KMTZTVC6W7', {
+        page_path: window.location.pathname + window.location.search,
       });
     }
-  }, [location]);
+  }, []);
 }
 
 // Track custom events
@@ -53,14 +50,6 @@ export const EVENTS = {
 
 /* 
 USAGE EXAMPLES:
-
-// In your App.jsx:
-import { usePageTracking } from './components/GoogleAnalytics';
-
-function App() {
-  usePageTracking(); // Automatically tracks all route changes
-  return <div>...</div>;
-}
 
 // Track button clicks:
 import { trackEvent, EVENTS } from './components/GoogleAnalytics';
