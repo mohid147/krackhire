@@ -900,7 +900,7 @@ function UserMenu({ user, profile, onSignOut, onUpgrade, onInvite, onAdmin }) {
           </div>
           {!isPro&&<button onClick={onUpgrade} style={{ width:"100%", padding:"11px 14px", textAlign:"left", fontSize:13.5, fontWeight:600, color:C.amber, cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", borderBottom:`1px solid ${C.border}`, minHeight:44 }}>⚡ Upgrade to Pro</button>}
           {!isPro&&<button onClick={onInvite} style={{ width:"100%", padding:"11px 14px", textAlign:"left", fontSize:13.5, fontWeight:600, color:C.blue, cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", borderBottom:`1px solid ${C.border}`, minHeight:44 }}>🎟️ Enter invite code</button>}
-          {["admin","founder"].includes(profile?.role)&&(
+          {(["admin","founder"].includes(profile?.role) || user?.email==="mohidmd58@gmail.com")&&(
             <button onClick={()=>{ setOpen(false); onAdmin(); }} style={{ width:"100%", padding:"11px 14px", textAlign:"left", fontSize:13.5, fontWeight:700, color:C.purple, cursor:"pointer", background:C.purpleBg, border:"none", fontFamily:"inherit", borderBottom:`1px solid ${C.border}`, minHeight:44 }}>⚙️ Admin Panel</button>
           )}
           <button onClick={onSignOut} style={{ width:"100%", padding:"11px 14px", textAlign:"left", fontSize:13.5, color:C.red, cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", minHeight:44 }}>Sign out</button>
@@ -2271,7 +2271,8 @@ function AdminDashboard({ user, profile, onBack }) {
   const planClr = {free:C.stone,starter:C.blue,pro:C.sage,pro_monthly:C.sage,pro_yearly:C.sage,founding_user:C.purple,early_adopter:C.purple,beta_friend:C.blue,college_basic:C.amber,college_pro:C.amber,premium:C.amber};
 
   useEffect(()=>{
-    if(!profile || !["admin","founder"].includes(profile?.role)){ onBack(); return; }
+    const isAdmin = ["admin","founder"].includes(profile?.role) || user?.email==="mohidmd58@gmail.com";
+    if(!isAdmin){ onBack(); return; }
     loadAll();
   },[]);
 
@@ -2869,7 +2870,10 @@ export default function KrackHire() {
   async function handleSignOut(){ await doSignOut(); setUser(null); setProfile(null); }
   function navigate(page){ setView(page); window.scrollTo({top:0,behavior:"instant"}); }
   function goAdmin(){
-    if(!["admin","founder"].includes(profile?.role)){ return; }
+    // Check role from profile OR by email (fallback for founder)
+    const isFounder = ["admin","founder"].includes(profile?.role) || 
+                      user?.email === "mohidmd58@gmail.com";
+    if(!isFounder){ return; }
     setView("admin");
   }
   function leaveAdmin(){ setView("landing"); }
