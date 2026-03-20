@@ -5,6 +5,8 @@ import { createClient } from "@supabase/supabase-js";
 const SUPA_URL  = import.meta.env.VITE_SUPABASE_URL  || "";
 const SUPA_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 const SITE_URL = import.meta.env.VITE_SITE_URL || "https://www.krackhire.in";
+// Track sent emails per session — prevents duplicate triggers
+const _emailSent = new Set();
 
 const sb = SUPA_URL && SUPA_ANON
   ? createClient(SUPA_URL, SUPA_ANON, { auth:{ autoRefreshToken:true, persistSession:true, detectSessionInUrl:true }})
@@ -1937,7 +1939,9 @@ function Tool({ onBack, user, profile, onShowAuth, onUpgrade, onProfileRefresh }
 
   useEffect(()=>{ chatEnd.current?.scrollIntoView({behavior:"smooth"}); },[chat]);
 
-  const payload  = useMemo(()=>({resume,jd,company,role,userId:user?.id||null}),[resume,jd,company,role,user]);
+  // IMPORTANT: compute payload fresh each call so userId is always current
+  // useMemo was causing userId=null when user signed in after component mounted
+  const payload = { resume, jd, company, role, userId: user?.id||null };
   const setL = useCallback((k,v)=>setLoading(p=>({...p,[k]:v})),[]);
   const setR = useCallback((k,v)=>setResults(p=>({...p,[k]:v})),[]);
   const setE = useCallback((k,v)=>setErrors(p=>({...p,[k]:v})),[]);
@@ -1952,7 +1956,7 @@ function Tool({ onBack, user, profile, onShowAuth, onUpgrade, onProfileRefresh }
     if(resume.length>8000){ toast("Resume too long — max 8000 characters.","error"); return; }
     if(jd.length>4000)    { toast("Job description too long — max 4000 characters.","error"); return; }
 
-    setRan(true); setTab("gap"); setShowFeedback(false);
+    setRan(true); setTab("gap"); setShowFeedback(false); setAnalysisCount(c=>c+1);
     setResults({gap:null,resume:null,cover:null,email:null});
     setErrors({gap:null,resume:null,cover:null,email:null});
     setLoading({gap:true,resume:true,cover:true,email:true});
@@ -1964,15 +1968,22 @@ function Tool({ onBack, user, profile, onShowAuth, onUpgrade, onProfileRefresh }
         if(p) {
           setR("gap",p);
           // Send analysis done email (only for signed-in users)
-          if(user?.email) callEmail("analysis_done", user.id, {
-            email:     user.email,
-            name:      user.user_metadata?.name||user.email?.split("@")[0]||"there",
-            score:     p?.score||p?.gap_score||0,
-            atsScore:  p?.ats_score||null,
-            skillScore:p?.skill_score||null,
-            role:      payload?.role||"",
-            company:   payload?.company||"",
-          }).catch(()=>{});
+          // Send analysis done email once per analysis (deduplicated by score+role key)
+          if(user?.email) {
+            const emailKey = "analysis_"+(p?.score||0)+"_"+(payload?.role||"")+"_"+Date.now();
+            if(!_emailSent.has(emailKey)) {
+              _emailSent.add(emailKey);
+              callEmail("analysis_done", user.id, {
+                email:     user.email,
+                name:      user.user_metadata?.name||user.email?.split("@")[0]||"there",
+                score:     p?.score||p?.gap_score||0,
+                atsScore:  p?.ats_score||null,
+                skillScore:p?.skill_score||null,
+                role:      payload?.role||"",
+                company:   payload?.company||"",
+              }).catch(()=>{});
+            }
+          }
         } else {
           setE("gap","Could not parse result. Please try again.");
         }
@@ -2046,7 +2057,7 @@ Type "start" to begin, or ask me anything about the role first.`}]);
               <div style={{ fontSize:15, fontWeight:700, color:C.ink }}>My Analyses</div>
               <button onClick={()=>setShowDash(false)} style={{ fontSize:22, color:C.ink3, cursor:"pointer", lineHeight:1, minHeight:36, minWidth:36 }}>×</button>
             </div>
-            <AnalysisHistory userId={user.id} key={showDash ? "open" : "closed"}/>
+            <AnalysisHistory userId={user.id} key={"history_"+analysisCount+(showDash?"_open":"_closed")}/>
           </div>
         </div>
       )}
@@ -3135,12 +3146,17 @@ export default function KrackHire() {
           if(p.plan_expires_at && !["founding_user","early_adopter","free"].includes(p.plan)) {
             const daysLeft = Math.ceil((new Date(p.plan_expires_at)-Date.now())/86400000);
             if(daysLeft > 0 && daysLeft <= 3) {
-              callEmail("plan_expiring", session.user.id, {
-                email:    session.user.email,
-                name:     session.user.user_metadata?.name||session.user.email?.split("@")[0]||"there",
-                plan:     planDisplayLabel(p.plan),
-                daysLeft,
-              }).catch(()=>{});
+              // Only send once per day per user
+              const planKey = "expiring_"+session.user.id+"_"+new Date().toDateString();
+              if(!_emailSent.has(planKey)) {
+                _emailSent.add(planKey);
+                callEmail("plan_expiring", session.user.id, {
+                  email:    session.user.email,
+                  name:     session.user.user_metadata?.name||session.user.email?.split("@")[0]||"there",
+                  plan:     planDisplayLabel(p.plan),
+                  daysLeft,
+                }).catch(()=>{});
+              }
             }
           }
         } else {
@@ -3163,14 +3179,19 @@ export default function KrackHire() {
         getProfile(session.user.id).then(p=>{ if(p) setProfile(p); }).catch(()=>{});
         // Send welcome email + show popup on sign in
         if(event==="SIGNED_IN") {
-          // Welcome email: send if account created within last 5 minutes
-          const isNew = session.user.created_at &&
-            (Date.now()-new Date(session.user.created_at).getTime()) < 5*60*1000;
-          if(isNew) {
-            callEmail("welcome", session.user.id, {
-              email: session.user.email,
-              name:  session.user.user_metadata?.name||session.user.email?.split("@")[0]||"there",
-            }).catch(()=>{});
+          const uid = session.user.id;
+          // SIGNED_IN fires multiple times on OAuth — deduplicate
+          if(!_emailSent.has("welcome_"+uid)) {
+            _emailSent.add("welcome_"+uid);
+            // Welcome email: only for new accounts (created < 5 min ago)
+            const isNew = session.user.created_at &&
+              (Date.now()-new Date(session.user.created_at).getTime()) < 5*60*1000;
+            if(isNew) {
+              callEmail("welcome", uid, {
+                email: session.user.email,
+                name:  session.user.user_metadata?.name||session.user.email?.split("@")[0]||"there",
+              }).catch(()=>{});
+            }
           }
           setTimeout(()=>setShowWelcome(true), 1500);
         }
