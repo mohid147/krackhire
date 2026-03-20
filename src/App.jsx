@@ -1933,11 +1933,13 @@ function Tool({ onBack, user, profile, onShowAuth, onUpgrade, onProfileRefresh }
           setR("gap",p);
           // Send analysis done email (only for signed-in users)
           if(user?.email) callEmail("analysis_done", user.id, {
-            email:   user.email,
-            name:    user.user_metadata?.name||user.email?.split("@")[0]||"there",
-            score:   p?.score||p?.gap_score||0,
-            role:    payload?.role||"",
-            company: payload?.company||"",
+            email:     user.email,
+            name:      user.user_metadata?.name||user.email?.split("@")[0]||"there",
+            score:     p?.score||p?.gap_score||0,
+            atsScore:  p?.ats_score||null,
+            skillScore:p?.skill_score||null,
+            role:      payload?.role||"",
+            company:   payload?.company||"",
           }).catch(()=>{});
         } else {
           setE("gap","Could not parse result. Please try again.");
