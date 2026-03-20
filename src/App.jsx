@@ -1,5 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo, memo } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { HelmetProvider } from 'react-helmet-async';
+import { HomePageSEO } from './components/SEO';
+import { ProductSchema } from './components/StructuredData';
+import { usePageTracking } from './components/GoogleAnalytics';
 
 /* ─── SUPABASE ───────────────────────────────────────────── */
 const SUPA_URL  = import.meta.env.VITE_SUPABASE_URL  || "";
@@ -3126,6 +3130,9 @@ function AdminDashboard({ user, profile, onBack }) {
 
 /* ─── ROOT ───────────────────────────────────────────────── */
 export default function KrackHire() {
+  // SEO: Track page views
+  usePageTracking();
+  
   const [view,        setView]        = useState("landing");
   const [showWelcome, setShowWelcome] = useState(false);
   const [user,        setUser]        = useState(null);
@@ -3290,20 +3297,25 @@ export default function KrackHire() {
   }
 
   return (
-    <ErrorBoundary>
-      <Toasts list={toastList} remove={removeToast}/>
-      {showWelcome&&user&&profile&&<WelcomePopup user={user} profile={profile} onClose={()=>setShowWelcome(false)}/>}
-      {showAuth     &&<AuthModal onClose={()=>setShowAuth(false)}/>}
-      {upgradeModal &&<UpgradeModal onClose={()=>setUpgradeModal(false)} onSelectPlan={handleUpgrade} user={user}/>}
-      {payModal     &&<PaymentModal {...payModal} user={user} onClose={()=>setPayModal(null)} onSuccess={handlePaymentSuccess} toast={toast}/>}
-      {view==="admin"   ? <AdminDashboard user={user} profile={profile} onBack={leaveAdmin}/> :
-       view==="contact" ? <ContactPage  onBack={()=>navigate("landing")}/> :
-       view==="privacy" ? <PrivacyPage  onBack={()=>navigate("landing")}/> :
-       view==="terms"   ? <TermsPage    onBack={()=>navigate("landing")}/> :
-       view==="refund"  ? <RefundPage   onBack={()=>navigate("landing")}/> :
-       view==="tool"    ? <Tool onBack={()=>navigate("landing")} user={user} profile={profile} onShowAuth={()=>setShowAuth(true)} onUpgrade={handleUpgrade} onProfileRefresh={refreshProfile}/> :
-       <Landing onEnter={()=>navigate("tool")} user={user} profile={profile} onShowAuth={()=>setShowAuth(true)} onSignOut={handleSignOut} onUpgrade={handleUpgrade} onProfileRefresh={refreshProfile} toast={toast} onAdmin={goAdmin} navigate={navigate}/>
-      }
-    </ErrorBoundary>
+    <HelmetProvider>
+      <HomePageSEO />
+      <ProductSchema />
+      
+      <ErrorBoundary>
+        <Toasts list={toastList} remove={removeToast}/>
+        {showWelcome&&user&&profile&&<WelcomePopup user={user} profile={profile} onClose={()=>setShowWelcome(false)}/>}
+        {showAuth     &&<AuthModal onClose={()=>setShowAuth(false)}/>}
+        {upgradeModal &&<UpgradeModal onClose={()=>setUpgradeModal(false)} onSelectPlan={handleUpgrade} user={user}/>}
+        {payModal     &&<PaymentModal {...payModal} user={user} onClose={()=>setPayModal(null)} onSuccess={handlePaymentSuccess} toast={toast}/>}
+        {view==="admin"   ? <AdminDashboard user={user} profile={profile} onBack={leaveAdmin}/> :
+         view==="contact" ? <ContactPage  onBack={()=>navigate("landing")}/> :
+         view==="privacy" ? <PrivacyPage  onBack={()=>navigate("landing")}/> :
+         view==="terms"   ? <TermsPage    onBack={()=>navigate("landing")}/> :
+         view==="refund"  ? <RefundPage   onBack={()=>navigate("landing")}/> :
+         view==="tool"    ? <Tool onBack={()=>navigate("landing")} user={user} profile={profile} onShowAuth={()=>setShowAuth(true)} onUpgrade={handleUpgrade} onProfileRefresh={refreshProfile}/> :
+         <Landing onEnter={()=>navigate("tool")} user={user} profile={profile} onShowAuth={()=>setShowAuth(true)} onSignOut={handleSignOut} onUpgrade={handleUpgrade} onProfileRefresh={refreshProfile} toast={toast} onAdmin={goAdmin} navigate={navigate}/>
+        }
+      </ErrorBoundary>
+    </HelmetProvider>
   );
 }
