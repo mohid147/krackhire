@@ -492,6 +492,23 @@ export default async function handler(req, res) {
         return res.status(200).json({ success:true, message:`Sent ${sent} expiry reminders` })
       }
 
+      case 'test': {
+        // Test endpoint - call /api/email with {type:"test",data:{email:"your@email.com"}}
+        const { email } = data||{}
+        if (!email) return res.status(400).json({ success:false, message:'Missing email' })
+        result = await send({
+          to: email,
+          subject: 'KrackHire email test ✅',
+          html: `<div style="font-family:sans-serif;padding:32px;max-width:500px;margin:0 auto">
+            <h2 style="color:#4CAF82">✅ Email is working!</h2>
+            <p>Your KrackHire email system is configured correctly.</p>
+            <p>Brevo API key: working ✓<br/>Sender verified: working ✓</p>
+          </div>`,
+        })
+        await log(sb, { userId:null, type:'test', to:email, status:result.ok?'sent':'failed' })
+        break
+      }
+
       default:
         return res.status(400).json({ success:false, message:`Unknown type: ${type}` })
     }
