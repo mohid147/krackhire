@@ -51,9 +51,9 @@ async function log(sb, { userId, type, to, status, error }) {
 // ══════════════════════════════════════════════════════════════
 
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+  /* System fonts only — no external requests */
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { background:#F4F4F0; font-family:'DM Sans',system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+  body { background:#F4F4F0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
   .outer { background:#F4F4F0; padding:40px 16px; }
   .card  { background:#FFFFFF; border-radius:20px; max-width:560px; margin:0 auto;
            overflow:hidden; box-shadow:0 4px 24px rgba(0,0,0,.06); }
@@ -353,8 +353,15 @@ export default async function handler(req, res) {
 
   let body = {}
   try { body = req.body || {} } catch(e) {}
-  const { type, userId, data } = body
+  const { type, userId, data, _secret } = body
   if (!type) return res.status(400).json({ success:false, message:'Missing type' })
+  // Basic auth: either internal call (no secret needed for bulk) or verify secret
+  const EMAIL_SECRET = process.env.EMAIL_SECRET || ''
+  const isInternal = req.headers['x-internal'] === EMAIL_SECRET || !EMAIL_SECRET
+  if (!isInternal && !['welcome','payment_success','payment_failed','analysis_done','limit_reached','plan_expiring'].includes(type)) {
+    // Bulk endpoints require auth
+    return res.status(401).json({ success:false, message:'Unauthorized' })
+  }
 
   let sb = null
   try { sb = getSB() } catch(e) { console.warn('[email] DB init failed:', e.message) }
