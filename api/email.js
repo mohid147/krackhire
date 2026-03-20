@@ -29,13 +29,21 @@ async function send({ to, subject, html }) {
   } catch(e) { console.error('[email] Send error:', e.message); return { ok:false } }
 }
 
-// ── Log to DB ─────────────────────────────────────────────────
+// ── Log to DB (fully silent — never crashes main flow) ──────────
 async function log(sb, { userId, type, to, status, error }) {
   if (!sb) return
-  await sb.from('email_logs').insert({
-    user_id: userId||null, type, recipient: to, status, error: error||null,
-    sent_at: new Date().toISOString(),
-  }).catch(()=>{})
+  try {
+    await sb.from('email_logs').insert({
+      user_id:   userId||null,
+      type:      type,
+      recipient: to,
+      status:    status,
+      error:     error||null,
+      sent_at:   new Date().toISOString(),
+    })
+  } catch(e) {
+    console.warn('[email] Log failed (non-critical):', e.message)
+  }
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -339,13 +347,17 @@ function tplAdminNewPayment(userEmail, plan, amount, txnId) {
 // ══════════════════════════════════════════════════════════════
 export default async function handler(req, res) {
   res.setHeader('X-Content-Type-Options', 'nosniff')
+  res.setHeader('Access-Control-Allow-Origin', process.env.ALLOWED_ORIGIN||'https://www.krackhire.in')
   if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'POST') return res.status(405).json({ success:false, message:'Method not allowed' })
 
-  const { type, userId, data } = req.body || {}
+  let body = {}
+  try { body = req.body || {} } catch(e) {}
+  const { type, userId, data } = body
   if (!type) return res.status(400).json({ success:false, message:'Missing type' })
 
-  const sb = getSB()
+  let sb = null
+  try { sb = getSB() } catch(e) { console.warn('[email] DB init failed:', e.message) }
   let result
 
   try {
