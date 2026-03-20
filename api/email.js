@@ -33,7 +33,7 @@ async function send({ to, subject, html }) {
 async function log(sb, { userId, type, to, status, error }) {
   if (!sb) return
   await sb.from('email_logs').insert({
-    user_id: userId||null, type, to, status, error: error||null,
+    user_id: userId||null, type, recipient: to, status, error: error||null,
     sent_at: new Date().toISOString(),
   }).catch(()=>{})
 }
