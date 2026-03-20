@@ -4,17 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 /* ─── SUPABASE ───────────────────────────────────────────── */
 const SUPA_URL  = import.meta.env.VITE_SUPABASE_URL  || "";
 const SUPA_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
-const SITE_URL = (()=>{
-  // Always use canonical domain for OAuth redirects
-  // This ensures sign-in always goes back to www.krackhire.in
-  const env = import.meta.env.VITE_SITE_URL;
-  if (env) return env;
-  if (typeof window === "undefined") return "https://www.krackhire.in";
-  const host = window.location.hostname;
-  // Redirect any non-www or vercel URL to canonical
-  if (host.includes("vercel.app") || host === "krackhire.in") return "https://www.krackhire.in";
-  return window.location.origin;
-})();
+const SITE_URL = import.meta.env.VITE_SITE_URL || "https://www.krackhire.in";
 
 const sb = SUPA_URL && SUPA_ANON
   ? createClient(SUPA_URL, SUPA_ANON, { auth:{ autoRefreshToken:true, persistSession:true, detectSessionInUrl:true }})
@@ -26,7 +16,7 @@ async function signInGoogle() {
   await sb.auth.signInWithOAuth({ provider:"google", options:{ redirectTo:"https://www.krackhire.in", queryParams:{ access_type:"offline", prompt:"consent" }}});
 }
 async function doSignOut()        { if (sb) await sb.auth.signOut().catch(()=>{}); }
-async function getProfile(uid)    { if (!sb) return null; const { data } = await sb.from("profiles").select("*").eq("id",uid).single(); return data; }
+async function getProfile(uid)    { if (!sb||!uid) return null; try { const { data, error } = await sb.from("profiles").select("*").eq("id",uid).single(); if(error){ console.error("getProfile error:",error.message,error.code); return null; } return data; } catch(e){ console.error("getProfile catch:",e.message); return null; } }
 async function getAnalyses(uid)   { if (!sb||!uid) return []; try { const { data } = await sb.from("analyses").select("id,company,role,gap_score,ats_score,skill_score,created_at").eq("user_id",uid).order("created_at",{ascending:false}).limit(20); return data||[]; } catch(e) { return []; } }
 async function getApprovedRevs()  { if (!sb) return []; try { const { data } = await sb.from("reviews").select("*").eq("approved",true).order("created_at",{ascending:false}).limit(20); return data||[]; } catch(e) { return []; } }
 async function saveReview(r)      { if (!sb) return; try { await sb.from("reviews").insert({...r,approved:false}); } catch(e) { console.error("saveReview:",e.message); throw e; } }
@@ -2831,7 +2821,10 @@ export default function KrackHire() {
     if(!sb){ setAuthLoading(false); return; }
     sb.auth.getSession().then(({data:{session}})=>{
       setUser(session?.user||null);
-      if(session?.user) getProfile(session.user.id).then(p=>{ if(p) setProfile(p); }).catch(()=>{});
+      if(session?.user) getProfile(session.user.id).then(p=>{
+        if(p){ setProfile(p); console.log("[KH] Profile loaded:", {role:p.role, plan:p.plan, id:p.id?.slice(0,8)}); }
+        else { console.warn("[KH] Profile returned null for user:", session.user.id?.slice(0,8)); }
+      }).catch(e=>console.error("[KH] Profile fetch error:",e.message));
       setAuthLoading(false);
     });
     const {data:{subscription}}=sb.auth.onAuthStateChange((_,session)=>{
