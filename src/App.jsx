@@ -1951,10 +1951,30 @@ function Tool({ onBack, user, profile, onShowAuth, onUpgrade, onProfileRefresh }
 
   const currentStep = !ran?"Upload":results.gap?"Improve":"Analyse";
 
-  async function analyse() {
+ async function analyse() {
     if(!resume.trim()||!jd.trim()){ toast("Please fill in both fields.","error"); return; }
     if(resume.length>8000){ toast("Resume too long — max 8000 characters.","error"); return; }
     if(jd.length>4000)    { toast("Job description too long — max 4000 characters.","error"); return; }
+
+    // 1. STRICT LIMIT CHECK BEFORE RUNNING
+    if (!user) {
+      const anonUsage = parseInt(localStorage.getItem("kh_anon_usage") || "0");
+      if (anonUsage >= 3) {
+        toast("Free limit reached. Please sign in to continue.","warn");
+        setTimeout(onShowAuth, 1500);
+        return;
+      }
+    } else {
+      const isPro = isPremiumPlan(profile?.plan, profile?.plan_expires_at);
+      const used = profile?.analyses_this_month || 0;
+      const lifetime = profile?.lifetime_accesses_remaining || 0;
+
+      if (!isPro && used >= 3 && lifetime <= 0) {
+        toast("Monthly limit reached. Upgrade to Pro to continue.","warn");
+        setTimeout(onUpgrade, 1500);
+        return;
+      }
+    }
 
     setRan(true); setTab("gap"); setShowFeedback(false);
 
@@ -1964,10 +1984,38 @@ function Tool({ onBack, user, profile, onShowAuth, onUpgrade, onProfileRefresh }
 
     await Promise.allSettled([
       callAPI("gap",payload)
-        .then(raw=>{
+        .then(async raw=>{
         const p=parseJSON(raw);
         if(p) {
           setR("gap",p);
+
+          // 2. STRICTLY SAVE HISTORY & DEDUCT CREDITS
+          if (!user) {
+             const anonUsage = parseInt(localStorage.getItem("kh_anon_usage") || "0");
+             localStorage.setItem("kh_anon_usage", anonUsage + 1);
+          } else if (sb) {
+             // Save to History Dashboard
+             await sb.from("analyses").insert({
+               user_id: user.id,
+               company: payload.company || null,
+               role: payload.role || null,
+               gap_score: p.score || p.gap_score || 0,
+               ats_score: p.ats_score || 0,
+               skill_score: p.skill_score || 0
+             }).catch(()=>{});
+
+             // Deduct Credit from Profile
+             const isPro = isPremiumPlan(profile?.plan, profile?.plan_expires_at);
+             if (!isPro) {
+               if ((profile?.analyses_this_month || 0) < 3) {
+                 await sb.from("profiles").update({ analyses_this_month: (profile.analyses_this_month || 0) + 1 }).eq("id", user.id);
+               } else if ((profile?.lifetime_accesses_remaining || 0) > 0) {
+                 await sb.from("profiles").update({ lifetime_accesses_remaining: profile.lifetime_accesses_remaining - 1 }).eq("id", user.id);
+               }
+             }
+             onProfileRefresh(); // Update the UI numbers instantly
+          }
+
           if(user?.email) {
             const emailKey = "analysis_"+(p?.score||0)+"_"+(payload?.role||"")+"_"+Date.now();
             if(!_emailSent.has(emailKey)) {
@@ -1989,11 +2037,6 @@ function Tool({ onBack, user, profile, onShowAuth, onUpgrade, onProfileRefresh }
       })
         .catch(e=>{ setE("gap",e.message); if(e.message.includes("LIMIT_REACHED")){
             toast("Monthly limit reached. Upgrade to Pro.","warn");
-            if(user) callEmail("limit_reached", user.id, {
-              email: user.email,
-              name:  user.user_metadata?.name||user.email?.split("@")[0]||"there",
-              used:  3,
-            }).catch(()=>{});
             setTimeout(()=>onUpgrade(),1600);
           } })
         .finally(()=>{ setL("gap",false); setShowFeedback(true); }),
@@ -2007,7 +2050,7 @@ function Tool({ onBack, user, profile, onShowAuth, onUpgrade, onProfileRefresh }
 I've reviewed your resume and the job description. I'll ask you interview questions one at a time, score your answers out of 10, and show you what an ideal response looks like.
 
 Type "start" to begin, or ask me anything about the role first.`}]);
-  }
+  } 
 
   async function retryTab(t) {
     setE(t,null); setL(t,true);
