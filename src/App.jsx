@@ -4,6 +4,7 @@ import { HelmetProvider } from 'react-helmet-async';
 import { HomePageSEO } from './components/SEO';
 import { ProductSchema } from './components/StructuredData';
 import { usePageTracking } from './components/GoogleAnalytics';
+import FileUpload from './components/FileUpload';
 
 /* ─── SUPABASE ───────────────────────────────────────────── */
 const SUPA_URL  = import.meta.env.VITE_SUPABASE_URL  || "";
@@ -1471,6 +1472,7 @@ function WelcomePopup({ user, profile, onClose }) {
               </div>
               <div style={{ fontSize:12, color:C.ink3 }}>KrackHire</div>
             </div>
+            
           </div>
           <button onClick={onClose} style={{ fontSize:18, color:C.ink3, cursor:"pointer", background:"none", border:"none", minHeight:"unset", minWidth:"unset", lineHeight:1, padding:2 }}>×</button>
         </div>
@@ -1906,7 +1908,6 @@ function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onP
     </div>
   );
 }
-
 /* ─── TOOL ───────────────────────────────────────────────── */
 const TABS=[
   {id:"gap",       label:"Score & Gaps",   icon:"🔍", color:C.sage},
@@ -1920,8 +1921,6 @@ const TABS=[
 function Tool({ onBack, user, profile, onShowAuth, onUpgrade, onProfileRefresh }) {
   const { toast, list:toastList, remove:removeToast } = useToast();
   const [resume,  setResume]  = useState("");
-  // Note: Tool works for both signed-in and anonymous users
-  // Anonymous users get 3 free analyses via IP rate limiting on backend
   const [jd,      setJd]      = useState("");
   const [company, setCompany] = useState("");
   const [role,    setRole]    = useState("");
@@ -1938,14 +1937,11 @@ function Tool({ onBack, user, profile, onShowAuth, onUpgrade, onProfileRefresh }
   const [showPDFModal, setShowPDFModal]   = useState(false);
   const [showTracker,  setShowTracker]    = useState(false);
   const [showDash,     setShowDash]       = useState(false);
-
   const [showInvite,   setShowInvite]     = useState(false);
   const chatEnd = useRef(null);
 
   useEffect(()=>{ chatEnd.current?.scrollIntoView({behavior:"smooth"}); },[chat]);
 
-  // IMPORTANT: compute payload fresh each call so userId is always current
-  // useMemo was causing userId=null when user signed in after component mounted
   const payload = { resume, jd, company, role, userId: user?.id||null };
   const setL = useCallback((k,v)=>setLoading(p=>({...p,[k]:v})),[]);
   const setR = useCallback((k,v)=>setResults(p=>({...p,[k]:v})),[]);
@@ -1953,7 +1949,6 @@ function Tool({ onBack, user, profile, onShowAuth, onUpgrade, onProfileRefresh }
   const isPro = isPremiumPlan(profile?.plan, profile?.plan_expires_at);
   const lifetimeLeft = profile?.lifetime_accesses_remaining ?? 0;
 
-  /* Progress steps state */
   const currentStep = !ran?"Upload":results.gap?"Improve":"Analyse";
 
   async function analyse() {
@@ -1973,8 +1968,6 @@ function Tool({ onBack, user, profile, onShowAuth, onUpgrade, onProfileRefresh }
         const p=parseJSON(raw);
         if(p) {
           setR("gap",p);
-          // Send analysis done email (only for signed-in users)
-          // Send analysis done email once per analysis (deduplicated by score+role key)
           if(user?.email) {
             const emailKey = "analysis_"+(p?.score||0)+"_"+(payload?.role||"")+"_"+Date.now();
             if(!_emailSent.has(emailKey)) {
@@ -1996,7 +1989,6 @@ function Tool({ onBack, user, profile, onShowAuth, onUpgrade, onProfileRefresh }
       })
         .catch(e=>{ setE("gap",e.message); if(e.message.includes("LIMIT_REACHED")){
             toast("Monthly limit reached. Upgrade to Pro.","warn");
-            // Send limit reached email
             if(user) callEmail("limit_reached", user.id, {
               email: user.email,
               name:  user.user_metadata?.name||user.email?.split("@")[0]||"there",
@@ -2049,13 +2041,11 @@ Type "start" to begin, or ask me anything about the role first.`}]);
     <div style={{ minHeight:"100vh", background:C.bg }}>
       <Toasts list={toastList} remove={removeToast}/>
 
-      {/* Feature modals */}
       {showShareCard&&results.gap&&<ShareScoreCard score={score} atsScore={atsScore} skillScore={skillScore} role={role} onClose={()=>setShowShareCard(false)}/>}
       {showPDFModal&&<PDFReportModal results={results} company={company} role={role} user={user} isPro={isPro} onClose={()=>setShowPDFModal(false)} onUpgrade={onUpgrade}/>}
       {showTracker&&<JobTrackerModal user={user} onClose={()=>setShowTracker(false)} toast={toast}/>}
       {showInvite&&user&&<InviteCodeModal user={user} onClose={()=>setShowInvite(false)} onSuccess={onProfileRefresh} toast={toast}/>}
 
-      {/* Dashboard */}
       {showDash&&user&&(
         <div style={{ position:"fixed", inset:0, zIndex:900, background:"rgba(0,0,0,.4)", backdropFilter:"blur(4px)", display:"flex", alignItems:"center", justifyContent:"center", padding:16 }} onClick={()=>setShowDash(false)}>
           <div onClick={e=>e.stopPropagation()} className="dashboard-inner" style={{ background:C.surface, borderRadius:16, maxWidth:520, width:"100%", maxHeight:"80vh", display:"flex", flexDirection:"column", overflow:"hidden" }}>
@@ -2068,7 +2058,6 @@ Type "start" to begin, or ask me anything about the role first.`}]);
         </div>
       )}
 
-      {/* TOOL HEADER */}
       <header className="tool-header" style={{ position:"sticky", top:0, zIndex:100, height:52, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 clamp(12px,4vw,32px)", background:"rgba(249,248,246,.96)", backdropFilter:"blur(14px)", borderBottom:`1px solid ${C.border}` }}>
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
           <Logo size="sm"/>
@@ -2085,12 +2074,10 @@ Type "start" to begin, or ask me anything about the role first.`}]);
 
       <div style={{ maxWidth:820, margin:"0 auto", padding:"18px clamp(12px,4vw,24px) 80px" }}>
 
-        {/* Progress steps */}
         <div style={{ marginBottom:16, overflowX:"auto" }}>
           <ProgressSteps current={currentStep}/>
         </div>
 
-        {/* INPUT */}
         {!ran&&(
           <div style={{ animation:"slideUp .3s ease" }}>
             <div style={{ textAlign:"center", marginBottom:22 }}>
@@ -2114,10 +2101,19 @@ Type "start" to begin, or ask me anything about the role first.`}]);
                 <Field label="Company name (optional)" value={company} onChange={setCompany} placeholder="e.g. Infosys, Swiggy" hint="Personalises the cover letter and email." maxLen={100}/>
                 <Field label="Role / job title (optional)" value={role} onChange={setRole} placeholder="e.g. Python Developer" accent={C.blue} hint="Helps the interview coach prepare relevant questions." maxLen={100}/>
               </div>
+              
               <div className="input-grid" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:16 }}>
-                <Field label="Your Resume *" value={resume} onChange={setResume} placeholder={"Paste your full resume text here.\n\nInclude: name, contact, education, skills, experience, and projects."} rows={12} maxLen={8000}/>
-                <Field label="Job Description *" value={jd} onChange={setJd} placeholder={"Paste the complete job description here.\n\nMore detail = more accurate results."} rows={12} accent={C.blue} maxLen={4000}/>
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  <FileUpload onExtract={setResume} label="Upload Resume (PDF/DOCX)" accent={C.sage} />
+                  <Field label="Your Resume *" value={resume} onChange={setResume} placeholder={"Upload your PDF/DOCX above, or paste text manually here.\n\nInclude: name, contact, education, skills, experience, and projects."} rows={11} maxLen={8000}/>
+                </div>
+                
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  <FileUpload onExtract={setJd} label="Upload Job Description (PDF)" accent={C.blue} />
+                  <Field label="Job Description *" value={jd} onChange={setJd} placeholder={"Upload a JD file above, or paste the text manually here.\n\nMore detail = more accurate results."} rows={11} accent={C.blue} maxLen={4000}/>
+                </div>
               </div>
+
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:12 }}>
                 <div style={{ fontSize:12.5, color:C.ink3, lineHeight:1.7 }}>
                   <div>About 20 seconds · All outputs generated together</div>
@@ -2131,18 +2127,14 @@ Type "start" to begin, or ask me anything about the role first.`}]);
           </div>
         )}
 
-        {/* RESULTS */}
         {ran&&(
           <div style={{ animation:"slideUp .3s ease" }}>
-
-            {/* Score card */}
             <Card flat style={{ padding:"16px 20px", marginBottom:14 }}>
               {loading.gap&&!results.gap
                 ?<div style={{ display:"flex", flexDirection:"column", gap:10 }}><Skel h={24} w="38%"/><Skel h={7} r={99}/><Skel h={14} w="70%"/></div>
                 :results.gap?(
                   <div>
                     <div className="score-card-inner" style={{ display:"flex", alignItems:"center", gap:20, flexWrap:"wrap", marginBottom:12 }}>
-                      {/* Three score rings */}
                       <div style={{ display:"flex", gap:14, flexShrink:0 }}>
                         <ScoreRing score={score} size={72} color={scoreClr} label="Overall"/>
                         <ScoreRing score={atsScore} size={72} color={C.blue} label="ATS"/>
@@ -2156,7 +2148,6 @@ Type "start" to begin, or ask me anything about the role first.`}]);
                           <span className="inline" style={{ fontSize:12, color:C.sage, fontWeight:600, minHeight:"unset", minWidth:"unset" }}>✓ {results.gap.strong?.length||0} strengths</span>
                         </div>
                       </div>
-                      {/* Action buttons */}
                       <div style={{ display:"flex", flexDirection:"column", gap:7, flexShrink:0 }}>
                         <Btn size="sm" bg={C.sage} onClick={()=>setShowShareCard(true)}>📤 Share score</Btn>
                         <Btn size="sm" bg={isPro?C.purple:C.ink4} style={{ color:isPro?"#fff":C.ink3 }} onClick={()=>setShowPDFModal(true)}>📊 PDF Report{!isPro?" 🔒":""}</Btn>
@@ -2172,14 +2163,12 @@ Type "start" to begin, or ask me anything about the role first.`}]);
                 ):null}
             </Card>
 
-            {/* Feedback widget */}
             {showFeedback&&!anyLoad&&(
               <div style={{ marginBottom:14 }}>
                 <AnalysisFeedback company={company} role={role} gapScore={results.gap?.score} userId={user?.id} onDone={()=>setShowFeedback(false)}/>
               </div>
             )}
 
-            {/* Upgrade banner */}
             {!isPro&&ran&&!anyLoad&&(
               <div style={{ marginBottom:14, padding:"12px 16px", background:C.amberBg, borderRadius:10, border:`1px solid ${C.amber}25`, display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:10 }}>
                 <div style={{ fontSize:13.5, color:C.amber, fontWeight:600 }}>⚡ Pro: PDF report, unlimited analyses, job tracker — ₹49/month</div>
@@ -2187,7 +2176,6 @@ Type "start" to begin, or ask me anything about the role first.`}]);
               </div>
             )}
 
-            {/* TABS */}
             <div className="tabs-bar" style={{ display:"flex", gap:2, borderBottom:`1px solid ${C.border}`, marginBottom:14, overflowX:"auto" }}>
               {TABS.map(t=>{
                 const hasErr=errors[t.id]&&t.id!=="interview"; const isDone=results[t.id]&&!loading[t.id];
@@ -2202,7 +2190,6 @@ Type "start" to begin, or ask me anything about the role first.`}]);
               })}
             </div>
 
-            {/* GAP TAB */}
             {tab==="gap"&&(
               <div style={{ animation:"slideUp .25s ease" }}>
                 {loading.gap&&!results.gap&&<Card flat style={{ padding:20 }}><div style={{ display:"flex", gap:10, alignItems:"center", marginBottom:16 }}><Spin c={C.sage}/><span style={{ color:C.ink2, fontSize:14 }}>Analysing your resume…</span></div>{[80,65,74].map((w,i)=><div key={i} style={{ marginBottom:9 }}><Skel h={48} w={`${w}%`}/></div>)}</Card>}
@@ -2228,7 +2215,6 @@ Type "start" to begin, or ask me anything about the role first.`}]);
                         </div>
                       </Card>
                     ))}
-                    {/* Interview Guide inline */}
                     <Card flat style={{ overflow:"hidden" }}>
                       <div style={{ padding:"10px 16px", background:C.purpleBg, borderBottom:`1px solid ${C.purple}20` }}>
                         <span className="inline" style={{ fontSize:11.5, fontWeight:700, color:C.purple, textTransform:"uppercase", letterSpacing:.6, minHeight:"unset", minWidth:"unset" }}>🎯 Interview Preparation Guide</span>
@@ -2242,7 +2228,6 @@ Type "start" to begin, or ask me anything about the role first.`}]);
               </div>
             )}
 
-            {/* TEXT OUTPUT TABS */}
             {["resume","cover","email"].includes(tab)&&(
               <div style={{ animation:"slideUp .25s ease" }}>
                 {loading[tab]&&!results[tab]&&<Card flat style={{ padding:20 }}><div style={{ display:"flex", gap:10, alignItems:"center", marginBottom:16 }}><Spin c={TABS.find(t=>t.id===tab)?.color}/><span style={{ color:C.ink2, fontSize:14 }}>Generating {tab==="resume"?"improved resume":tab==="cover"?"cover letter":"cold email"}…</span></div>{[100,90,95,85].map((w,i)=><div key={i} style={{ marginBottom:8 }}><Skel h={14} w={`${w}%`}/></div>)}</Card>}
@@ -2272,19 +2257,15 @@ Type "start" to begin, or ask me anything about the role first.`}]);
               </div>
             )}
 
-            {/* PROFILE OPTIMIZER TAB */}
             {tab==="profile"&&(
               <div style={{ animation:"slideUp .25s ease" }}>
                 <ProfileOptimizer resume={resume} jd={jd} company={company} role={role} userId={user?.id} isPro={isPro} onUpgrade={onUpgrade}/>
               </div>
             )}
 
-            {/* INTERVIEW TAB */}
             {tab==="interview"&&(
               <div style={{ animation:"slideUp .25s ease", display:"flex", flexDirection:"column", gap:14 }}>
-                {/* Round guide */}
                 <InterviewGuide role={role} company={company}/>
-                {/* AI Chat */}
                 <Card flat style={{ overflow:"hidden" }}>
                   <div style={{ padding:"12px 16px", background:C.bg, borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", gap:10 }}>
                     <div style={{ width:32, height:32, borderRadius:8, background:C.purpleBg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>🎯</div>
