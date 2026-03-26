@@ -1,9 +1,11 @@
 import React, { useState, useRef } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
+// Import the worker locally using Vite's asset syntax so it doesn't need the internet
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
 import mammoth from 'mammoth';
 
-// Use a CDN for the PDF.js worker to avoid complex Vite build configurations
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Set the worker to the local file we just imported
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 export default function FileUpload({ onExtract, label = "Upload PDF/DOCX", accent = "#3D6B4F" }) {
   const [loading, setLoading] = useState(false);
