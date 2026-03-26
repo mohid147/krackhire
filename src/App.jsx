@@ -1223,9 +1223,9 @@ function PageShell({ title, tag, tagColor, tagBg, children, onBack }) {
           <span style={{ fontSize:18, lineHeight:1 }}>←</span> KrackHire
         </button>
         <Logo size="sm"/>
-        <button onClick={onBack} style={{ fontSize:13.5, fontWeight:600, color:C.sage, cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", padding:"7px 14px", borderRadius:8, border:`1px solid ${C.sage}30` }}>
-          Go to app →
-        </button>
+       <button onClick={onBack} style={{ fontSize:13.5, fontWeight:600, color:C.sage, cursor:"pointer", background:"none", fontFamily:"inherit", padding:"7px 14px", borderRadius:8, border:`1px solid ${C.sage}30` }}>
+  Go to app →
+</button>
       </nav>
       {/* Page header */}
       <div style={{ background:C.surface, borderBottom:`1px solid ${C.border}`, padding:"clamp(32px,6vw,64px) clamp(16px,5vw,52px)" }}>
@@ -1299,9 +1299,9 @@ function ContactPage({ onBack }) {
           <span style={{ fontSize:18, lineHeight:1 }}>←</span> KrackHire
         </button>
         <Logo size="sm"/>
-        <button onClick={onBack} style={{ fontSize:13.5, fontWeight:600, color:C.sage, cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", padding:"7px 14px", borderRadius:8, border:`1px solid ${C.sage}30` }}>
-          Go to app →
-        </button>
+       <button onClick={onBack} style={{ fontSize:13.5, fontWeight:600, color:C.sage, cursor:"pointer", background:"none", fontFamily:"inherit", padding:"7px 14px", borderRadius:8, border:`1px solid ${C.sage}30` }}>
+  Go to app →
+</button>
       </nav>
 
       <div style={{ maxWidth:960, margin:"0 auto", padding:"clamp(32px,6vw,64px) clamp(16px,5vw,52px)" }}>
