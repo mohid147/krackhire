@@ -210,11 +210,13 @@ body {
     width: 100%;
     height: 48px;
   }
+  .chat-input-row button {
+    width: 100%;
+    height: 48px;
+  }
   .navbar-open-tool {
     display: none !important; 
-  }
-}
-
+  } 
 @media (max-width: 380px) {
   .hero-title { font-size: 28px !important; }
   .section-pad { padding: 48px 16px !important; }
