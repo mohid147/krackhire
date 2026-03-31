@@ -1386,8 +1386,9 @@ function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onP
     <div style={{ minHeight:"100vh", background:C.bg }}>
       {showInvite&&user&&<InviteCodeModal user={user} onClose={()=>setShowInvite(false)} onSuccess={onProfileRefresh} toast={toast}/>}
       <div className="ann-bar" style={{ background:C.sage, color:"#fff", textAlign:"center", padding:"9px 16px", fontSize:13.5, fontWeight:500, lineHeight:1.5 }}>
-        KrackHire is in early beta — free to use, no account needed.{" "}
-        <button onClick={onEnter} className="inline" style={{ color:"#D4E6DA", fontWeight:700, textDecoration:"underline", cursor:"pointer", background:"none", border:"none", fontSize:13.5, fontFamily:"inherit", minHeight:"unset", minWidth:"unset" }}>Try it →</button>
+        {user
+          ?<>Welcome back! KrackHire is in early beta — your results are saved.{" "}<button onClick={onEnter} className="inline" style={{ color:"#D4E6DA", fontWeight:700, textDecoration:"underline", cursor:"pointer", background:"none", border:"none", fontSize:13.5, fontFamily:"inherit", minHeight:"unset", minWidth:"unset" }}>Open the tool →</button></>
+          :<>KrackHire is in early beta — free to use, no account needed.{" "}<button onClick={onEnter} className="inline" style={{ color:"#D4E6DA", fontWeight:700, textDecoration:"underline", cursor:"pointer", background:"none", border:"none", fontSize:13.5, fontFamily:"inherit", minHeight:"unset", minWidth:"unset" }}>Try it →</button></>}
       </div>
 
       <nav style={{ position:"sticky", top:0, zIndex:200, height:56, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 clamp(14px,5vw,52px)", background:scrolled?"rgba(249,248,246,.96)":"transparent", backdropFilter:"blur(14px)", borderBottom:`1px solid ${scrolled?C.border:"transparent"}`, transition:"all .3s" }}>
@@ -1430,7 +1431,7 @@ function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onP
             {!user&&<OutBtn onClick={onShowAuth} size="lg">Sign in to save</OutBtn>}
           </div>
           <div className="hero-trust" style={{ display:"flex", flexWrap:"wrap", gap:16 }}>
-            {["No account needed","No credit card","Data not stored","Built for India"].map(t=>(
+            {(user?["Results saved","No credit card","Data not stored","Built for India"]:["No account needed","No credit card","Data not stored","Built for India"]).map(t=>(
               <span key={t} className="inline" style={{ fontSize:13, color:C.ink3, gap:5, minHeight:"unset", minWidth:"unset" }}>
                 <span style={{ color:C.sage }}>✓</span>{t}
               </span>
@@ -1639,10 +1640,10 @@ function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onP
       <section className="section-pad" style={{ background:C.sageBg, borderTop:`1px solid ${C.sage}25`, padding:"72px clamp(16px,5vw,52px)", textAlign:"center" }}>
         <Reveal>
           <h2 className="section-title" style={{ fontFamily:"'Lora',Georgia,serif", fontSize:"clamp(24px,4vw,40px)", lineHeight:1.15, color:C.ink, marginBottom:12 }}>Start improving your applications today.</h2>
-          <p style={{ fontSize:16, color:C.ink2, marginBottom:28, lineHeight:1.75, maxWidth:420, margin:"0 auto 28px" }}>No account. No credit card. Paste your resume and get honest feedback in seconds.</p>
+          <p style={{ fontSize:16, color:C.ink2, marginBottom:28, lineHeight:1.75, maxWidth:420, margin:"0 auto 28px" }}>{user?"Your results are saved. Paste your resume and get honest feedback in seconds.":"No account. No credit card. Paste your resume and get honest feedback in seconds."}</p>
           <Btn onClick={onEnter} size="lg" bg={C.sage}>Open KrackHire — free</Btn>
           <div style={{ marginTop:18, display:"flex", justifyContent:"center", gap:18, flexWrap:"wrap", fontSize:13, color:C.ink3 }}>
-            {["No account needed","No credit card","Data not stored","Made in Hyderabad 🇮🇳"].map(t=>(
+            {(user?["Results saved","No credit card","Data not stored","Made in Hyderabad 🇮🇳"]:["No account needed","No credit card","Data not stored","Made in Hyderabad 🇮🇳"]).map(t=>(
               <span key={t} className="inline" style={{ gap:4, minHeight:"unset", minWidth:"unset" }}><span style={{ color:C.sage }}>✓</span>{t}</span>
             ))}
           </div>
