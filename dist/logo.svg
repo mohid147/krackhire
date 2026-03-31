@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Green background with rounded corners -->
+  <rect width="512" height="512" rx="100" fill="#15803D"/>
+  
+  <!-- White letter K (bold and centered) -->
+  <text x="256" y="380" font-family="Arial, sans-serif" font-size="340" font-weight="900" fill="#FFFFFF" text-anchor="middle">K</text>
+  
+  <!-- Bright green accent dot (top right - makes it modern) -->
+  <circle cx="420" cy="140" r="35" fill="#4ADE80"/>
+</svg>
