@@ -2,20 +2,9 @@
 // Dedicated user dashboard — replaces modal-based History + Tracker
 // Integrated via setView('dashboard') in App.jsx
 
-import { createClient } from "@supabase/supabase-js";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { C } from "../lib/design.js";
-
-const SUPA_URL  = import.meta.env.VITE_SUPABASE_URL  || "";
-const SUPA_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
-const sb = SUPA_URL && SUPA_ANON ? createClient(SUPA_URL, SUPA_ANON) : null;
-
-if (!sb) {
-  console.warn('[Dashboard] Supabase client not initialized - missing env vars:', {
-    VITE_SUPABASE_URL: SUPA_URL ? "✓" : "✗",
-    VITE_SUPABASE_ANON_KEY: SUPA_ANON ? "✓" : "✗"
-  });
-}
+import { useSupabase } from "../lib/supabase-context.jsx";
 
 /* ── Helpers ── */
 const PREMIUM_PLANS = ["starter","early_adopter","pro","pro_monthly","pro_yearly",
@@ -85,7 +74,7 @@ const STATUS_COLORS = {
 };
 
 /* ── DB calls ── */
-async function fetchAnalyses(uid) {
+async function fetchAnalyses(sb, uid) {
   if (!sb || !uid) {
     console.warn('[Dashboard] Missing Supabase client or user ID for analyses fetch');
     return [];
@@ -106,7 +95,7 @@ async function fetchAnalyses(uid) {
   }
 }
 
-async function fetchJobs(uid) {
+async function fetchJobs(sb, uid) {
   if (!sb || !uid) {
     console.warn('[Dashboard] Missing Supabase client or user ID for jobs fetch');
     return [];
@@ -127,7 +116,7 @@ async function fetchJobs(uid) {
   }
 }
 
-async function addJob(uid, job) {
+async function addJob(sb, uid, job) {
   if (!sb) {
     console.error('[Dashboard] Supabase client not available for addJob');
     return null;
@@ -146,7 +135,7 @@ async function addJob(uid, job) {
   }
 }
 
-async function updateJob(id, updates) {
+async function updateJob(sb, id, updates) {
   if (!sb) return;
   try {
     const { error } = await sb.from("job_tracker").update(updates).eq("id", id);
@@ -156,7 +145,7 @@ async function updateJob(id, updates) {
   }
 }
 
-async function deleteJob(id) {
+async function deleteJob(sb, id) {
   if (!sb) return;
   try {
     const { error } = await sb.from("job_tracker").delete().eq("id", id);
@@ -434,7 +423,7 @@ function AnalysesTab({ analyses, loading, onRefresh }) {
 /* ═══════════════════════════════════════════════════════════
    TAB: JOB TRACKER
 ═══════════════════════════════════════════════════════════ */
-function TrackerTab({ jobs, setJobs, user, toast }) {
+function TrackerTab({ jobs, setJobs, user, toast, sb }) {
   const [showAdd,  setShowAdd]  = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const [form, setForm] = useState({
@@ -455,18 +444,18 @@ function TrackerTab({ jobs, setJobs, user, toast }) {
     if (!form.company.trim() || !form.role.trim()) {
       toast && toast("Company and role are required.", "error"); return;
     }
-    const saved = await addJob(user.id, form);
+    const saved = await addJob(sb, user.id, form);
     if (saved) { setJobs(p => [saved, ...p]); resetForm(); setShowAdd(false); }
   }
 
   async function handleStatusChange(id, status) {
-    await updateJob(id, { status });
+    await updateJob(sb, id, { status });
     setJobs(p => p.map(j => j.id===id ? {...j, status} : j));
   }
 
   async function handleDelete(id) {
     if (!confirm("Remove this job from tracker?")) return;
-    await deleteJob(id);
+    await deleteJob(sb, id);
     setJobs(p => p.filter(j => j.id !== id));
   }
 
@@ -733,6 +722,7 @@ const TABS = [
 export default function UserDashboard({
   user, profile, onBack, onSignOut, onUpgrade, onInvite, toast
 }) {
+  const sb = useSupabase();
   const [activeTab,  setActiveTab]  = useState("overview");
   const [analyses,   setAnalyses]   = useState([]);
   const [jobs,       setJobs]       = useState([]);
@@ -746,14 +736,14 @@ export default function UserDashboard({
     }
     setLoadingA(true);
     try {
-      const data = await fetchAnalyses(user.id);
+      const data = await fetchAnalyses(sb, user.id);
       setAnalyses(data);
     } catch(e) {
       console.error('[Dashboard] Failed to load analyses:', e);
       setAnalyses([]);
     }
     setLoadingA(false);
-  }, [user?.id]);
+  }, [sb, user?.id]);
 
   const loadJobs = useCallback(async () => {
     if (!user?.id) {
@@ -762,14 +752,14 @@ export default function UserDashboard({
     }
     setLoadingJ(true);
     try {
-      const data = await fetchJobs(user.id);
+      const data = await fetchJobs(sb, user.id);
       setJobs(data);
     } catch(e) {
       console.error('[Dashboard] Failed to load jobs:', e);
       setJobs([]);
     }
     setLoadingJ(false);
-  }, [user?.id]);
+  }, [sb, user?.id]);
 
   useEffect(() => { 
     console.log('[Dashboard] Component mounted', { userId: user?.id, email: user?.email });
@@ -856,7 +846,7 @@ export default function UserDashboard({
             <AnalysesTab analyses={analyses} loading={loadingA} onRefresh={loadAnalyses}/>
           )}
           {activeTab === "tracker" && (
-            <TrackerTab jobs={jobs} setJobs={setJobs} user={user} toast={toast}/>
+            <TrackerTab jobs={jobs} setJobs={setJobs} user={user} toast={toast} sb={sb}/>
           )}
           {activeTab === "account" && (
             <AccountTab user={user} profile={profile}
