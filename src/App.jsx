@@ -2096,7 +2096,7 @@ Type "start" to begin, or ask me anything about the role first.`}]);
               <div style={{ fontSize:15, fontWeight:700, color:C.ink }}>My Analyses</div>
               <button onClick={()=>setShowDash(false)} style={{ fontSize:22, color:C.ink3, cursor:"pointer", lineHeight:1, minHeight:36, minWidth:36 }}>×</button>
             </div>
-            <AnalysisHistory userId={user.id} key={showDash ? "hist-open-"+Date.now() : "hist-closed"}/>
+            <AnalysisHistory userId={user.id}/>
           </div>
         </div>
       )}
@@ -2109,7 +2109,7 @@ Type "start" to begin, or ask me anything about the role first.`}]);
         </div>
         <div className="tool-header-actions" style={{ display:"flex", gap:6, alignItems:"center" }}>
           <OutBtn size="sm" onClick={()=>setShowTracker(true)} style={{ minWidth:"unset" }}>📋</OutBtn>
-          {user&&<OutBtn size="sm" onClick={()=>setShowDash(true)} style={{ minWidth:"unset" }} className="desktop-only">History</OutBtn>}
+          {user&&<OutBtn size="sm" onClick={()=>setShowDash(true)} style={{ minWidth:"unset" }}>History</OutBtn>}
           {ran&&<OutBtn size="sm" onClick={()=>{ setRan(false); setResults({gap:null,resume:null,cover:null,email:null}); setErrors({gap:null,resume:null,cover:null,email:null}); setChat([]); setShowFeedback(false); }} style={{ minWidth:"unset" }}>↺ New</OutBtn>}
           <OutBtn size="sm" onClick={onBack} style={{ minWidth:"unset" }}>← Home</OutBtn>
         </div>
@@ -2360,12 +2360,18 @@ Type "start" to begin, or ask me anything about the role first.`}]);
 function AnalysisHistory({ userId }) {
   const [analyses, setAnalyses] = useState([]);
   const [loading,  setLoading]  = useState(true);
+  const [error,    setError]    = useState("");
 
   function load() {
     setLoading(true);
+    setError("");
     getAnalyses(userId)
       .then(d => { setAnalyses(d||[]); setLoading(false); })
-      .catch(() => setLoading(false));
+      .catch(() => {
+        setAnalyses([]);
+        setError("Could not load history right now. Please refresh.");
+        setLoading(false);
+      });
   }
 
   useEffect(()=>{ load(); }, [userId]);
@@ -2380,6 +2386,12 @@ function AnalysisHistory({ userId }) {
       </div>
       {loading
         ? [1,2,3].map(i=><div key={i} style={{ marginBottom:10 }}><Skel h={54}/></div>)
+        : error
+          ? <div style={{ textAlign:"center", padding:"36px 16px", color:C.ink3 }}>
+              <div style={{ fontSize:28, marginBottom:8 }}>⚠️</div>
+              <div style={{ fontSize:14, marginBottom:6 }}>{error}</div>
+              <div style={{ fontSize:13 }}>If this continues, sign out and sign in again.</div>
+            </div>
         : analyses.length===0
           ? <div style={{ textAlign:"center", padding:"36px 16px", color:C.ink3 }}>
               <div style={{ fontSize:28, marginBottom:8 }}>📭</div>
