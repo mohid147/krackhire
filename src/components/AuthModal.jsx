@@ -2,14 +2,9 @@
 // Unified Auth: Google OAuth + Email/Password (sign up, sign in, forgot password)
 // Drop-in replacement for the inline AuthModal in App.jsx
 
-import { createClient } from "@supabase/supabase-js";
 import { useState } from "react";
 import { C } from "../lib/design.js";
-
-/* ── Supabase client (re-uses env vars already in your app) ── */
-const SUPA_URL  = import.meta.env.VITE_SUPABASE_URL  || "";
-const SUPA_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
-const sb = SUPA_URL && SUPA_ANON ? createClient(SUPA_URL, SUPA_ANON) : null;
+import { useSupabase } from "../lib/supabase-context.jsx";
 
 /* ── Tiny primitives (self-contained so this file is portable) ── */
 const Spin = ({ s = 16, c = C.sage }) => (
@@ -113,7 +108,7 @@ function GoogleBtn({ onClick, loading }) {
 ═══════════════════════════════════════════════════════════ */
 
 /* ── Sign In ── */
-function SignInView({ onSwitch, onClose, onGoogleClick, googleLoading }) {
+function SignInView({ onSwitch, onClose, onGoogleClick, googleLoading, sb }) {
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
   const [loading,  setLoading]  = useState(false);
@@ -180,7 +175,7 @@ function SignInView({ onSwitch, onClose, onGoogleClick, googleLoading }) {
 }
 
 /* ── Sign Up ── */
-function SignUpView({ onSwitch, onClose, onGoogleClick, googleLoading }) {
+function SignUpView({ onSwitch, onClose, onGoogleClick, googleLoading, sb }) {
   const [name,     setName]     = useState("");
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
@@ -281,7 +276,7 @@ function SignUpView({ onSwitch, onClose, onGoogleClick, googleLoading }) {
 }
 
 /* ── Forgot Password ── */
-function ForgotView({ onSwitch }) {
+function ForgotView({ onSwitch, sb }) {
   const [email,   setEmail]   = useState("");
   const [loading, setLoading] = useState(false);
   const [sent,    setSent]    = useState(false);
@@ -336,6 +331,7 @@ function ForgotView({ onSwitch }) {
    MAIN EXPORT — drop-in replacement for your existing AuthModal
 ═══════════════════════════════════════════════════════════ */
 export default function AuthModal({ onClose, initialView = "signin" }) {
+  const sb = useSupabase();
   const [view, setView] = useState(initialView); // "signin" | "signup" | "forgot"
   const [googleLoading, setGoogleLoading] = useState(false);
 
@@ -426,9 +422,9 @@ export default function AuthModal({ onClose, initialView = "signin" }) {
           </div>
 
           {/* View */}
-          {view === "signin"  && <SignInView  onSwitch={setView} onClose={onClose} onGoogleClick={handleGoogle} googleLoading={googleLoading}/>}
-          {view === "signup"  && <SignUpView  onSwitch={setView} onClose={onClose} onGoogleClick={handleGoogle} googleLoading={googleLoading}/>}
-          {view === "forgot"  && <ForgotView  onSwitch={setView}/>}
+          {view === "signin"  && <SignInView  onSwitch={setView} onClose={onClose} onGoogleClick={handleGoogle} googleLoading={googleLoading} sb={sb}/>}
+          {view === "signup"  && <SignUpView  onSwitch={setView} onClose={onClose} onGoogleClick={handleGoogle} googleLoading={googleLoading} sb={sb}/>}
+          {view === "forgot"  && <ForgotView  onSwitch={setView} sb={sb}/>}
 
           {/* Trust badges */}
           {view !== "forgot" && (
