@@ -1440,61 +1440,56 @@ function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onP
         {/* Left: Logo */}
         <Logo size="sm" />
 
-        {/* 🔴 NEW: REACT CONDITIONALLY RENDERS BASED ON SCREEN SIZE */}
-        {!isMobile ? (
-          /* 💻 DESKTOP VIEW */
-          <>
-            <div style={{ gap: 24, display: "flex", alignItems: "center" }}>
-              {navLinks.map(([h, l]) => (
-                <a key={l} href={h} style={{ fontSize: 13.5, fontWeight: 500, color: C.ink2, textDecoration: "none" }}>{l}</a>
-              ))}
-            </div>
-            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-              {user ? (
-                <>
-                  <Btn onClick={onEnter} size="sm" bg={C.sage}>Open tool</Btn>
-                  <UserMenu user={user} profile={profile} onSignOut={onSignOut} onUpgrade={onUpgrade} onInvite={() => setShowInvite(true)} onAdmin={onAdmin} onDashboard={onDashboard} />
-                </>
-              ) : (
-                <>
-                  <OutBtn onClick={onShowAuth} size="sm">Sign in</OutBtn>
-                  <Btn onClick={onEnter} size="sm" bg={C.sage}>Try free</Btn>
-                </>
-              )}
-            </div>
-          </>
-        ) : (
-          /* 📱 MOBILE VIEW (Guaranteed not to show desktop buttons) */
-          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            {user ? (
-              <button onClick={onDashboard} style={{ width: 34, height: 34, borderRadius: "50%", border: `2px solid ${C.sage}40`, background: C.sageBg, display: "flex", alignItems: "center", justifyContent: "center", color: C.sage, fontWeight: 700, fontSize: 14, padding: 0, cursor: "pointer" }}>
-                {user.user_metadata?.avatar_url ? (
-                  <img src={user.user_metadata.avatar_url} style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} alt="Profile" />
-                ) : (
-                  (user.user_metadata?.name || user.email || "U")[0].toUpperCase()
-                )}
-              </button>
-            ) : (
-              <button onClick={onShowAuth} style={{ fontSize: 13.5, fontWeight: 600, color: C.sage, background: "transparent", border: "none", padding: 0, cursor: "pointer" }}>
-                Sign In
-              </button>
-            )}
+        {/* Desktop nav — hidden on mobile via CSS (reliable at all times) */}
+        <div className="desktop-only" style={{ gap: 24, alignItems: "center" }}>
+          {navLinks.map(([h, l]) => (
+            <a key={l} href={h} style={{ fontSize: 13.5, fontWeight: 500, color: C.ink2, textDecoration: "none" }}>{l}</a>
+          ))}
+        </div>
+        <div className="desktop-only" style={{ gap: 12, alignItems: "center" }}>
+          {user ? (
+            <>
+              <Btn onClick={onEnter} size="sm" bg={C.sage}>Open tool</Btn>
+              <UserMenu user={user} profile={profile} onSignOut={onSignOut} onUpgrade={onUpgrade} onInvite={() => setShowInvite(true)} onAdmin={onAdmin} onDashboard={onDashboard} />
+            </>
+          ) : (
+            <>
+              <OutBtn onClick={onShowAuth} size="sm">Sign in</OutBtn>
+              <Btn onClick={onEnter} size="sm" bg={C.sage}>Try free</Btn>
+            </>
+          )}
+        </div>
 
-            <button onClick={() => setMenuOpen(!menuOpen)} style={{ padding: "6px", borderRadius: "8px", color: C.ink, background: C.surface, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", minWidth: 38, minHeight: 38, cursor: "pointer" }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                {menuOpen ? (
-                  <><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></>
-                ) : (
-                  <><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></>
-                )}
-              </svg>
+        {/* Mobile nav — hidden on desktop via CSS */}
+        <div className="mobile-only" style={{ gap: 12, alignItems: "center" }}>
+          {user ? (
+            <button onClick={onDashboard} style={{ width: 34, height: 34, borderRadius: "50%", border: `2px solid ${C.sage}40`, background: C.sageBg, display: "flex", alignItems: "center", justifyContent: "center", color: C.sage, fontWeight: 700, fontSize: 14, padding: 0, cursor: "pointer" }}>
+              {user.user_metadata?.avatar_url ? (
+                <img src={user.user_metadata.avatar_url} style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} alt="Profile" />
+              ) : (
+                (user.user_metadata?.name || user.email || "U")[0].toUpperCase()
+              )}
             </button>
-          </div>
-        )}
+          ) : (
+            <button onClick={onShowAuth} style={{ fontSize: 13.5, fontWeight: 600, color: C.sage, background: "transparent", border: "none", padding: 0, cursor: "pointer" }}>
+              Sign In
+            </button>
+          )}
+
+          <button onClick={() => setMenuOpen(!menuOpen)} style={{ padding: "6px", borderRadius: "8px", color: C.ink, background: C.surface, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", minWidth: 38, minHeight: 38, cursor: "pointer" }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              {menuOpen ? (
+                <><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></>
+              ) : (
+                <><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></>
+              )}
+            </svg>
+          </button>
+        </div>
       </nav>
 
       {/* Mobile Dropdown Menu */}
-      {menuOpen && isMobile && (
+      {menuOpen && (
         <div style={{ position:"fixed", top:"calc(35px + 52px)", left:0, right:0, zIndex:199, background:C.surface, borderBottom:`1px solid ${C.border}`, padding:"10px 14px", display:"flex", flexDirection:"column", gap:2, animation:"slideUp .2s ease", boxShadow:"0 6px 20px rgba(0,0,0,.08)" }}>
           {navLinks.map(([h,l])=><a key={l} href={h} onClick={()=>setMenuOpen(false)} style={{ padding:"12px 14px", borderRadius:8, fontSize:15, fontWeight:500, color:C.ink2, minHeight:48, display:"flex", alignItems:"center", textDecoration: "none" }}>{l}</a>)}
           <div style={{ paddingTop:10, borderTop:`1px solid ${C.border}`, marginTop:6, display:"flex", flexDirection:"column", gap:8 }}>
