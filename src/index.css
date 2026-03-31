@@ -46,291 +46,186 @@ html, body {
   .input-grid { grid-template-columns: 1fr !important; }
 }
 
-/* ─────────────────────────────────────────────────────────────
-   3. MOBILE (≤ 480px) — targeted fixes on top of existing rules
-   ───────────────────────────────────────────────────────────── */
+/* =========================================================
+   GLOBAL RESET + FIXES
+========================================================= */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* Prevent media breaking layout */
+img, video {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* =========================================================
+   PREMIUM TYPOGRAPHY
+========================================================= */
+
+/* Headings → premium serif */
+.hero-title,
+.section-title {
+  font-family: 'Playfair Display', serif;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+}
+
+/* Sub text */
+.hero-sub {
+  line-height: 1.6;
+  max-width: 100%;
+}
+
+/* Prevent text overflow */
+.hero-title,
+.hero-sub {
+  overflow-wrap: break-word;
+}
+
+/* =========================================================
+   LAYOUT FIX (CRITICAL)
+========================================================= */
+
+section,
+.hero-section {
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+/* =========================================================
+   HERO SECTION (CLEAN + STABLE)
+========================================================= */
+
+.hero-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 40px;
+  padding: 80px 40px;
+}
+
+/* =========================================================
+   GENERIC GRID FIX (REPLACES BAD STYLE SELECTORS)
+========================================================= */
+
+.two-col-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.three-col-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+/* =========================================================
+   BUTTON POLISH (PREMIUM FEEL)
+========================================================= */
+
+button {
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+/* =========================================================
+   TABLET RESPONSIVENESS (≤ 900px)
+========================================================= */
+
+@media (max-width: 900px) {
+
+  .hero-section {
+    grid-template-columns: 1fr;
+    padding: 60px 30px;
+    gap: 30px;
+  }
+
+  .two-col-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .three-col-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* =========================================================
+   MOBILE RESPONSIVENESS (≤ 480px)
+========================================================= */
+
 @media (max-width: 480px) {
 
-  /* ── 3a. ANNOUNCEMENT BAR ── */
-  .ann-bar {
-    font-size: 12px !important;
-    padding: 7px 12px !important;
-    text-align: left !important;
-    line-height: 1.55 !important;
-  }
-
-  /* ── 3b. NAVBAR ── */
   nav {
-    padding: 0 12px !important;
-    height: 50px !important;
+    padding: 0 12px;
+    height: 50px;
   }
 
-  /* ── 3c. HERO ── */
   .hero-section {
-    padding: 28px 14px 36px !important;
-    grid-template-columns: 1fr !important;
-    gap: 20px !important;
+    grid-template-columns: 1fr;
+    padding: 40px 16px;
+    gap: 20px;
   }
 
   .hero-title {
-    font-size: 24px !important;
-    line-height: 1.2 !important;
-    letter-spacing: -.2px !important;
+    font-size: 24px;
   }
 
   .hero-sub {
-    font-size: 14px !important;
-    line-height: 1.7 !important;
-    margin-bottom: 18px !important;
+    font-size: 14px;
   }
 
-  /* Hero buttons: full-width stack */
+  /* Buttons full width */
   .hero-btns {
-    flex-direction: column !important;
-    gap: 8px !important;
-    width: 100% !important;
-  }
-  .hero-btns > * {
-    width: 100% !important;
-    justify-content: center !important;
-    font-size: 15px !important;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
   }
 
-  /* Hero trust badges: 2-col wrap */
-  .hero-trust {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 8px !important;
-    margin-top: 16px !important;
-  }
-  .hero-trust span {
-    font-size: 12px !important;
-    gap: 4px !important;
+  .hero-btns button {
+    width: 100%;
   }
 
-  /* ── 3d. SCORE RINGS — shrink on mobile ── */
-  .score-card-inner {
-    flex-direction: column !important;
-    gap: 14px !important;
-    align-items: flex-start !important;
-  }
-  .score-card-inner > div:first-child {
-    /* Score rings row — allow smaller rings */
-    gap: 10px !important;
+  /* Grid stacking */
+  .two-col-grid,
+  .three-col-grid {
+    grid-template-columns: 1fr;
   }
 
-  /* ── 3e. SECTION TITLES ── */
-  .section-title { font-size: 20px !important; }
-  .section-sub   { font-size: 13.5px !important; }
-  .section-pad   { padding: 36px 14px !important; }
-
-  /* ── 3f. HOW-IT-WORKS ── */
-  .how-grid {
-    grid-template-columns: 1fr !important;
-    border-radius: 10px !important;
+  /* Section padding */
+  .section-pad {
+    padding: 40px 16px;
   }
-  .how-grid > div {
-    border-right: none !important;
-    border-bottom: 1px solid #E7E5E4 !important;
-    padding: 18px 14px !important;
-  }
-  .how-grid > div:last-child { border-bottom: none !important; }
-
-  /* ── 3g. FEATURES GRID ── */
-  .features-grid {
-    grid-template-columns: 1fr !important;
-    gap: 9px !important;
-  }
-
-  /* ── 3h. PRICING ── */
-  .pricing-grid {
-    grid-template-columns: 1fr !important;
-    gap: 12px !important;
-  }
-  .pricing-price { font-size: 36px !important; }
-  .pricing-card  { padding: 20px 16px !important; }
-
-  /* ── 3i. REVIEWS ── */
-  .reviews-grid  { grid-template-columns: 1fr !important; gap: 10px !important; }
-  .reviews-header {
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    gap: 12px !important;
-  }
-  .reviews-header > div:last-child { width: 100% !important; }
-  .reviews-header button { width: 100% !important; justify-content: center !important; }
-
-  /* ── 3j. FAQ ── */
-  .faq-grid { grid-template-columns: 1fr !important; gap: 24px !important; }
-
-  /* ── 3k. FOOTER ── */
-  .footer-grid {
-    grid-template-columns: 1fr !important;
-    gap: 24px !important;
-  }
-  .footer-brand { grid-column: 1 !important; }
-
-  /* ── 3l. TOOL HEADER ── */
-  .tool-header {
-    padding: 0 10px !important;
-    height: 50px !important;
-  }
-  .tool-header-actions { gap: 4px !important; }
-  .tool-header-actions button {
-    font-size: 11.5px !important;
-    padding: 6px 9px !important;
-    min-height: 36px !important;
-    min-width: unset !important;
-  }
-
-  /* ── 3m. TOOL INPUT GRID ── */
-  .input-grid {
-    grid-template-columns: 1fr !important;
-    gap: 10px !important;
-  }
-  .input-grid textarea { min-height: 140px !important; }
-
-  /* ── 3n. TABS BAR — horizontal scroll, hide scrollbar ── */
-  .tabs-bar {
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-    scrollbar-width: none !important;
-    gap: 0 !important;
-    padding-bottom: 0 !important;
-  }
-  .tabs-bar::-webkit-scrollbar { display: none !important; }
-  .tabs-bar button {
-    padding: 9px 10px !important;
-    font-size: 11.5px !important;
-    min-height: 40px !important;
-    min-width: unset !important;
-    white-space: nowrap !important;
-    flex-shrink: 0 !important;
-  }
-
-  /* ── 3o. SCORE CARD ACTION BUTTONS ── */
-  .score-card-inner > div:last-child {
-    flex-direction: row !important;
-    flex-wrap: wrap !important;
-    gap: 8px !important;
-    width: 100% !important;
-  }
-  .score-card-inner > div:last-child button {
-    flex: 1 !important;
-    min-width: 130px !important;
-    font-size: 12.5px !important;
-  }
-
-  /* ── 3p. CHAT ── */
-  .chat-messages  { height: 260px !important; }
-  .chat-input-row { gap: 7px !important; flex-wrap: nowrap !important; }
-  .quick-prompts {
-    gap: 5px !important;
-    padding: 7px 10px !important;
-  }
-  .quick-prompts button {
-    font-size: 11px !important;
-    padding: 4px 9px !important;
-    min-height: 30px !important;
-  }
-
-  /* ── 3q. MODALS ── */
-  .auth-modal-inner {
-    padding: 24px 16px !important;
-    border-radius: 14px !important;
-    max-height: 92vh !important;
-    overflow-y: auto !important;
-  }
-  .upgrade-modal-inner {
-    padding: 20px 14px 28px !important;
-    border-radius: 16px 16px 0 0 !important;
-  }
-  .payment-modal-inner {
-    padding: 20px 14px !important;
-    max-height: 92vh !important;
-    overflow-y: auto !important;
-    border-radius: 14px !important;
-  }
-  .dashboard-inner {
-    border-radius: 14px !important;
-    max-height: 88vh !important;
-    width: calc(100vw - 28px) !important;
-  }
-  .report-modal-inner {
-    padding: 20px 14px !important;
-    border-radius: 14px !important;
-    max-height: 90vh !important;
-    overflow-y: auto !important;
-  }
-
-  /* ── 3r. PAYMENT MODAL — plan cards ── */
-  .payment-modal-inner .pricing-grid { gap: 10px !important; }
-
-  /* ── 3s. PROGRESS STEPS ── */
-  .progress-steps {
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-    scrollbar-width: none !important;
-    padding-bottom: 6px !important;
-  }
-  .progress-steps::-webkit-scrollbar { display: none !important; }
-  .progress-steps .step-connector { min-width: 12px !important; }
-
-  /* ── 3t. USER DASHBOARD ── */
-  /* Overview stat cards: 2x2 grid */
-  /* (they use auto-fit minmax so they collapse naturally) */
-
-  /* ── 3u. JOB TRACKER ── */
-  /* Status pills: horizontal scroll */
-  /* (already using overflowX auto in the component) */
-
-  /* ── 3v. PROFILE OPTIMIZER SUBTABS ── */
-  .profile-grid { grid-template-columns: 1fr !important; }
-
-  /* ── 3w. ADMIN TABS ── */
-  .admin-tabs {
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-    scrollbar-width: none !important;
-  }
-  .admin-tabs::-webkit-scrollbar { display: none !important; }
-  .admin-tabs button {
-    padding: 10px 10px !important;
-    font-size: 12px !important;
-    min-width: unset !important;
-  }
-
-  /* ── 3x. CONTACT PAGE ── */
-  .contact-grid {
-    grid-template-columns: 1fr !important;
-    gap: 20px !important;
-  }
-
-  /* ── 3y. PAGE SHELL ── */
-  .page-shell-nav { padding: 0 14px !important; }
-
-  /* ── 3z. LEGAL SECTION ── */
-  /* Already readable — just pad safely */
 }
 
-/* ─────────────────────────────────────────────────────────────
-   4. UNIVERSAL TOUCH FIXES (all screen sizes)
-   ───────────────────────────────────────────────────────────── */
+/* =========================================================
+   TOUCH OPTIMIZATION
+========================================================= */
 
-/* All interactive elements meet 44px tap target */
-a, button, select, [role="button"] {
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* Inputs: prevent iOS zoom-on-focus (requires font-size ≥ 16px on mobile) */
 @media (max-width: 480px) {
-  input, textarea, select {
-    font-size: 16px !important;  /* Prevents iOS zoom */
+  button, a {
+    min-height: 44px;
   }
-  /* But keep labels small */
-  label { font-size: 11.5px !important; }
-}
 
+  input, textarea {
+    font-size: 16px;
+  }
+}
 /* ─────────────────────────────────────────────────────────────
    5. LANDING PAGE — MOBILE STICKY CTA
    The .mobile-cta is display:none by default (your existing rule).
