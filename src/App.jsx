@@ -3143,7 +3143,7 @@ export default function KrackHire() {
         )}
         <Toasts list={toastList} remove={removeToast}/>
         {showWelcome&&user&&profile&&<WelcomePopup user={user} profile={profile} onClose={()=>setShowWelcome(false)}/>}
-        {showAuth     &&<AuthModal onClose={()=>setShowAuth(false)}/>}}
+        {showAuth     &&<AuthModal onClose={()=>setShowAuth(false)}/>}
         {upgradeModal &&<UpgradeModal onClose={()=>setUpgradeModal(false)} onSelectPlan={handleUpgrade} user={user}/>}
         {payModal     &&<PaymentModal {...payModal} user={user} onClose={()=>setPayModal(null)} onSuccess={handlePaymentSuccess} toast={toast}/>}
         {view==="admin"     ? <AdminDashboard user={user} profile={profile} onBack={leaveAdmin}/> :
