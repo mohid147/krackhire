@@ -7,6 +7,7 @@ import { usePageTracking } from './components/GoogleAnalytics';
 import PDFReportModal from './components/PDFReportModal.jsx';
 import { HomePageSEO } from './components/SEO';
 import { ProductSchema } from './components/StructuredData';
+import UserDashboard from './components/UserDashboard.jsx';
 
 /* ─── SUPABASE ───────────────────────────────────────────── */
 const SUPA_URL  = import.meta.env.VITE_SUPABASE_URL  || "";
