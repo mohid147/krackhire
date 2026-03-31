@@ -131,14 +131,26 @@ body {
 ════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
   .section-pad {
-    padding: 60px 20px !important;
+    padding: 48px 16px !important;
+  }
+
+  /* Compact announcement bar */
+  .ann-bar {
+    font-size: 12.5px !important;
+    padding: 7px 12px !important;
+    line-height: 1.45 !important;
   }
 
   .hero-section {
     grid-template-columns: 1fr !important;
     text-align: center;
-    padding-top: 40px !important;
-    gap: 40px !important;
+    padding-top: 32px !important;
+    gap: 32px !important;
+  }
+
+  /* Hide the example score card on mobile — saves ~250px of vertical scroll */
+  .hero-visual {
+    display: none !important;
   }
 
   .hero-title {
@@ -150,12 +162,12 @@ body {
 
   .hero-sub {
     font-size: 16px !important;
-    margin: 16px auto !important;
-    padding: 0 10px;
+    margin: 14px auto !important;
+    padding: 0 8px;
   }
 
   .section-title {
-    font-size: 28px !important;
+    font-size: 26px !important;
   }
 
   .hero-btns {
@@ -169,7 +181,11 @@ body {
     height: 52px !important;
   }
 
-  .features-grid,
+  /* Features use 2 columns on mobile to halve vertical scroll length */
+  .features-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
   .pricing-grid,
   .how-grid,
   .reviews-grid,
@@ -187,7 +203,37 @@ body {
   }
 
   .pricing-card {
-    padding: 32px 20px !important;
+    padding: 28px 18px !important;
+  }
+
+  /* Reviews header stacks the title and CTA button vertically */
+  .reviews-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+  }
+
+  /* Score card inner: stack rings + summary + actions vertically */
+  .score-card-inner {
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+  }
+
+  /* Tool header action buttons scroll horizontally */
+  .tool-header-actions {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tool-header-actions::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Footer bottom bar: stack copyright and links */
+  .footer-bottom {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
   }
 
   .tabs-bar,
@@ -212,7 +258,15 @@ body {
   }
 }
 
+@media (max-width: 359px) {
+  /* On very small phones (< 360px), revert features back to 1-column for readability */
+  .features-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 @media (max-width: 380px) {
   .hero-title { font-size: 28px !important; }
-  .section-pad { padding: 48px 16px !important; }
+  .section-pad { padding: 40px 14px !important; }
+  .section-title { font-size: 24px !important; }
 }

@@ -1783,7 +1783,7 @@ function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onP
             </div>
           </div>
 
-          <div style={{ paddingTop:20, display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:10, fontSize:12, color:"#57534E" }}>
+          <div className="footer-bottom" style={{ paddingTop:20, display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:10, fontSize:12, color:"#57534E" }}>
             <span>© 2025 KrackHire. All rights reserved.</span>
             <div style={{ display:"flex", gap:16 }}>
               <button onClick={()=>navigate("privacy")} style={{ fontSize:12, color:"#57534E", cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", minHeight:"unset", minWidth:"unset" }}>Privacy</button>
