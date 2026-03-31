@@ -1910,7 +1910,7 @@ Type "start" to begin, or ask me anything about the role first.`}]);
         </div>
         <div className="tool-header-actions" style={{ display:"flex", gap:6, alignItems:"center" }}>
           <OutBtn size="sm" onClick={()=>setShowTracker(true)} style={{ minWidth:"unset" }}>📋</OutBtn>
-          {user&&<OutBtn size="sm" onClick={onDashboard||()=>setShowDash(true)} style={{ minWidth:"unset" }}>📊 Dashboard</OutBtn>}
+          {user&&<OutBtn size="sm" onClick={() => (onDashboard ? onDashboard() : setShowDash(true))} style={{ minWidth:"unset" }}>📊 Dashboard</OutBtn>}
           {ran&&<OutBtn size="sm" onClick={()=>{ setRan(false); setResults({gap:null,resume:null,cover:null,email:null}); setErrors({gap:null,resume:null,cover:null,email:null}); setChat([]); setShowFeedback(false); }} style={{ minWidth:"unset" }}>↺ New</OutBtn>}
           <OutBtn size="sm" onClick={onBack} style={{ minWidth:"unset" }}>← Home</OutBtn>
         </div>
