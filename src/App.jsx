@@ -1400,7 +1400,7 @@ function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onP
         </div>
         <div style={{ display:"flex", gap:8, alignItems:"center" }}>
           {user?<><Btn onClick={onEnter} size="sm" bg={C.sage} className="desktop-only">Open tool</Btn><UserMenu user={user} profile={profile} onSignOut={onSignOut} onUpgrade={onUpgrade} onInvite={()=>setShowInvite(true)} onAdmin={onAdmin} onDashboard={onDashboard}/></>
-               :<><OutBtn onClick={onShowAuth} size="sm" className="desktop-only">Sign in</OutBtn><Btn onClick={onEnter} size="sm" bg={C.sage}>Try free</Btn></>}
+               :<><OutBtn onClick={onShowAuth} size="sm" className="desktop-only">Sign in</OutBtn><Btn onClick={onEnter} size="sm" bg={C.sage} className="desktop-only">Try free</Btn></>}
           <button className="mobile-only" onClick={()=>setMenuOpen(!menuOpen)} style={{ padding:"8px 10px", borderRadius:7, color:C.ink2, fontSize:20, lineHeight:1, minHeight:44, minWidth:44 }}>{menuOpen?"✕":"☰"}</button>
         </div>
       </nav>
