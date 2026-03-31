@@ -1,10 +1,12 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo, memo } from "react";
 import { createClient } from "@supabase/supabase-js";
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HelmetProvider } from 'react-helmet-async';
+import AuthModal from './components/AuthModal.jsx';
+import FileUpload from './components/FileUpload';
+import { usePageTracking } from './components/GoogleAnalytics';
+import PDFReportModal from './components/PDFReportModal.jsx';
 import { HomePageSEO } from './components/SEO';
 import { ProductSchema } from './components/StructuredData';
-import { usePageTracking } from './components/GoogleAnalytics';
-import FileUpload from './components/FileUpload';
 
 /* ─── SUPABASE ───────────────────────────────────────────── */
 const SUPA_URL  = import.meta.env.VITE_SUPABASE_URL  || "";
@@ -398,189 +400,6 @@ function ShareScoreCard({ score, atsScore, skillScore, role, onClose }) {
   );
 }
 
-/* ─── PDF REPORT MODAL ───────────────────────────────────── */
-function PDFReportModal({ results, company, role, user, onClose, isPro, onUpgrade }) {
-  const [generating, setGenerating] = useState(false);
-  const [plan7, setPlan7] = useState(true);
-
-  if (!isPro) return (
-    <div style={{ position:"fixed", inset:0, zIndex:1200, background:"rgba(0,0,0,.5)", backdropFilter:"blur(4px)", display:"flex", alignItems:"center", justifyContent:"center", padding:16 }} onClick={onClose}>
-      <div onClick={e=>e.stopPropagation()} className="report-modal-inner" style={{ background:C.surface, borderRadius:16, padding:"28px 24px", maxWidth:400, width:"100%", textAlign:"center" }}>
-        <div style={{ fontSize:36, marginBottom:14 }}>📊</div>
-        <h3 style={{ fontFamily:"'Lora',Georgia,serif", fontSize:20, color:C.ink, marginBottom:8, fontWeight:700 }}>PDF Career Report</h3>
-        <p style={{ fontSize:14, color:C.ink2, lineHeight:1.7, marginBottom:20 }}>Get a professional downloadable career report with your full analysis, 7-day improvement plan, and actionable recommendations. Available in Pro plan.</p>
-        <Btn onClick={()=>{ onClose(); onUpgrade(); }} full bg={C.sage}>Upgrade to Pro →</Btn>
-        <button onClick={onClose} style={{ marginTop:12, fontSize:13.5, color:C.ink3, cursor:"pointer", minHeight:36, width:"100%" }}>Not now</button>
-      </div>
-    </div>
-  );
-
-  function generateReport() {
-    setGenerating(true);
-    // Build report HTML and trigger print
-    const gap = results.gap;
-    const score = gap?.score || 0;
-    const ats   = gap?.ats_score || Math.round(score * 0.9);
-    const skill = gap?.skill_score || Math.round(score * 0.85);
-    const userName = user?.user_metadata?.name || "Job Seeker";
-
-    const improvPlan = plan7 ? [
-      { day:"Day 1–2", task:"Add missing keywords from the JD to your resume Skills section. Keep language natural.", icon:"📝" },
-      { day:"Day 3",   task:"Rewrite your Summary/Objective with the target role title and 2 key achievements.", icon:"✍️" },
-      { day:"Day 4",   task:"Quantify at least 3 bullet points in Experience section with numbers and percentages.", icon:"📊" },
-      { day:"Day 5",   task:"Update LinkedIn headline, about section, and skills to match JD keywords.", icon:"💼" },
-      { day:"Day 6",   task:"Practice answering 5 common interview questions for this role using the coach.", icon:"🎯" },
-      { day:"Day 7",   task:"Do a final review of resume, send cold email to HR, and submit your application.", icon:"🚀" },
-    ] : [
-      { day:"Week 1",  task:"Fix resume: keywords, quantified achievements, clear formatting, ATS-safe structure.", icon:"📝" },
-      { day:"Week 2",  task:"Optimise LinkedIn and Naukri profiles. Connect with 10 relevant professionals.", icon:"💼" },
-      { day:"Week 3",  task:"Research 5 target companies. Customise your resume and cover letter for each.", icon:"🏢" },
-      { day:"Week 4",  task:"Apply to 15 roles, track all applications, practise mock interviews daily.", icon:"📋" },
-      { day:"Week 5–6",task:"Follow up on applications. Prepare for assessment tests. Update skills on LinkedIn.", icon:"🔄" },
-      { day:"Week 7–8",task:"Interview preparation: technical questions, HR rounds, salary discussion.", icon:"🎯" },
-    ];
-
-    const html = `<!DOCTYPE html><html><head><title>KrackHire Career Report — ${userName}</title>
-<link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;700&family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet"/>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'DM Sans',sans-serif;background:#fff;color:#1C1917;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .page{max-width:794px;margin:0 auto}
-  /* Cover */
-  .cover{background:linear-gradient(135deg,#3D6B4F,#2D5240);color:#fff;padding:60px 48px;min-height:200px;border-radius:0}
-  .cover h1{font-family:'Lora',serif;font-size:36px;margin-bottom:6px}
-  .cover .sub{font-size:15px;opacity:.8;margin-bottom:28px}
-  .cover .meta{display:flex;gap:32px;flex-wrap:wrap}
-  .cover .meta div{text-align:center}
-  .cover .meta .num{font-size:36px;font-weight:700}
-  .cover .meta .lbl{font-size:11px;opacity:.7;text-transform:uppercase;letter-spacing:1px}
-  /* Sections */
-  .section{padding:32px 48px;border-bottom:1px solid #E7E5E4}
-  .section h2{font-family:'Lora',serif;font-size:20px;color:#3D6B4F;margin-bottom:14px;padding-bottom:8px;border-bottom:2px solid #D4E6DA}
-  /* Score bars */
-  .score-row{display:flex;align-items:center;gap:12px;margin-bottom:10px}
-  .score-bar-bg{flex:1;height:8px;background:#E7E5E4;border-radius:99px;overflow:hidden}
-  .score-bar{height:100%;border-radius:99px;background:#3D6B4F}
-  .score-val{font-size:14px;font-weight:700;color:#3D6B4F;width:50px;text-align:right}
-  /* Gap items */
-  .gap-item{padding:10px 14px;border-radius:8px;margin-bottom:8px;border-left:3px solid}
-  .gap-missing{background:#FDF2F2;border-color:#C0392B}
-  .gap-weak{background:#FFFBEB;border-color:#B45309}
-  .gap-strong{background:#F0F5F2;border-color:#3D6B4F}
-  .gap-title{font-weight:700;font-size:13px;margin-bottom:3px}
-  .gap-detail{font-size:12px;color:#57534E;line-height:1.6}
-  /* Plan */
-  .plan-row{display:flex;gap:14px;margin-bottom:12px;align-items:flex-start}
-  .plan-day{background:#3D6B4F;color:#fff;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;white-space:nowrap;flex-shrink:0;margin-top:2px}
-  .plan-text{font-size:13px;color:#57534E;line-height:1.65}
-  /* Keywords */
-  .kw-list{display:flex;flex-wrap:wrap;gap:7px}
-  .kw{background:#F0F5F2;color:#3D6B4F;padding:4px 12px;border-radius:99px;font-size:12px;font-weight:600}
-  /* Footer */
-  .footer{background:#F9F8F6;padding:20px 48px;text-align:center;font-size:12px;color:#A8A29E}
-  @media print{@page{margin:0;size:A4}}
-</style></head>
-<body><div class="page">
-  <div class="cover">
-    <h1>Career Readiness Report</h1>
-    <div class="sub">Prepared for ${userName}${role?` · ${role} Role`:""}</div>
-    <div class="meta">
-      <div><div class="num">${score}</div><div class="lbl">Readiness Score /100</div></div>
-      <div><div class="num">${ats}</div><div class="lbl">ATS Score /100</div></div>
-      <div><div class="num">${skill}</div><div class="lbl">Skill Match /100</div></div>
-      ${company?`<div><div class="num" style="font-size:18px">${company}</div><div class="lbl">Target Company</div></div>`:""}
-    </div>
-  </div>
-
-  <div class="section">
-    <h2>Score Summary</h2>
-    ${[["Overall Readiness",score],["ATS Compatibility",ats],["Skill Match",skill]].map(([l,v])=>`
-      <div class="score-row"><span style="font-size:13px;font-weight:600;color:#1C1917;width:160px">${l}</span>
-      <div class="score-bar-bg"><div class="score-bar" style="width:${v}%;background:${v>=70?"#3D6B4F":v>=50?"#B45309":"#C0392B"}"></div></div>
-      <span class="score-val">${v}/100</span></div>`).join("")}
-    ${gap?.summary?`<p style="margin-top:14px;font-size:13.5px;color:#57534E;line-height:1.75;padding:12px 16px;background:#F0F5F2;border-radius:8px">${gap.summary}</p>`:""}
-  </div>
-
-  ${gap?.missing?.length?`<div class="section">
-    <h2>Critical Gaps — Fix Before Applying</h2>
-    ${gap.missing.map(g=>`<div class="gap-item gap-missing"><div class="gap-title" style="color:#C0392B">✗ ${g.title}</div><div class="gap-detail">${g.detail}</div></div>`).join("")}
-  </div>`:""}
-
-  ${gap?.weak?.length?`<div class="section">
-    <h2>Weak Areas — Improve to Stand Out</h2>
-    ${gap.weak.map(g=>`<div class="gap-item gap-weak"><div class="gap-title" style="color:#B45309">△ ${g.title}</div><div class="gap-detail">${g.detail}</div></div>`).join("")}
-  </div>`:""}
-
-  ${gap?.strong?.length?`<div class="section">
-    <h2>Your Strengths — Lead With These</h2>
-    ${gap.strong.map(g=>`<div class="gap-item gap-strong"><div class="gap-title" style="color:#3D6B4F">✓ ${g.title}</div><div class="gap-detail">${g.detail}</div></div>`).join("")}
-  </div>`:""}
-
-  ${gap?.missing_keywords?.length?`<div class="section">
-    <h2>Missing Keywords</h2>
-    <div class="kw-list">${gap.missing_keywords.map(k=>`<span class="kw">${k}</span>`).join("")}</div>
-  </div>`:""}
-
-  <div class="section">
-    <h2>${plan7?"7-Day Improvement Plan":"14-Day Career Roadmap"}</h2>
-    ${improvPlan.map(p=>`<div class="plan-row"><span class="plan-day">${p.day}</span><div class="plan-text">${p.icon} ${p.task}</div></div>`).join("")}
-  </div>
-
-  <div class="section">
-    <h2>LinkedIn & Naukri Improvement Tips</h2>
-    ${["Update your headline to include your target job title and 2 key skills",
-       "Write your About section with role-specific keywords from the JD",
-       "Add all relevant skills from the job description to your Skills section",
-       "Include quantified achievements in each experience entry",
-       "Set your Naukri profile to 'Actively looking' and fill the key skills field",
-       "Upload your updated resume in both DOC and PDF format on Naukri"].map(t=>`<div style="padding:8px 0;border-bottom:1px solid #E7E5E4;font-size:13px;color:#57534E">→ ${t}</div>`).join("")}
-  </div>
-
-  <div class="footer">
-    Generated by KrackHire · www.krackhire.in · Made in Hyderabad, India 🇮🇳<br/>
-    This report is based on the resume and job description you provided. Results may vary. Always tailor your application to the specific role.
-  </div>
-</div></body></html>`;
-
-    const win = window.open("","_blank");
-    win.document.write(html);
-    win.document.close();
-    setTimeout(()=>{ win.print(); setGenerating(false); }, 600);
-  }
-
-  return (
-    <div style={{ position:"fixed", inset:0, zIndex:1200, background:"rgba(0,0,0,.5)", backdropFilter:"blur(4px)", display:"flex", alignItems:"center", justifyContent:"center", padding:16 }} onClick={onClose}>
-      <div onClick={e=>e.stopPropagation()} className="report-modal-inner" style={{ background:C.surface, borderRadius:16, padding:"28px 24px", maxWidth:440, width:"100%" }}>
-        <div style={{ textAlign:"center", marginBottom:22 }}>
-          <div style={{ fontSize:40, marginBottom:12 }}>📊</div>
-          <h3 style={{ fontFamily:"'Lora',Georgia,serif", fontSize:22, color:C.ink, marginBottom:6, fontWeight:700 }}>PDF Career Report</h3>
-          <p style={{ fontSize:14, color:C.ink2, lineHeight:1.65 }}>A professional downloadable report with your full analysis and personalised improvement plan.</p>
-        </div>
-
-        <div style={{ background:C.sageBg, borderRadius:10, padding:"14px 16px", marginBottom:18 }}>
-          {["Cover page with your scores","Gap analysis with specific fixes","Missing keywords list","LinkedIn & Naukri optimisation tips","Day-by-day improvement plan","Interview preparation topics"].map((f,i)=>(
-            <div key={i} style={{ display:"flex", alignItems:"center", gap:9, fontSize:13.5, color:C.ink2, marginBottom:i<5?7:0 }}>
-              <span className="inline" style={{ color:C.sage, fontWeight:700, minHeight:"unset", minWidth:"unset" }}>✓</span>{f}
-            </div>
-          ))}
-        </div>
-
-        <div style={{ display:"flex", gap:10, marginBottom:18 }}>
-          {[[true,"7-Day Plan"],[false,"14-Day Plan"]].map(([v,l])=>(
-            <button key={l} onClick={()=>setPlan7(v)} style={{ flex:1, padding:"10px", borderRadius:8, border:`2px solid ${plan7===v?C.sage:C.border}`, background:plan7===v?C.sageBg:C.surface, color:plan7===v?C.sage:C.ink2, fontWeight:600, fontSize:13.5, cursor:"pointer", fontFamily:"inherit", minHeight:44 }}>{l}</button>
-          ))}
-        </div>
-
-        <Btn onClick={generateReport} disabled={generating} full bg={C.sage} style={{ marginBottom:10, fontSize:15 }}>
-          {generating?<><Spin s={16} c="#fff"/>Generating…</>:"⬇ Download PDF Report"}
-        </Btn>
-        <button onClick={onClose} style={{ width:"100%", fontSize:13.5, color:C.ink3, cursor:"pointer", padding:8, minHeight:36 }}>Cancel</button>
-        <p style={{ fontSize:11.5, color:C.ink3, textAlign:"center", marginTop:10 }}>Opens print dialog — save as PDF or print.</p>
-      </div>
-    </div>
-  );
-}
-
 /* ─── JOB TRACKER ────────────────────────────────────────── */
 const JOB_STATUSES = ["Applied","Assessment","Interview","Offer","Rejected","On Hold"];
 const STATUS_COLORS = { Applied:C.blue, Assessment:C.amber, Interview:C.purple, Offer:C.sage, Rejected:C.red, "On Hold":C.stone };
@@ -901,27 +720,8 @@ function UpgradeModal({ onClose, onSelectPlan, user }) {
   );
 }
 
-/* ─── AUTH MODAL ─────────────────────────────────────────── */
-function AuthModal({ onClose }) {
-  return (
-    <div style={{ position:"fixed", inset:0, zIndex:1200, background:"rgba(0,0,0,.45)", backdropFilter:"blur(4px)", display:"flex", alignItems:"center", justifyContent:"center", padding:16 }} onClick={onClose}>
-      <div onClick={e=>e.stopPropagation()} className="auth-modal-inner" style={{ background:C.surface, borderRadius:16, padding:"32px 28px", maxWidth:380, width:"100%", textAlign:"center" }}>
-        <Logo size="lg"/>
-        <h2 style={{ fontFamily:"'Lora',Georgia,serif", fontSize:21, color:C.ink, margin:"18px 0 8px", fontWeight:700 }}>Sign in to KrackHire</h2>
-        <p style={{ fontSize:13.5, color:C.ink2, lineHeight:1.7, marginBottom:22 }}>Save analyses, track applications, download reports, and get your complete job readiness profile.</p>
-        <Btn onClick={signInGoogle} full bg={C.ink} style={{ fontSize:14.5, marginBottom:14 }}>
-          <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-          Continue with Google
-        </Btn>
-        <p style={{ fontSize:12, color:C.ink3, lineHeight:1.6, marginBottom:12 }}>Your resume is processed in real time and not stored permanently.</p>
-        <button onClick={onClose} style={{ fontSize:13.5, color:C.ink3, cursor:"pointer", padding:8, minHeight:36 }}>Continue without account →</button>
-      </div>
-    </div>
-  );
-}
-
 /* ─── USER MENU ──────────────────────────────────────────── */
-function UserMenu({ user, profile, onSignOut, onUpgrade, onInvite, onAdmin }) {
+function UserMenu({ user, profile, onSignOut, onUpgrade, onInvite, onAdmin, onDashboard }) {
   const [open,setOpen] = useState(false);
   const isPro      = isPremiumPlan(profile?.plan, profile?.plan_expires_at);
   const pLabel     = planDisplayLabel(profile?.plan);
@@ -952,6 +752,7 @@ function UserMenu({ user, profile, onSignOut, onUpgrade, onInvite, onAdmin }) {
           </div>
           {!isPro&&<button onClick={onUpgrade} style={{ width:"100%", padding:"11px 14px", textAlign:"left", fontSize:13.5, fontWeight:600, color:C.amber, cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", borderBottom:`1px solid ${C.border}`, minHeight:44 }}>⚡ Upgrade to Pro</button>}
           {!isPro&&<button onClick={onInvite} style={{ width:"100%", padding:"11px 14px", textAlign:"left", fontSize:13.5, fontWeight:600, color:C.blue, cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", borderBottom:`1px solid ${C.border}`, minHeight:44 }}>🎟️ Enter invite code</button>}
+          {user&&<button onClick={()=>{ setOpen(false); onDashboard?.(); }} style={{ width:"100%", padding:"11px 14px", textAlign:"left", fontSize:13.5, fontWeight:600, color:C.sage, cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", borderBottom:`1px solid ${C.border}`, minHeight:44 }}>📊 My Dashboard</button>}
           {(["admin","founder"].includes(profile?.role) || user?.email==="mohidmd58@gmail.com")&&(
             <button onClick={()=>{ setOpen(false); onAdmin(); }} style={{ width:"100%", padding:"11px 14px", textAlign:"left", fontSize:13.5, fontWeight:700, color:C.purple, cursor:"pointer", background:C.purpleBg, border:"none", fontFamily:"inherit", borderBottom:`1px solid ${C.border}`, minHeight:44 }}>⚙️ Admin Panel</button>
           )}
@@ -1557,7 +1358,7 @@ const FAQS=[
 ];
 
 /* ─── LANDING PAGE ───────────────────────────────────────── */
-function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onProfileRefresh, toast, onAdmin, navigate }) {
+function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onProfileRefresh, toast, onAdmin, navigate, onDashboard }) {
   const [scrolled,setScrolled]=useState(false); const [menuOpen,setMenuOpen]=useState(false); const [faqOpen,setFaqOpen]=useState(null);
   const [reviews,setReviews]=useState([]); const [reviewsDone,setReviewsDone]=useState(false); const [showForm,setShowForm]=useState(false); const [page,setPage]=useState(0);
   const [showInvite,setShowInvite]=useState(false);
@@ -1584,7 +1385,7 @@ function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onP
           ))}
         </div>
         <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-          {user?<UserMenu user={user} profile={profile} onSignOut={onSignOut} onUpgrade={onUpgrade} onInvite={()=>setShowInvite(true)} onAdmin={onAdmin}/>
+          {user?<UserMenu user={user} profile={profile} onSignOut={onSignOut} onUpgrade={onUpgrade} onInvite={()=>setShowInvite(true)} onAdmin={onAdmin} onDashboard={onDashboard}/>
                :<><OutBtn onClick={onShowAuth} size="sm" className="desktop-only">Sign in</OutBtn><Btn onClick={onEnter} size="sm" bg={C.sage}>Try free</Btn></>}
           <button className="mobile-only" onClick={()=>setMenuOpen(!menuOpen)} style={{ padding:"8px 10px", borderRadius:7, color:C.ink2, fontSize:20, lineHeight:1, minHeight:44, minWidth:44 }}>{menuOpen?"✕":"☰"}</button>
         </div>
@@ -1918,7 +1719,7 @@ const TABS=[
   {id:"profile",   label:"Profile",        icon:"💼", color:C.blue},
 ];
 
-function Tool({ onBack, user, profile, onShowAuth, onUpgrade, onProfileRefresh }) {
+function Tool({ onBack, onDashboard, user, profile, onShowAuth, onUpgrade, onProfileRefresh }) {
   const { toast, list:toastList, remove:removeToast } = useToast();
   const [resume,  setResume]  = useState("");
   const [jd,      setJd]      = useState("");
@@ -2109,7 +1910,7 @@ Type "start" to begin, or ask me anything about the role first.`}]);
         </div>
         <div className="tool-header-actions" style={{ display:"flex", gap:6, alignItems:"center" }}>
           <OutBtn size="sm" onClick={()=>setShowTracker(true)} style={{ minWidth:"unset" }}>📋</OutBtn>
-          {user&&<OutBtn size="sm" onClick={()=>setShowDash(true)} style={{ minWidth:"unset" }} className="desktop-only">History</OutBtn>}
+          {user&&<OutBtn size="sm" onClick={onDashboard||()=>setShowDash(true)} style={{ minWidth:"unset" }}>📊 Dashboard</OutBtn>}
           {ran&&<OutBtn size="sm" onClick={()=>{ setRan(false); setResults({gap:null,resume:null,cover:null,email:null}); setErrors({gap:null,resume:null,cover:null,email:null}); setChat([]); setShowFeedback(false); }} style={{ minWidth:"unset" }}>↺ New</OutBtn>}
           <OutBtn size="sm" onClick={onBack} style={{ minWidth:"unset" }}>← Home</OutBtn>
         </div>
@@ -3165,6 +2966,7 @@ export default function KrackHire() {
   const [authLoading, setAuthLoading] = useState(true);
   const [upgradeModal,setUpgradeModal]= useState(false);
   const [payModal,    setPayModal]    = useState(null);
+  const [showInvite,  setShowInvite]  = useState(false);
   const { toast, list:toastList, remove:removeToast } = useToast();
 
   useEffect(()=>{
@@ -3227,6 +3029,11 @@ export default function KrackHire() {
             }
           }
           setTimeout(()=>setShowWelcome(true), 1500);
+        }
+        // Handle password recovery
+        if(event==="PASSWORD_RECOVERY") {
+          setShowAuth.bind(true);
+          toast("Please enter your new password.", "info");
         }
       } else setProfile(null);
     });
@@ -3331,13 +3138,24 @@ export default function KrackHire() {
         {showAuth     &&<AuthModal onClose={()=>setShowAuth(false)}/>}
         {upgradeModal &&<UpgradeModal onClose={()=>setUpgradeModal(false)} onSelectPlan={handleUpgrade} user={user}/>}
         {payModal     &&<PaymentModal {...payModal} user={user} onClose={()=>setPayModal(null)} onSuccess={handlePaymentSuccess} toast={toast}/>}
-        {view==="admin"   ? <AdminDashboard user={user} profile={profile} onBack={leaveAdmin}/> :
-         view==="contact" ? <ContactPage  onBack={()=>navigate("landing")}/> :
-         view==="privacy" ? <PrivacyPage  onBack={()=>navigate("landing")}/> :
-         view==="terms"   ? <TermsPage    onBack={()=>navigate("landing")}/> :
-         view==="refund"  ? <RefundPage   onBack={()=>navigate("landing")}/> :
-         view==="tool"    ? <Tool onBack={()=>navigate("landing")} user={user} profile={profile} onShowAuth={()=>setShowAuth(true)} onUpgrade={handleUpgrade} onProfileRefresh={refreshProfile}/> :
-         <Landing onEnter={()=>navigate("tool")} user={user} profile={profile} onShowAuth={()=>setShowAuth(true)} onSignOut={handleSignOut} onUpgrade={handleUpgrade} onProfileRefresh={refreshProfile} toast={toast} onAdmin={goAdmin} navigate={navigate}/>
+        {view==="admin"     ? <AdminDashboard user={user} profile={profile} onBack={leaveAdmin}/> :
+         view==="contact"   ? <ContactPage  onBack={()=>navigate("landing")}/> :
+         view==="privacy"   ? <PrivacyPage  onBack={()=>navigate("landing")}/> :
+         view==="terms"     ? <TermsPage    onBack={()=>navigate("landing")}/> :
+         view==="refund"    ? <RefundPage   onBack={()=>navigate("landing")}/> :
+         view==="dashboard" ? (
+           <UserDashboard
+             user={user}
+             profile={profile}
+             onBack={()=>navigate("tool")}
+             onSignOut={handleSignOut}
+             onUpgrade={handleUpgrade}
+             onInvite={()=>setShowInvite(true)}
+             toast={toast}
+           />
+         ) :
+         view==="tool"      ? <Tool onBack={()=>navigate("landing")} onDashboard={()=>navigate("dashboard")} user={user} profile={profile} onShowAuth={()=>setShowAuth(true)} onUpgrade={handleUpgrade} onProfileRefresh={refreshProfile}/> :
+         <Landing onEnter={()=>navigate("tool")} user={user} profile={profile} onShowAuth={()=>setShowAuth(true)} onSignOut={handleSignOut} onUpgrade={handleUpgrade} onProfileRefresh={refreshProfile} toast={toast} onAdmin={goAdmin} navigate={navigate} onDashboard={()=>navigate("dashboard")}/>
         }
       </ErrorBoundary>
     </HelmetProvider>
