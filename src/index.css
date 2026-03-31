@@ -210,6 +210,10 @@ body {
     width: 100%;
     height: 48px;
   }
+  .navbar-open-tool {
+    display: none !important; 
+  }
+}
 }
 
 @media (max-width: 380px) {
