@@ -2471,7 +2471,7 @@ function AdminDashboard({ user, profile, onBack }) {
           <div style={{display:"flex",flexDirection:"column",gap:18}}>
 
             {/* Stats grid */}
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:12}}>
+            <div className="admin-stats-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:12}}>
               {[
                 {label:"Total Users",    value:counts?.totalUsers||0,     color:C.blue,   icon:"👥", sub:"all time"},
                 {label:"Total Analyses", value:counts?.totalAnalyses||0,  color:C.sage,   icon:"🔍", sub:"AI analyses run"},
@@ -2572,14 +2572,14 @@ function AdminDashboard({ user, profile, onBack }) {
 
             <Card flat style={{overflow:"hidden"}}>
               {/* Table header */}
-              <div style={{padding:"10px 18px",background:C.bg,borderBottom:`1px solid ${C.border}`,display:"grid",gridTemplateColumns:"1fr 1fr 140px 120px 80px",gap:12,fontSize:11,fontWeight:700,color:C.ink3,textTransform:"uppercase",letterSpacing:.6}}>
+              <div className="admin-table-header" style={{padding:"10px 18px",background:C.bg,borderBottom:`1px solid ${C.border}`,display:"grid",gridTemplateColumns:"1fr 1fr 140px 120px 80px",gap:12,fontSize:11,fontWeight:700,color:C.ink3,textTransform:"uppercase",letterSpacing:.6}}>
                 <div>User</div><div>Plan</div><div>Role</div><div>Usage</div><div>Actions</div>
               </div>
               <div style={{maxHeight:560,overflowY:"auto"}}>
                 {filtered.length===0&&<div style={{padding:"40px",textAlign:"center",color:C.ink3}}>No users match filters</div>}
                 {filtered.map((u)=>(
                   <div key={u.id}>
-                    <div style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}`,display:"grid",gridTemplateColumns:"1fr 1fr 140px 120px 80px",gap:12,alignItems:"center",cursor:"pointer",transition:"background .15s"}}
+                    <div className="admin-table-row" style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}`,display:"grid",gridTemplateColumns:"1fr 1fr 140px 120px 80px",gap:12,alignItems:"center",cursor:"pointer",transition:"background .15s"}}
                       onMouseEnter={e=>e.currentTarget.style.background=C.bg}
                       onMouseLeave={e=>e.currentTarget.style.background=""}>
                       {/* User info */}
@@ -2640,7 +2640,7 @@ function AdminDashboard({ user, profile, onBack }) {
         {!loading&&tab==="payments"&&(
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
             {/* Revenue summary */}
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12}}>
+            <div className="admin-stats-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12}}>
               {[
                 {label:"Total Revenue",  value:`₹${((counts?.revenue||0)/100).toFixed(0)}`, color:C.sage},
                 {label:"Successful",     value:transactions.filter(t=>t.status==="success").length,  color:C.sage},
@@ -2739,7 +2739,7 @@ function AdminDashboard({ user, profile, onBack }) {
         {!loading&&tab==="analyses"&&(
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
             {/* Score distribution */}
-            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
+            <div className="admin-stats-grid" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
               {[["High (70+)",analyses.filter(a=>a.gap_score>=70).length,C.sage],["Medium (50-69)",analyses.filter(a=>a.gap_score>=50&&a.gap_score<70).length,C.amber],["Low (<50)",analyses.filter(a=>a.gap_score<50&&a.gap_score!=null).length,C.red]].map(([l,v,c])=>(
                 <Card key={l} style={{padding:"16px 18px"}}>
                   <div style={{fontSize:26,fontWeight:800,color:c,marginBottom:4}}>{v}</div>
@@ -2836,7 +2836,7 @@ function AdminDashboard({ user, profile, onBack }) {
         {!loading&&tab==="b2b"&&(
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
             {/* Summary */}
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12}}>
+            <div className="admin-stats-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12}}>
               {[
                 ["Total Colleges", colleges.length, C.blue],
                 ["Active",         colleges.filter(c=>c.status==="active").length, C.sage],
@@ -2888,7 +2888,7 @@ function AdminDashboard({ user, profile, onBack }) {
               const byType = {};
               emailStats.forEach(e=>{ byType[e.type]=(byType[e.type]||{total:0,sent:0,failed:0}); byType[e.type].total++; if(e.status==="sent") byType[e.type].sent++; else byType[e.type].failed++; });
               return (
-                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:10}}>
+                <div className="admin-stats-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:10}}>
                   {Object.entries(byType).map(([type,s])=>(
                     <Card key={type} style={{padding:"14px 16px"}}>
                       <div style={{fontSize:12,fontWeight:700,color:C.ink3,textTransform:"uppercase",letterSpacing:.5,marginBottom:8}}>{type.replace(/_/g," ")}</div>
@@ -2929,7 +2929,7 @@ function AdminDashboard({ user, profile, onBack }) {
         {!loading&&tab==="feedback"&&(
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
             {/* Summary */}
-            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
+            <div className="admin-stats-grid" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
               {[
                 ["Total Feedback",feedback.length,C.blue],
                 ["Helpful",feedback.filter(f=>f.helpful).length,C.sage],
