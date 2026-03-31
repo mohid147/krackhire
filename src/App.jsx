@@ -1,4 +1,3 @@
-import { createClient } from "@supabase/supabase-js";
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HelmetProvider } from 'react-helmet-async';
 import AuthModal from './components/AuthModal.jsx';
@@ -9,6 +8,7 @@ import { HomePageSEO } from './components/SEO';
 import { ProductSchema } from './components/StructuredData';
 import UserDashboard from './components/UserDashboard.jsx';
 import { C } from './lib/design.js';
+import { supabase as sb } from './lib/supabase-context.jsx';
 
 /* ─── SUPABASE ───────────────────────────────────────────── */
 const SUPA_URL  = import.meta.env.VITE_SUPABASE_URL  || "";
@@ -25,10 +25,6 @@ if (ENV_ERRORS.length > 0) {
 
 // Track sent emails per session — prevents duplicate triggers
 const _emailSent = new Set();
-
-const sb = SUPA_URL && SUPA_ANON
-  ? createClient(SUPA_URL, SUPA_ANON, { auth:{ autoRefreshToken:true, persistSession:true, detectSessionInUrl:true }})
-  : null;
 
 /* ─── SUPABASE HELPERS ───────────────────────────────────── */
 async function signInGoogle() {
