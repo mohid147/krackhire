@@ -208,17 +208,17 @@ function CopyBtn({ text }) {
 }
 
 /* ─── BUTTONS ────────────────────────────────────────────── */
-function Btn({ children, onClick, disabled, size="md", bg=C.ink, full, style:ext={} }) {
+function Btn({ children, onClick, disabled, size="md", bg=C.ink, full, style:ext={}, className="" }) {
   return (
-    <button onClick={onClick} disabled={disabled} className="kh-btn"
+    <button onClick={onClick} disabled={disabled} className={("kh-btn "+(className||"")).trim()}
       style={{ display:"inline-flex", alignItems:"center", justifyContent:"center", gap:8, borderRadius:9, border:"none", background:disabled?C.ink4:bg, color:disabled?C.ink3:"#fff", fontSize:size==="lg"?16:size==="sm"?13.5:14.5, fontWeight:600, cursor:disabled?"not-allowed":"pointer", padding:size==="lg"?"15px 28px":size==="sm"?"9px 16px":"11px 22px", transition:"all .18s", width:full?"100%":"auto", boxShadow:disabled?"none":"0 1px 4px rgba(0,0,0,.10)", minHeight:size==="sm"?40:48, ...ext }}>
       {children}
     </button>
   );
 }
-function OutBtn({ children, onClick, size="md", style:ext={} }) {
+function OutBtn({ children, onClick, size="md", style:ext={}, className="" }) {
   return (
-    <button onClick={onClick} className="kh-out"
+    <button onClick={onClick} className={("kh-out "+(className||"")).trim()}
       style={{ display:"inline-flex", alignItems:"center", justifyContent:"center", gap:8, borderRadius:9, border:`1.5px solid ${C.border}`, background:C.surface, color:C.ink2, fontSize:size==="sm"?13.5:14.5, fontWeight:600, padding:size==="sm"?"9px 16px":"11px 22px", transition:"all .18s", cursor:"pointer", minHeight:size==="sm"?40:48, ...ext }}>
       {children}
     </button>
@@ -1400,7 +1400,7 @@ function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onP
         </div>
         <div style={{ display:"flex", gap:8, alignItems:"center" }}>
           {user?<><Btn onClick={onEnter} size="sm" bg={C.sage} className="desktop-only">Open tool</Btn><UserMenu user={user} profile={profile} onSignOut={onSignOut} onUpgrade={onUpgrade} onInvite={()=>setShowInvite(true)} onAdmin={onAdmin} onDashboard={onDashboard}/></>
-               :<><OutBtn onClick={onShowAuth} size="sm" className="desktop-only">Sign in</OutBtn><Btn onClick={onEnter} size="sm" bg={C.sage}>Try free</Btn></>}
+               :<><OutBtn onClick={onShowAuth} size="sm" className="desktop-only">Sign in</OutBtn><Btn onClick={onEnter} size="sm" bg={C.sage} className="desktop-only">Try free</Btn></>}
           <button className="mobile-only" onClick={()=>setMenuOpen(!menuOpen)} style={{ padding:"8px 10px", borderRadius:7, color:C.ink2, fontSize:20, lineHeight:1, minHeight:44, minWidth:44 }}>{menuOpen?"✕":"☰"}</button>
         </div>
       </nav>
