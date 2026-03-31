@@ -13,6 +13,15 @@ import UserDashboard from './components/UserDashboard.jsx';
 const SUPA_URL  = import.meta.env.VITE_SUPABASE_URL  || "";
 const SUPA_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 const SITE_URL = import.meta.env.VITE_SITE_URL || "https://www.krackhire.in";
+
+// CRITICAL: Validate environment configuration on startup
+const ENV_ERRORS = [];
+if (!SUPA_URL) ENV_ERRORS.push("VITE_SUPABASE_URL not configured");
+if (!SUPA_ANON) ENV_ERRORS.push("VITE_SUPABASE_ANON_KEY not configured");
+if (ENV_ERRORS.length > 0) {
+  console.error("[KH] Configuration errors:", ENV_ERRORS);
+}
+
 // Track sent emails per session — prevents duplicate triggers
 const _emailSent = new Set();
 
@@ -3134,9 +3143,15 @@ export default function KrackHire() {
       <ProductSchema />
       
       <ErrorBoundary>
+        {/* CRITICAL: Show environment configuration errors if any */}
+        {ENV_ERRORS.length > 0 && (
+          <div style={{ position:"fixed", top:0, left:0, right:0, zIndex:9998, background:"#C0392B", color:"#fff", padding:"12px 16px", fontSize:13.5, fontWeight:600, textAlign:"center" }}>
+            ⚠️ Configuration Error: {ENV_ERRORS.join(", ")}. Contact admin@krackhire.in
+          </div>
+        )}
         <Toasts list={toastList} remove={removeToast}/>
         {showWelcome&&user&&profile&&<WelcomePopup user={user} profile={profile} onClose={()=>setShowWelcome(false)}/>}
-        {showAuth     &&<AuthModal onClose={()=>setShowAuth(false)}/>}
+        {showAuth     &&<AuthModal onClose={()=>setShowAuth(false)}/>}}
         {upgradeModal &&<UpgradeModal onClose={()=>setUpgradeModal(false)} onSelectPlan={handleUpgrade} user={user}/>}
         {payModal     &&<PaymentModal {...payModal} user={user} onClose={()=>setPayModal(null)} onSuccess={handlePaymentSuccess} toast={toast}/>}
         {view==="admin"     ? <AdminDashboard user={user} profile={profile} onBack={leaveAdmin}/> :

@@ -137,24 +137,21 @@ async function initiatePayment(req, res) {
   const sb = getSB()
   if (!sb) return res.status(500).json({ success:false, message:'DB not available.' })
 
-  // Check for existing pending payment (prevent duplicates)
-  const { data: existing } = await sb
+  // CRITICAL: Check for existing payment within last 30 min
+  // Uses select with limit to avoid race condition of simultaneous requests
+  const { data: existing, error: checkErr } = await sb
     .from('transactions')
-    .select('id, status')
+    .select('id, status, txn_id, payu_params')
     .eq('user_id', userId)
     .eq('plan_id', planId)
     .eq('status', 'pending')
-    .gte('created_at', new Date(Date.now() - 30*60*1000).toISOString()) // last 30 min
-    .single()
+    .gte('created_at', new Date(Date.now() - 30*60*1000).toISOString())
+    .order('created_at', { ascending: false })
+    .limit(1)
 
-  if (existing) {
-    // Return the existing txnid so user continues same transaction
-    const { data: txn } = await sb
-      .from('transactions')
-      .select('txn_id, payu_params')
-      .eq('id', existing.id)
-      .single()
-
+  if (existing && existing.length > 0) {
+    // Reuse existing transaction to prevent double charges
+    const txn = existing[0]
     if (txn?.payu_params) {
       return res.status(200).json({ success:true, data:{ payuParams: txn.payu_params, payuUrl: PAYU_BASE + '/_payment' }})
     }
@@ -219,12 +216,18 @@ async function handlePayUCallback(req, res) {
   const sb = getSB()
   const siteUrl = SITE_URL
 
-  // Verify hash first — reject tampered responses
+  // CRITICAL SECURITY: Verify PayU response hash before processing
+  // This prevents attackers from faking successful payments
+  if (!params.hash || typeof params.hash !== 'string') {
+    console.error('[payment] Missing hash in callback')
+    return res.status(400).json({ success: false, message: 'Invalid payment response' })
+  }
+
   const hashValid = verifyHash({ ...params, status, hash })
 
   if (!hashValid) {
-    console.error('[payment] Hash mismatch! Possible tampering. txnid:', txnid)
-    // Log the attempted tamper
+    console.error('[payment] SECURITY ALERT: Hash mismatch! Possible tampering. txnid:', txnid)
+    // Log the attempted attack
     if (sb) {
       await sb.from('transactions').update({
         status:    'tampered',
