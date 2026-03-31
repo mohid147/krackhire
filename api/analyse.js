@@ -159,8 +159,7 @@ async function verifyUser(req, sb) {
 // ── MAIN HANDLER ──────────────────────────────────────────────
 export default async function handler(req, res) {
   // CORS — locked to allowed origin, never wildcard
-  const origin = req.headers['origin']||
-  const allowed = process.env.ALLOWED_ORIGIN||'https://www.krackhire.in'
+  const allowed = process.env.ALLOWED_ORIGIN || 'https://www.krackhire.in'
   
   // CRITICAL SECURITY: Never allow wildcard CORS
   if (allowed === '*') {
