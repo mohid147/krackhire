@@ -210,13 +210,13 @@ body {
     width: 100%;
     height: 48px;
   }
-  .chat-input-row button {
-    width: 100%;
-    height: 48px;
-  }
+  
+  /* Hides the redundant button in the nav header */
   .navbar-open-tool {
     display: none !important; 
-  } 
+  }
+} /* <--- Syntax Error Fixed: Removed the extra '}' here */
+
 @media (max-width: 380px) {
   .hero-title { font-size: 28px !important; }
   .section-pad { padding: 48px 16px !important; }
