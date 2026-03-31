@@ -36,7 +36,11 @@ export function SupabaseProvider({ children }) {
 
 // Hook to use Supabase anywhere
 export function useSupabase() {
-  return useContext(SupabaseContext);
+  const sb = useContext(SupabaseContext);
+  if (!sb) {
+    console.warn("[useSupabase] Supabase not initialized - check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY env vars");
+  }
+  return sb;
 }
 
 export default SupabaseContext;

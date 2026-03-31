@@ -10,15 +10,13 @@ import UserDashboard from './components/UserDashboard.jsx';
 import { C } from './lib/design.js';
 import { supabase as sb } from './lib/supabase-context.jsx';
 
-/* ─── SUPABASE ───────────────────────────────────────────── */
-const SUPA_URL  = import.meta.env.VITE_SUPABASE_URL  || "";
-const SUPA_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+/* ─── ENVIRONMENT VALIDATION ─────────────────────────────── */
 const SITE_URL = import.meta.env.VITE_SITE_URL || "https://www.krackhire.in";
 
 // CRITICAL: Validate environment configuration on startup
 const ENV_ERRORS = [];
-if (!SUPA_URL) ENV_ERRORS.push("VITE_SUPABASE_URL not configured");
-if (!SUPA_ANON) ENV_ERRORS.push("VITE_SUPABASE_ANON_KEY not configured");
+if (!import.meta.env.VITE_SUPABASE_URL)      ENV_ERRORS.push("VITE_SUPABASE_URL not configured");
+if (!import.meta.env.VITE_SUPABASE_ANON_KEY) ENV_ERRORS.push("VITE_SUPABASE_ANON_KEY not configured");
 if (ENV_ERRORS.length > 0) {
   console.error("[KH] Configuration errors:", ENV_ERRORS);
 }
