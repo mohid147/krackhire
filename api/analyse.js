@@ -1,6 +1,7 @@
 // api/analyse.js — KrackHire v8
 // Fixed: pro_monthly in PREMIUM_PLANS, profile_optimize gated,
 //        userId verified via Supabase auth, CORS locked to origin
+//        BUGFIX: syntax error on CORS origin line (missing fallback value)
 
 import { createClient } from '@supabase/supabase-js'
 
@@ -159,8 +160,8 @@ async function verifyUser(req, sb) {
 // ── MAIN HANDLER ──────────────────────────────────────────────
 export default async function handler(req, res) {
   // CORS — locked to allowed origin, never wildcard
-  const origin = req.headers['origin']||
-  const allowed = process.env.ALLOWED_ORIGIN||'https://www.krackhire.in'
+  const origin = req.headers['origin'] || ''
+  const allowed = process.env.ALLOWED_ORIGIN || 'https://www.krackhire.in'
   
   // CRITICAL SECURITY: Never allow wildcard CORS
   if (allowed === '*') {
