@@ -1403,10 +1403,8 @@ function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onP
                :<><OutBtn onClick={onShowAuth} size="sm" className="desktop-only">Sign in</OutBtn><Btn onClick={onEnter} size="sm" bg={C.sage}>Try free</Btn></>}
           <button className="mobile-only" onClick={()=>setMenuOpen(!menuOpen)} style={{ padding:"8px 10px", borderRadius:7, color:C.ink2, fontSize:20, lineHeight:1, minHeight:44, minWidth:44 }}>{menuOpen?"✕":"☰"}</button>
         </div>
-      </nav>
-
       {menuOpen&&(
-        <div style={{ position:"fixed", top:"calc(35px + 52px)", left:0, right:0, zIndex:199, background:C.surface, borderBottom:`1px solid ${C.border}`, padding:"10px 14px", display:"flex", flexDirection:"column", gap:2, animation:"slideUp .2s ease", boxShadow:"0 6px 20px rgba(0,0,0,.08)" }}>
+        <div style={{ position:"absolute", top:"100%", left:0, right:0, zIndex:10, background:C.surface, borderBottom:`1px solid ${C.border}`, padding:"10px 14px", display:"flex", flexDirection:"column", gap:2, animation:"slideUp .2s ease", boxShadow:"0 6px 20px rgba(0,0,0,.08)" }}>
           {navLinks.map(([h,l])=><a key={l} href={h} onClick={()=>setMenuOpen(false)} style={{ padding:"12px 14px", borderRadius:8, fontSize:15, fontWeight:500, color:C.ink2, minHeight:48, display:"flex", alignItems:"center" }}>{l}</a>)}
           <div style={{ paddingTop:10, borderTop:`1px solid ${C.border}`, marginTop:6, display:"flex", flexDirection:"column", gap:8 }}>
             {!user&&<OutBtn onClick={()=>{setMenuOpen(false);onShowAuth();}} style={{ justifyContent:"center", width:"100%" }}>Sign in with Google</OutBtn>}
@@ -1414,6 +1412,7 @@ function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onP
           </div>
         </div>
       )}
+      </nav>
 
       {/* HERO */}
       <section className="hero-section section-pad" style={{ maxWidth:1060, margin:"0 auto", padding:"clamp(48px,9vw,100px) clamp(16px,5vw,52px) clamp(48px,7vw,88px)", display:"grid", gridTemplateColumns:"1fr 1fr", gap:"clamp(28px,6vw,72px)", alignItems:"center" }}>
