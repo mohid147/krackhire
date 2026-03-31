@@ -9,6 +9,13 @@ const SUPA_URL  = import.meta.env.VITE_SUPABASE_URL  || "";
 const SUPA_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 const sb = SUPA_URL && SUPA_ANON ? createClient(SUPA_URL, SUPA_ANON) : null;
 
+if (!sb) {
+  console.warn('[Dashboard] Supabase client not initialized - missing env vars:', {
+    VITE_SUPABASE_URL: SUPA_URL ? "✓" : "✗",
+    VITE_SUPABASE_ANON_KEY: SUPA_ANON ? "✓" : "✗"
+  });
+}
+
 /* ── Design tokens ── */
 const C = {
   bg:"#F9F8F6", surface:"#FFFFFF", ink:"#1C1917",
@@ -90,36 +97,84 @@ const STATUS_COLORS = {
 
 /* ── DB calls ── */
 async function fetchAnalyses(uid) {
-  if (!sb || !uid) return [];
-  const { data } = await sb.from("analyses")
-    .select("id,company,role,gap_score,ats_score,skill_score,created_at")
-    .eq("user_id", uid).order("created_at", { ascending:false }).limit(50);
-  return data || [];
+  if (!sb || !uid) {
+    console.warn('[Dashboard] Missing Supabase client or user ID for analyses fetch');
+    return [];
+  }
+  try {
+    const { data, error } = await sb.from("analyses")
+      .select("id,company,role,gap_score,ats_score,skill_score,created_at")
+      .eq("user_id", uid).order("created_at", { ascending:false }).limit(50);
+    if (error) {
+      console.error('[Dashboard] Error fetching analyses:', error);
+      return [];
+    }
+    console.log('[Dashboard] Loaded analyses:', data?.length);
+    return data || [];
+  } catch(e) {
+    console.error('[Dashboard] Exception fetching analyses:', e);
+    return [];
+  }
 }
 
 async function fetchJobs(uid) {
-  if (!sb || !uid) return [];
-  const { data } = await sb.from("job_tracker")
-    .select("*").eq("user_id", uid)
-    .order("applied_date", { ascending:false }).limit(100);
-  return data || [];
+  if (!sb || !uid) {
+    console.warn('[Dashboard] Missing Supabase client or user ID for jobs fetch');
+    return [];
+  }
+  try {
+    const { data, error } = await sb.from("job_tracker")
+      .select("*").eq("user_id", uid)
+      .order("applied_date", { ascending:false }).limit(100);
+    if (error) {
+      console.error('[Dashboard] Error fetching jobs:', error);
+      return [];
+    }
+    console.log('[Dashboard] Loaded jobs:', data?.length);
+    return data || [];
+  } catch(e) {
+    console.error('[Dashboard] Exception fetching jobs:', e);
+    return [];
+  }
 }
 
 async function addJob(uid, job) {
-  if (!sb) return null;
-  const { data } = await sb.from("job_tracker")
-    .insert({ ...job, user_id:uid }).select().single();
-  return data;
+  if (!sb) {
+    console.error('[Dashboard] Supabase client not available for addJob');
+    return null;
+  }
+  try {
+    const { data, error } = await sb.from("job_tracker")
+      .insert({ ...job, user_id:uid }).select().single();
+    if (error) {
+      console.error('[Dashboard] Error adding job:', error);
+      return null;
+    }
+    return data;
+  } catch(e) {
+    console.error('[Dashboard] Exception adding job:', e);
+    return null;
+  }
 }
 
 async function updateJob(id, updates) {
   if (!sb) return;
-  await sb.from("job_tracker").update(updates).eq("id", id);
+  try {
+    const { error } = await sb.from("job_tracker").update(updates).eq("id", id);
+    if (error) console.error('[Dashboard] Error updating job:', error);
+  } catch(e) {
+    console.error('[Dashboard] Exception updating job:', e);
+  }
 }
 
 async function deleteJob(id) {
   if (!sb) return;
-  await sb.from("job_tracker").delete().eq("id", id);
+  try {
+    const { error } = await sb.from("job_tracker").delete().eq("id", id);
+    if (error) console.error('[Dashboard] Error deleting job:', error);
+  } catch(e) {
+    console.error('[Dashboard] Exception deleting job:', e);
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -696,20 +751,42 @@ export default function UserDashboard({
   const [loadingJ,   setLoadingJ]   = useState(true);
 
   const loadAnalyses = useCallback(async () => {
+    if (!user?.id) {
+      console.warn('[Dashboard] No user ID available for fetchAnalyses');
+      return;
+    }
     setLoadingA(true);
-    const data = await fetchAnalyses(user?.id);
-    setAnalyses(data);
+    try {
+      const data = await fetchAnalyses(user.id);
+      setAnalyses(data);
+    } catch(e) {
+      console.error('[Dashboard] Failed to load analyses:', e);
+      setAnalyses([]);
+    }
     setLoadingA(false);
   }, [user?.id]);
 
   const loadJobs = useCallback(async () => {
+    if (!user?.id) {
+      console.warn('[Dashboard] No user ID available for fetchJobs');
+      return;
+    }
     setLoadingJ(true);
-    const data = await fetchJobs(user?.id);
-    setJobs(data);
+    try {
+      const data = await fetchJobs(user.id);
+      setJobs(data);
+    } catch(e) {
+      console.error('[Dashboard] Failed to load jobs:', e);
+      setJobs([]);
+    }
     setLoadingJ(false);
   }, [user?.id]);
 
-  useEffect(() => { loadAnalyses(); loadJobs(); }, [loadAnalyses, loadJobs]);
+  useEffect(() => { 
+    console.log('[Dashboard] Component mounted', { userId: user?.id, email: user?.email });
+    loadAnalyses(); 
+    loadJobs(); 
+  }, [loadAnalyses, loadJobs]);
 
   // Scroll to top on mount
   useEffect(() => { window.scrollTo({ top:0, behavior:"instant" }); }, []);
