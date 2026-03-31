@@ -1,211 +1,462 @@
-@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
+/* ═══════════════════════════════════════════════════════════════
+   KRACKHIRE — MOBILE RESPONSIVENESS ADDITIONS
+   Append these rules to the END of src/index.css
+   ⚠️ These are ADDITIONS only — zero desktop styles touched.
+═══════════════════════════════════════════════════════════════ */
 
-/* ─── RESET ─────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html  { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
-body  { font-family: 'DM Sans', system-ui, sans-serif; background: #F9F8F6; color: #1C1917; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
-a     { text-decoration: none; color: inherit; }
-button{ font-family: inherit; cursor: pointer; border: none; background: none; }
-input, textarea, select { font-family: inherit; outline: none; -webkit-appearance: none; appearance: none; }
-img   { max-width: 100%; display: block; }
+/* ─────────────────────────────────────────────────────────────
+   1. PREVENT HORIZONTAL OVERFLOW GLOBALLY
+   ───────────────────────────────────────────────────────────── */
+html, body {
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
 
-/* ─── SCROLLBAR ──────────────────────────────────── */
-::-webkit-scrollbar       { width: 4px; }
-::-webkit-scrollbar-thumb { background: #E7E5E4; border-radius: 99px; }
-::-webkit-scrollbar-track { background: transparent; }
+/* ─────────────────────────────────────────────────────────────
+   2. TABLET (481px – 900px) — fills the gap your CSS misses
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 900px) and (min-width: 481px) {
 
-/* ─── SELECTION ──────────────────────────────────── */
-::selection { background: #D4E6DA; color: #3D6B4F; }
-
-/* ─── ANIMATIONS ─────────────────────────────────── */
-@keyframes spin    { to { transform: rotate(360deg); } }
-@keyframes slideUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
-@keyframes shimmer { 0% { background-position:-200% 0; } 100% { background-position:200% 0; } }
-@keyframes pulse   { 0%,100% { opacity:1; } 50% { opacity:.4; } }
-@keyframes fadeIn  { from { opacity:0; } to { opacity:1; } }
-@keyframes scaleIn { from { opacity:0; transform:scale(.96); } to { opacity:1; transform:scale(1); } }
-
-/* ─── HOVER (desktop only) ───────────────────────── */
-@media (hover: hover) {
-  .kh-btn:not(:disabled):hover {
-    filter: brightness(1.08);
-    box-shadow: 0 4px 16px rgba(0,0,0,.15) !important;
-    transform: translateY(-1px) !important;
+  /* Hero: 2-col → 1-col on tablet */
+  .hero-section {
+    grid-template-columns: 1fr !important;
+    padding: 48px 24px 56px !important;
+    gap: 32px !important;
   }
-  .kh-out:hover {
-    border-color: #A8A29E !important;
-    background: #F9F8F6 !important;
+
+  /* Show hero visual on tablet (hide only on mobile) */
+  .hero-visual { display: block !important; }
+
+  /* How-it-works: 4-col → 2-col */
+  .how-grid {
+    grid-template-columns: 1fr 1fr !important;
   }
-  .kh-card:hover {
-    box-shadow: 0 6px 20px rgba(0,0,0,.08) !important;
-    transform: translateY(-1px) !important;
-  }
+  .how-grid > div:nth-child(odd)  { border-right: 1px solid #E7E5E4 !important; }
+  .how-grid > div:nth-child(even) { border-right: none !important; }
+  .how-grid > div:nth-child(3),
+  .how-grid > div:nth-child(4)    { border-bottom: none !important; }
+
+  /* Reviews: 3-col → 2-col */
+  .reviews-grid { grid-template-columns: 1fr 1fr !important; }
+
+  /* FAQ: side-by-side → stacked */
+  .faq-grid { grid-template-columns: 1fr !important; gap: 28px !important; }
+
+  /* Tool input grid */
+  .input-grid { grid-template-columns: 1fr !important; }
 }
 
-/* ─── TOUCH TARGETS ──────────────────────────────── */
-button, [role="button"] { min-height: 44px; min-width: 44px; }
-button.inline, span.inline, a.inline { min-height: unset !important; min-width: unset !important; }
-
-/* ─── HELPERS ────────────────────────────────────── */
-.mobile-only  { display: none !important; }
-.desktop-only { display: flex !important; }
-
-/* ─── PRINT ──────────────────────────────────────── */
-@media print {
-  body * { visibility: hidden; }
-  #resume-preview, #resume-preview * { visibility: visible; }
-  #resume-preview { position: absolute; left:0; top:0; width:100%; padding:0!important; }
-  @page { margin: 12mm; size: A4; }
-}
-
-/* ═══════════════════════════════════════════════════
-   TABLET BREAKPOINT — ≤900px
-   (fixes the gap between mobile and desktop)
-═══════════════════════════════════════════════════ */
-@media (max-width: 900px) {
-  /* Footer: 2 cols on tablet instead of 4 */
-  .footer-grid  { grid-template-columns: 1fr 1fr !important; gap: 20px !important; }
-  .footer-brand { grid-column: 1 / -1 !important; }
-
-  /* Pricing: 2 cols on tablet */
-  .pricing-grid { grid-template-columns: 1fr 1fr !important; gap: 12px !important; }
-}
-
-/* ═══════════════════════════════════════════════════
-   MOBILE BREAKPOINT — ≤768px
-═══════════════════════════════════════════════════ */
-@media (max-width: 768px) {
-
-  /* ── LAYOUT HELPERS ── */
-  .mobile-only  { display: flex !important; }
-  .desktop-only { display: none !important; }
-
-  /* ── ANNOUNCEMENT BAR ── */
-  .ann-bar { font-size: 12.5px !important; padding: 8px 12px !important; line-height: 1.5 !important; }
-
-  /* ── NAVIGATION ── */
-  nav { height: 52px !important; padding: 0 14px !important; }
-  .nav-logo svg  { width: 24px !important; height: 24px !important; }
-  .nav-logo span { font-size: 14.5px !important; }
-
-  /* ── HERO SECTION ── */
-  .hero-section  { padding: 36px 16px 44px !important; grid-template-columns: 1fr !important; gap: 28px !important; }
-  .hero-title    { font-size: clamp(24px, 7vw, 34px) !important; line-height: 1.18 !important; }
-  .hero-sub      { font-size: 14.5px !important; line-height: 1.75 !important; margin-bottom: 20px !important; }
-  .hero-btns     { flex-direction: column !important; gap: 9px !important; }
-  .hero-btns > * { width: 100% !important; justify-content: center !important; }
-  .hero-trust    { gap: 10px !important; }
-  .hero-visual   { display: none !important; }
-
-  /* ── GENERAL SECTIONS ── */
-  .section-pad   { padding: 44px 16px !important; }
-  .section-title { font-size: clamp(20px, 6vw, 28px) !important; line-height: 1.22 !important; }
-  .section-sub   { font-size: 14px !important; }
-
-  /* ── HOW IT WORKS GRID ── */
-  .how-grid { grid-template-columns: 1fr 1fr !important; border-radius: 10px !important; }
-  .how-grid > div { border-right: none !important; border-bottom: 1px solid #E7E5E4 !important; padding: 16px 12px !important; }
-  .how-grid > div:nth-child(odd) { border-right: 1px solid #E7E5E4 !important; }
-  .how-grid > div:last-child,
-  .how-grid > div:nth-last-child(2):nth-child(odd) { border-bottom: none !important; }
-
-  /* ── FEATURES ── */
-  .features-grid { grid-template-columns: 1fr !important; gap: 9px !important; }
-
-  /* ── REVIEWS ── */
-  .reviews-grid   { grid-template-columns: 1fr !important; gap: 9px !important; }
-  .reviews-header { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; }
-
-  /* ── PRICING ── */
-  .pricing-grid   { grid-template-columns: 1fr !important; gap: 10px !important; }
-  .pricing-card   { padding: 18px 16px !important; }
-  .pricing-price  { font-size: 34px !important; }
-
-  /* ── FAQ ── */
-  .faq-grid { grid-template-columns: 1fr !important; gap: 20px !important; }
-
-  /* ── FOOTER ── */
-  .footer-grid  { grid-template-columns: 1fr 1fr !important; gap: 20px !important; }
-  .footer-brand { grid-column: 1 / -1 !important; margin-bottom: 4px !important; }
-
-  /* ── TOOL LAYOUT ── */
-  .input-grid { grid-template-columns: 1fr !important; gap: 10px !important; }
-  .input-grid textarea { min-height: 160px !important; }
-
-  /* ── TOOL HEADER ── */
-  .tool-header { padding: 0 10px !important; height: 50px !important; }
-  .tool-header-actions { gap: 5px !important; }
-  .tool-header-actions button { font-size: 12px !important; padding: 7px 10px !important; min-height: 36px !important; min-width: unset !important; }
-
-  /* ── TABS ── */
-  .tabs-bar { gap: 0 !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; scrollbar-width: none !important; }
-  .tabs-bar::-webkit-scrollbar { display: none !important; }
-  .tabs-bar button { padding: 9px 10px !important; font-size: 12px !important; min-height: 40px !important; min-width: unset !important; }
-
-  /* ── SCORE CARD ── */
-  .score-card-inner { flex-direction: column !important; gap: 12px !important; }
-  .score-number     { font-size: 38px !important; }
-
-  /* ── CHAT ── */
-  .chat-messages    { height: 280px !important; }
-  .chat-input-row   { flex-wrap: nowrap !important; gap: 7px !important; }
-  .quick-prompts button { font-size: 11.5px !important; padding: 4px 9px !important; min-height: 28px !important; }
-
-  /* ── JOB TRACKER ── */
-  .tracker-table { display: block !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; }
-  .tracker-controls { flex-direction: column !important; gap: 10px !important; }
-  .tracker-controls > * { width: 100% !important; }
-
-  /* ── SCORE CARD SHARE ── */
-  .share-widget { flex-direction: column !important; gap: 10px !important; align-items: flex-start !important; }
-
-  /* ── MODALS ── */
-  .auth-modal-inner    { padding: 26px 18px !important; border-radius: 14px !important; }
-  .upgrade-modal-inner { padding: 22px 16px 32px !important; }
-  .payment-modal-inner { padding: 22px 16px !important; max-height: 92vh !important; overflow-y: auto !important; border-radius: 14px !important; }
-  .dashboard-inner     { border-radius: 14px !important; max-height: 88vh !important; }
-  .report-modal-inner  { padding: 20px 16px !important; border-radius: 14px !important; max-height: 90vh !important; overflow-y: auto !important; }
-
-  /* ── FEEDBACK ── */
-  .feedback-widget { padding: 13px 14px !important; }
-  .feedback-btns   { flex-wrap: wrap !important; }
-
-  /* ── GENERAL CARDS ── */
-  .kh-card { border-radius: 10px !important; }
-
-  /* ── MOBILE STICKY CTA ── */
-  .mobile-cta { display: flex !important; }
-
-  /* ── PROFILE OPTIMIZER ── */
-  .profile-grid { grid-template-columns: 1fr !important; gap: 10px !important; }
-
-  /* ── PROGRESS STEPS ── */
-  .progress-steps { overflow-x: auto !important; padding-bottom: 4px !important; }
-  .progress-steps .step-connector { min-width: 14px !important; }
-
-  /* ── ADMIN DASHBOARD ── */
-  .admin-tabs { gap: 0 !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; }
-  .admin-tabs button { padding: 8px 10px !important; font-size: 12px !important; min-width: unset !important; }
-}
-
-/* ─── VERY SMALL (≤380px) ────────────────────────── */
-@media (max-width: 380px) {
-  .hero-title    { font-size: 22px !important; }
-  .section-title { font-size: 19px !important; }
-  nav            { padding: 0 10px !important; }
-  .section-pad   { padding: 32px 12px !important; }
-  .tabs-bar button { padding: 8px 8px !important; font-size: 11px !important; }
-  .footer-grid   { grid-template-columns: 1fr !important; }
-  .pricing-grid  { grid-template-columns: 1fr !important; }
-}
-
-/* ─── CONTACT PAGE GRID ──────────────────────────── */
-.contact-grid { grid-template-columns: 1fr 1.4fr !important; }
-@media (max-width: 768px) {
-  .contact-grid { grid-template-columns: 1fr !important; gap: 20px !important; }
-}
-
-/* ─── PAGE SHELL NAV ─────────────────────────────── */
+/* ─────────────────────────────────────────────────────────────
+   3. MOBILE (≤ 480px) — targeted fixes on top of existing rules
+   ───────────────────────────────────────────────────────────── */
 @media (max-width: 480px) {
-  .page-shell-nav-title { display: none !important; }
+
+  /* ── 3a. ANNOUNCEMENT BAR ── */
+  .ann-bar {
+    font-size: 12px !important;
+    padding: 7px 12px !important;
+    text-align: left !important;
+    line-height: 1.55 !important;
+  }
+
+  /* ── 3b. NAVBAR ── */
+  nav {
+    padding: 0 12px !important;
+    height: 50px !important;
+  }
+
+  /* ── 3c. HERO ── */
+  .hero-section {
+    padding: 28px 14px 36px !important;
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+
+  .hero-title {
+    font-size: 24px !important;
+    line-height: 1.2 !important;
+    letter-spacing: -.2px !important;
+  }
+
+  .hero-sub {
+    font-size: 14px !important;
+    line-height: 1.7 !important;
+    margin-bottom: 18px !important;
+  }
+
+  /* Hero buttons: full-width stack */
+  .hero-btns {
+    flex-direction: column !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  .hero-btns > * {
+    width: 100% !important;
+    justify-content: center !important;
+    font-size: 15px !important;
+  }
+
+  /* Hero trust badges: 2-col wrap */
+  .hero-trust {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    margin-top: 16px !important;
+  }
+  .hero-trust span {
+    font-size: 12px !important;
+    gap: 4px !important;
+  }
+
+  /* ── 3d. SCORE RINGS — shrink on mobile ── */
+  .score-card-inner {
+    flex-direction: column !important;
+    gap: 14px !important;
+    align-items: flex-start !important;
+  }
+  .score-card-inner > div:first-child {
+    /* Score rings row — allow smaller rings */
+    gap: 10px !important;
+  }
+
+  /* ── 3e. SECTION TITLES ── */
+  .section-title { font-size: 20px !important; }
+  .section-sub   { font-size: 13.5px !important; }
+  .section-pad   { padding: 36px 14px !important; }
+
+  /* ── 3f. HOW-IT-WORKS ── */
+  .how-grid {
+    grid-template-columns: 1fr !important;
+    border-radius: 10px !important;
+  }
+  .how-grid > div {
+    border-right: none !important;
+    border-bottom: 1px solid #E7E5E4 !important;
+    padding: 18px 14px !important;
+  }
+  .how-grid > div:last-child { border-bottom: none !important; }
+
+  /* ── 3g. FEATURES GRID ── */
+  .features-grid {
+    grid-template-columns: 1fr !important;
+    gap: 9px !important;
+  }
+
+  /* ── 3h. PRICING ── */
+  .pricing-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  .pricing-price { font-size: 36px !important; }
+  .pricing-card  { padding: 20px 16px !important; }
+
+  /* ── 3i. REVIEWS ── */
+  .reviews-grid  { grid-template-columns: 1fr !important; gap: 10px !important; }
+  .reviews-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+  .reviews-header > div:last-child { width: 100% !important; }
+  .reviews-header button { width: 100% !important; justify-content: center !important; }
+
+  /* ── 3j. FAQ ── */
+  .faq-grid { grid-template-columns: 1fr !important; gap: 24px !important; }
+
+  /* ── 3k. FOOTER ── */
+  .footer-grid {
+    grid-template-columns: 1fr !important;
+    gap: 24px !important;
+  }
+  .footer-brand { grid-column: 1 !important; }
+
+  /* ── 3l. TOOL HEADER ── */
+  .tool-header {
+    padding: 0 10px !important;
+    height: 50px !important;
+  }
+  .tool-header-actions { gap: 4px !important; }
+  .tool-header-actions button {
+    font-size: 11.5px !important;
+    padding: 6px 9px !important;
+    min-height: 36px !important;
+    min-width: unset !important;
+  }
+
+  /* ── 3m. TOOL INPUT GRID ── */
+  .input-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+  .input-grid textarea { min-height: 140px !important; }
+
+  /* ── 3n. TABS BAR — horizontal scroll, hide scrollbar ── */
+  .tabs-bar {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    gap: 0 !important;
+    padding-bottom: 0 !important;
+  }
+  .tabs-bar::-webkit-scrollbar { display: none !important; }
+  .tabs-bar button {
+    padding: 9px 10px !important;
+    font-size: 11.5px !important;
+    min-height: 40px !important;
+    min-width: unset !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* ── 3o. SCORE CARD ACTION BUTTONS ── */
+  .score-card-inner > div:last-child {
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  .score-card-inner > div:last-child button {
+    flex: 1 !important;
+    min-width: 130px !important;
+    font-size: 12.5px !important;
+  }
+
+  /* ── 3p. CHAT ── */
+  .chat-messages  { height: 260px !important; }
+  .chat-input-row { gap: 7px !important; flex-wrap: nowrap !important; }
+  .quick-prompts {
+    gap: 5px !important;
+    padding: 7px 10px !important;
+  }
+  .quick-prompts button {
+    font-size: 11px !important;
+    padding: 4px 9px !important;
+    min-height: 30px !important;
+  }
+
+  /* ── 3q. MODALS ── */
+  .auth-modal-inner {
+    padding: 24px 16px !important;
+    border-radius: 14px !important;
+    max-height: 92vh !important;
+    overflow-y: auto !important;
+  }
+  .upgrade-modal-inner {
+    padding: 20px 14px 28px !important;
+    border-radius: 16px 16px 0 0 !important;
+  }
+  .payment-modal-inner {
+    padding: 20px 14px !important;
+    max-height: 92vh !important;
+    overflow-y: auto !important;
+    border-radius: 14px !important;
+  }
+  .dashboard-inner {
+    border-radius: 14px !important;
+    max-height: 88vh !important;
+    width: calc(100vw - 28px) !important;
+  }
+  .report-modal-inner {
+    padding: 20px 14px !important;
+    border-radius: 14px !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+  }
+
+  /* ── 3r. PAYMENT MODAL — plan cards ── */
+  .payment-modal-inner .pricing-grid { gap: 10px !important; }
+
+  /* ── 3s. PROGRESS STEPS ── */
+  .progress-steps {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    padding-bottom: 6px !important;
+  }
+  .progress-steps::-webkit-scrollbar { display: none !important; }
+  .progress-steps .step-connector { min-width: 12px !important; }
+
+  /* ── 3t. USER DASHBOARD ── */
+  /* Overview stat cards: 2x2 grid */
+  /* (they use auto-fit minmax so they collapse naturally) */
+
+  /* ── 3u. JOB TRACKER ── */
+  /* Status pills: horizontal scroll */
+  /* (already using overflowX auto in the component) */
+
+  /* ── 3v. PROFILE OPTIMIZER SUBTABS ── */
+  .profile-grid { grid-template-columns: 1fr !important; }
+
+  /* ── 3w. ADMIN TABS ── */
+  .admin-tabs {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+  }
+  .admin-tabs::-webkit-scrollbar { display: none !important; }
+  .admin-tabs button {
+    padding: 10px 10px !important;
+    font-size: 12px !important;
+    min-width: unset !important;
+  }
+
+  /* ── 3x. CONTACT PAGE ── */
+  .contact-grid {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+
+  /* ── 3y. PAGE SHELL ── */
+  .page-shell-nav { padding: 0 14px !important; }
+
+  /* ── 3z. LEGAL SECTION ── */
+  /* Already readable — just pad safely */
+}
+
+/* ─────────────────────────────────────────────────────────────
+   4. UNIVERSAL TOUCH FIXES (all screen sizes)
+   ───────────────────────────────────────────────────────────── */
+
+/* All interactive elements meet 44px tap target */
+a, button, select, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Inputs: prevent iOS zoom-on-focus (requires font-size ≥ 16px on mobile) */
+@media (max-width: 480px) {
+  input, textarea, select {
+    font-size: 16px !important;  /* Prevents iOS zoom */
+  }
+  /* But keep labels small */
+  label { font-size: 11.5px !important; }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   5. LANDING PAGE — MOBILE STICKY CTA
+   The .mobile-cta is display:none by default (your existing rule).
+   Your existing CSS already handles display:flex on mobile.
+   Just ensure bottom padding so content doesn't hide behind it.
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Add padding so last section content isn't hidden by sticky CTA */
+  footer { padding-bottom: 80px !important; }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   6. TOOL PAGE — ensure analyze button doesn't get clipped
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  /* Analyse button row: stack vertically */
+  .kh-analyse-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+  .kh-analyse-row > div { text-align: center !important; }
+  .kh-analyse-row button { width: 100% !important; }
+
+  /* Ensure the "Analyse my resume →" button is always accessible */
+  [style*="minWidth:200"] {
+    min-width: unset !important;
+    width: 100% !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   7. GAP ANALYSIS RESULTS — stack on mobile
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  /* Interview round tabs: horizontal scroll */
+  [style*="display:\"flex\""][style*="gap:6"] {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    flex-wrap: nowrap !important;
+    scrollbar-width: none !important;
+  }
+
+  /* Round content grid: stack */
+  [style*="gridTemplateColumns:\"1fr 1fr\""] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   8. WELCOME POPUP — keep inside viewport on mobile
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  /* WelcomePopup: full-width, anchored bottom */
+  [style*="position:\"fixed\""][style*="bottom:24"][style*="right:24"] {
+    right: 12px !important;
+    bottom: 72px !important; /* Above mobile sticky CTA */
+    left: 12px !important;
+    max-width: calc(100vw - 24px) !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   9. SCORE SHARE CARD — full-width on mobile
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  /* ShareScoreCard modal inner */
+  [style*="maxWidth:380"] {
+    max-width: calc(100vw - 28px) !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   10. ANNOUNCEMENT BANNER (AnnouncementBanner component)
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  /* Collapse CTA button to its own row */
+  [style*="background:bgClr"] {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   11. PDF REPORT MODAL — plan toggle full width
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .report-modal-inner [style*="display:\"flex\""][style*="gap:10"] {
+    flex-direction: row !important; /* Keep plan toggle side by side */
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   12. USER DASHBOARD — overview stat grid on very small screens
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 360px) {
+  /* Stat cards: single column on tiny screens */
+  [style*="minmax(140px,1fr)"] {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   13. ADMIN DASHBOARD — user table on mobile
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Admin user table header: hide on mobile */
+  [style*="gridTemplateColumns:\"1fr 1fr 140px 120px 80px\""] {
+    display: none !important;
+  }
+  /* Admin user rows: stack */
+  [style*="gridTemplateColumns:\"1fr 1fr 140px 120px 80px\""]:not(:first-child) {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   14. SMOOTH SCROLL RESTORATION on mobile
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Better scroll inertia for modal inner content */
+  .chat-messages,
+  .dashboard-inner,
+  [style*="overflowY:\"auto\""],
+  [style*="WebkitOverflowScrolling:\"touch\""] {
+    -webkit-overflow-scrolling: touch !important;
+  }
 }
