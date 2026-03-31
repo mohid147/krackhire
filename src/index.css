@@ -1,11 +1,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700&family=DM+Sans:wght@400;500;600;700&display=swap');
 
-/* ───────── RESET & BASE ───────── */
+/* ════════════════════════════════════════════════════════
+   1. BASE RESETS & ACCESSIBILITY
+════════════════════════════════════════════════════════ */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  -webkit-tap-highlight-color: transparent; /* Remove grey flicker on mobile tap */
+  -webkit-tap-highlight-color: transparent; /* Removes gray flash on mobile tap */
 }
 
 html {
@@ -18,324 +20,224 @@ body {
   background: #F9F8F6;
   color: #1C1917;
   overflow-x: hidden;
-  line-height: 1.5;
-  text-rendering: optimizeLegibility;
-}
-
-/* ───────── TYPOGRAPHY ───────── */
-.hero-title,
-.section-title {
-  font-family: 'Lora', serif;
-  letter-spacing: -0.02em;
-  line-height: 1.15;
-  color: #111827;
-}
-
-.hero-sub,
-.section-sub {
-  color: #4B5563;
   line-height: 1.6;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* ───────── NAVBAR ───────── */
-nav {
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-  height: 64px;
-  padding: 0 20px;
-  display: flex;
+/* Custom Scrollbar for Desktop */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #F9F8F6; }
+::-webkit-scrollbar-thumb { background: #D6D3D1; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #A8A29E; }
+
+/* ════════════════════════════════════════════════════════
+   2. UTILITIES & RESPONSIVE DISPLAY
+════════════════════════════════════════════════════════ */
+.inline {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  justify-content: center;
 }
 
-.nav-logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 700;
-  font-size: 18px;
-  color: #2F5D50;
-}
+/* Mobile vs Desktop Toggles */
+.mobile-only { display: none !important; }
+.desktop-only { display: flex !important; }
 
-.nav-cta {
-  background: #2F5D50;
-  color: #fff;
-  padding: 10px 18px;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: transform 0.2s active;
-}
-
-.nav-cta:active {
-  transform: scale(0.96);
-}
-
-/* ───────── HERO ───────── */
-.hero-section {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  padding: 100px 40px;
-  gap: 60px;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.hero-title { font-size: 56px; }
-.hero-sub { font-size: 18px; margin-top: 20px; max-width: 500px; }
-
-/* ───────── CARDS ───────── */
-.kh-card {
-  border-radius: 20px; /* Softer corners for modern UI */
-  background: #ffffff;
-  padding: 24px;
-  border: 1px solid rgba(0,0,0,0.03);
-  box-shadow: 0 10px 30px -10px rgba(0,0,0,0.08);
-  transition: all 0.3s ease;
-}
-
-/* ═════════════════════════════════
-   MOBILE OPTIMIZATION (≤ 768px)
-   Think: Thumb-friendly & Scannable
-═════════════════════════════════ */
 @media (max-width: 768px) {
-
-  /* 1. Better Spacing for Mobile */
-  .section-pad {
-    padding: 60px 20px; /* Balanced horizontal breathing room */
-  }
-
-  /* 2. Hero Refinement */
-  .hero-section {
-    display: flex;
-    flex-direction: column;
-    padding: 40px 20px 60px 20px;
-    text-align: center; /* Center alignment is often cleaner on mobile */
-    gap: 32px;
-  }
-
-  .hero-title {
-    font-size: 34px; /* Large but not overwhelming */
-    font-weight: 700;
-  }
-
-  .hero-sub {
-    font-size: 16px;
-    margin-top: 16px;
-    padding: 0 10px;
-  }
-
-  /* 3. Stacked Mobile Buttons */
-  .hero-btns {
-    flex-direction: column;
-    gap: 12px;
-    margin-top: 32px;
-    width: 100%;
-  }
-
-  .hero-btns button, .hero-btns a {
-    width: 100%;
-    height: 52px; /* Ergonomic touch target */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    border-radius: 14px;
-  }
-
-  /* 4. Content Grids */
-  .features-grid,
-  .reviews-grid,
-  .pricing-grid {
-    grid-template-columns: 1fr !important;
-    gap: 16px; /* Tighter gap for visual grouping */
-  }
-
-  /* 5. Section Typography */
-  .section-title {
-    font-size: 28px;
-    margin-bottom: 8px;
-    text-align: center;
-  }
-
-  .section-sub {
-    font-size: 15px;
-    text-align: center;
-    margin-bottom: 32px;
-  }
-
-  /* 6. Card Enhancements */
-  .kh-card {
-    padding: 20px;
-    border-radius: 18px;
-    /* Subtle border instead of heavy shadow on mobile to keep it "flat" and clean */
-    box-shadow: 0 4px 12px rgba(0,0,0,0.04); 
-  }
-
-  /* 7. Navbar Mobile Adjustments */
-  nav {
-    height: 60px;
-    padding: 0 20px;
-  }
-  
-  .nav-links {
-    display: none; /* Keep hidden or use a hamburger menu */
-  }
+  .mobile-only { display: flex !important; }
+  .desktop-only { display: none !important; }
 }
 
-/* ═════════════════════════════════
-   SMALL DEVICES (≤ 380px)
-═════════════════════════════════ */
-@media (max-width: 380px) {
-  .hero-title {
-    font-size: 28px;
-  }
-  
-  .section-pad {
-    padding: 48px 16px;
-  }
-
-  .nav-logo {
-    font-size: 16px;
-  }
+/* ════════════════════════════════════════════════════════
+   3. ANIMATIONS (LIVING UI)
+════════════════════════════════════════════════════════ */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-/* ───────── UTILITIES ───────── */
-.hide-mobile {
-  @media (max-width: 768px) { display: none; }
-}
-/* ───────── 1. CORE ANIMATION KEYFRAMES ───────── */
-
-/* Soft reveal from bottom */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(24px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
 }
 
-/* Subtle pulse for CTAs to draw attention (Mental Cue: "Click Me") */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.5); opacity: 0; }
+  100% { transform: scale(1); opacity: 0; }
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 @keyframes softPulse {
   0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(47, 93, 80, 0.4); }
   70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(47, 93, 80, 0); }
   100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(47, 93, 80, 0); }
 }
 
-/* ───────── 2. IMPROVED MOBILE UI & UX ───────── */
+/* ════════════════════════════════════════════════════════
+   4. CORE COMPONENTS
+════════════════════════════════════════════════════════ */
 
+/* Buttons */
+.kh-btn, .kh-out {
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.kh-btn:active, .kh-out:active {
+  transform: scale(0.97) !important;
+  transition: transform 0.1s ease !important;
+}
+
+/* Make primary buttons pulse softly to draw attention */
+.hero-btns .kh-btn:first-child {
+  animation: softPulse 3s infinite;
+}
+
+/* Cards */
+.kh-card {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+}
+
+@media (min-width: 769px) {
+  .kh-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.08) !important;
+  }
+}
+
+.kh-card:active {
+  transform: scale(0.98);
+  background: #FAFAFA !important;
+}
+
+/* Input Grids */
+.input-grid {
+  display: grid;
+  gap: 16px;
+}
+
+/* ════════════════════════════════════════════════════════
+   5. MOBILE OPTIMIZATION (≤ 768px)
+════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
   
-  /* Smooth Page Entry */
-  body {
-    animation: fadeIn 0.8s ease-out;
+  /* Layout Adjustments */
+  .section-pad {
+    padding: 60px 20px !important;
   }
 
-  /* Hero Section: Cognitive Ease */
   .hero-section {
-    padding-top: 60px;
-    padding-bottom: 60px;
+    grid-template-columns: 1fr !important;
     text-align: center;
+    padding-top: 40px !important;
+    gap: 40px !important;
   }
 
+  /* Typography Scaling */
   .hero-title {
-    animation: fadeInUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-    /* Gradient text for a modern, high-end feel */
+    font-size: 34px !important;
     background: linear-gradient(135deg, #1C1917 0%, #44403C 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }
 
   .hero-sub {
-    opacity: 0;
-    animation: fadeInUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s forwards;
+    font-size: 16px !important;
+    margin: 16px auto !important;
+    padding: 0 10px;
   }
 
-  /* CTA Psychology: The "Primary Action" should breathe */
+  .section-title {
+    font-size: 28px !important;
+  }
+
+  /* Buttons & Touch Targets */
   .hero-btns {
-    margin-top: 40px;
-    gap: 16px;
+    justify-content: center;
+    flex-direction: column;
+    width: 100%;
   }
 
-  .hero-btns .primary-btn {
-    animation: softPulse 3s infinite; /* Attracts eye without being annoying */
-    background: #2F5D50;
-    color: white;
-    font-weight: 600;
-    border: none;
-    box-shadow: 0 10px 20px -5px rgba(47, 93, 80, 0.3);
+  .hero-btns button {
+    width: 100%;
+    height: 52px !important; /* Ergonomic touch target */
   }
 
-  /* 3. CARD UX: Interactivity */
-  .kh-card {
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
-    border: 1px solid rgba(0,0,0,0.05);
-    position: relative;
-    overflow: hidden;
+  /* Grid Flattening */
+  .features-grid,
+  .pricing-grid,
+  .how-grid,
+  .reviews-grid,
+  .input-grid,
+  .contact-grid {
+    grid-template-columns: 1fr !important;
   }
 
-  /* Feedback when the user touches a card */
-  .kh-card:active {
-    transform: scale(0.97);
-    background: #FAFAFA;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+  /* Specific Component Fixes for Mobile */
+  .how-grid > div {
+    border-right: none !important;
+    border-bottom: 1px solid #E7E5E4;
+  }
+  .how-grid > div:last-child {
+    border-bottom: none !important;
   }
 
-  /* Skeleton Loading / Staggered Effect for Lists 
-     Apply this class to your feature items or reviews */
-  .reveal-item {
-    opacity: 0;
-    animation: fadeInUp 0.6s ease-out forwards;
+  .pricing-card {
+    padding: 32px 20px !important;
   }
 
-  /* 4. NAV: Minimalist & Non-Intrusive */
-  nav {
-    border-bottom: 1px solid rgba(0,0,0,0.04);
-    background: rgba(249, 248, 246, 0.8);
-    backdrop-filter: blur(15px); /* Premium Glassmorphism */
+  /* Horizontal Scroll Rows (Mobile swipeable areas) */
+  .tabs-bar,
+  .progress-steps {
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Hide in Firefox */
+  }
+  
+  .tabs-bar::-webkit-scrollbar,
+  .progress-steps::-webkit-scrollbar {
+    display: none; /* Hide in Chrome/Safari */
   }
 
-  /* 5. SMOOTH SCROLLING ENHANCEMENT */
-  section {
-    scroll-margin-top: 80px;
+  /* Fix Chat UI on mobile */
+  .chat-input-row {
+    flex-direction: column;
+  }
+  .chat-input-row button {
+    width: 100%;
+    height: 48px;
   }
 }
 
-/* ───────── 3. PSYCHOLOGICAL TOUCHES ───────── */
-
-/* Horizontal Scroll for Mobile (Reviews/Logo Bars)
-   Instead of stacking long lists vertically, let users swipe. 
-   This reduces "Scroll Fatigue". */
-.mobile-scroll-row {
-  display: flex;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  gap: 16px;
-  padding: 10px 20px 30px;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none; /* Hide scrollbar Firefox */
-}
-
-.mobile-scroll-row::-webkit-scrollbar {
-  display: none; /* Hide scrollbar Chrome/Safari */
-}
-
-.mobile-scroll-row > * {
-  min-width: 85%; /* Shows a peek of the next card */
-  scroll-snap-align: center;
-}
-
-/* Focus State for accessibility */
-button:focus-visible {
-  outline: 3px solid #2F5D50;
-  outline-offset: 2px;
+/* ════════════════════════════════════════════════════════
+   6. SMALL MOBILE DEVICES (≤ 380px)
+════════════════════════════════════════════════════════ */
+@media (max-width: 380px) {
+  .hero-title {
+    font-size: 28px !important;
+  }
+  .section-pad {
+    padding: 48px 16px !important;
+  }
+  .score-card-inner > div:first-child {
+    justify-content: center;
+    width: 100%;
+  }
 }
