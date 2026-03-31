@@ -1,35 +1,15 @@
 // src/lib/supabase-context.jsx
-// Single Supabase client instance shared across all components
-// Eliminates memory waste from duplicate clients and auth listeners
+// Supabase context — wraps the shared singleton client so any component
+// can call useSupabase() without prop-drilling.
 
-import { createClient } from "@supabase/supabase-js";
-import { createContext, useContext, useMemo } from "react";
+import { createContext, useContext } from "react";
+import supabase from "./supabase.js";
 
-const SupabaseContext = createContext(null);
+const SupabaseContext = createContext(supabase);
 
 export function SupabaseProvider({ children }) {
-  // Create single Supabase client instance (memoized)
-  const sb = useMemo(() => {
-    const url = import.meta.env.VITE_SUPABASE_URL;
-    const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    
-    if (!url || !key) {
-      console.warn("[Supabase Context] Missing env vars - client not initialized");
-      return null;
-    }
-    
-    return createClient(url, key, {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true,
-        storageKey: "kh-auth-token", // Custom storage key for security
-      },
-    });
-  }, []);
-
   return (
-    <SupabaseContext.Provider value={sb}>
+    <SupabaseContext.Provider value={supabase}>
       {children}
     </SupabaseContext.Provider>
   );
@@ -45,3 +25,4 @@ export function useSupabase() {
 }
 
 export default SupabaseContext;
+
