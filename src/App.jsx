@@ -1,4 +1,3 @@
-import { createClient } from "@supabase/supabase-js";
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HelmetProvider } from 'react-helmet-async';
 import AuthModal from './components/AuthModal.jsx';
@@ -9,26 +8,21 @@ import { HomePageSEO } from './components/SEO';
 import { ProductSchema } from './components/StructuredData';
 import UserDashboard from './components/UserDashboard.jsx';
 import { C } from './lib/design.js';
+import { sb } from './lib/supabase.js';
 
 /* ─── SUPABASE ───────────────────────────────────────────── */
-const SUPA_URL  = import.meta.env.VITE_SUPABASE_URL  || "";
-const SUPA_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 const SITE_URL = import.meta.env.VITE_SITE_URL || "https://www.krackhire.in";
 
 // CRITICAL: Validate environment configuration on startup
 const ENV_ERRORS = [];
-if (!SUPA_URL) ENV_ERRORS.push("VITE_SUPABASE_URL not configured");
-if (!SUPA_ANON) ENV_ERRORS.push("VITE_SUPABASE_ANON_KEY not configured");
+if (!import.meta.env.VITE_SUPABASE_URL) ENV_ERRORS.push("VITE_SUPABASE_URL not configured");
+if (!import.meta.env.VITE_SUPABASE_ANON_KEY) ENV_ERRORS.push("VITE_SUPABASE_ANON_KEY not configured");
 if (ENV_ERRORS.length > 0) {
   console.error("[KH] Configuration errors:", ENV_ERRORS);
 }
 
 // Track sent emails per session — prevents duplicate triggers
 const _emailSent = new Set();
-
-const sb = SUPA_URL && SUPA_ANON
-  ? createClient(SUPA_URL, SUPA_ANON, { auth:{ autoRefreshToken:true, persistSession:true, detectSessionInUrl:true }})
-  : null;
 
 /* ─── SUPABASE HELPERS ───────────────────────────────────── */
 async function signInGoogle() {

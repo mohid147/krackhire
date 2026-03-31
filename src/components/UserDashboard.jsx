@@ -2,13 +2,9 @@
 // Dedicated user dashboard — replaces modal-based History + Tracker
 // Integrated via setView('dashboard') in App.jsx
 
-import { createClient } from "@supabase/supabase-js";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { C } from "../lib/design.js";
-
-const SUPA_URL  = import.meta.env.VITE_SUPABASE_URL  || "";
-const SUPA_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
-const sb = SUPA_URL && SUPA_ANON ? createClient(SUPA_URL, SUPA_ANON) : null;
+import { sb } from "../lib/supabase.js";
 
 if (!sb) {
   console.warn('[Dashboard] Supabase client not initialized - missing env vars:', {

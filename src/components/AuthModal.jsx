@@ -2,14 +2,11 @@
 // Unified Auth: Google OAuth + Email/Password (sign up, sign in, forgot password)
 // Drop-in replacement for the inline AuthModal in App.jsx
 
-import { createClient } from "@supabase/supabase-js";
 import { useState } from "react";
 import { C } from "../lib/design.js";
+import { sb } from "../lib/supabase.js";
 
-/* ── Supabase client (re-uses env vars already in your app) ── */
-const SUPA_URL  = import.meta.env.VITE_SUPABASE_URL  || "";
-const SUPA_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
-const sb = SUPA_URL && SUPA_ANON ? createClient(SUPA_URL, SUPA_ANON) : null;
+/* ── Supabase client (shared singleton from lib/supabase.js) ── */
 
 /* ── Tiny primitives (self-contained so this file is portable) ── */
 const Spin = ({ s = 16, c = C.sage }) => (
