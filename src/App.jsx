@@ -80,8 +80,8 @@ async function callAPI(type, payload) {
   try {
     const res  = await fetch("/api/analyse", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({type,...payload}), signal:ctrl.signal });
     clearTimeout(tid);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error||"Request failed");
+    const data = await parseApiResponse(res, "Analysis service error");
+    if (!res.ok) throw new Error(data?.error || data?.message || "Request failed");
     return data.result;
   } catch(e) { clearTimeout(tid); if(e.name==="AbortError") throw new Error("Timed out. Please try again."); throw e; }
 }
@@ -93,7 +93,7 @@ async function callEmail(type, userId, data) {
       headers: {"Content-Type":"application/json"},
       body: JSON.stringify({type, userId, data}),
     });
-    const d = await res.json();
+    const d = await parseApiResponse(res, "Email service error");
     return d;
   } catch(e) {
     console.warn("callEmail error:", e.message);
@@ -104,12 +104,23 @@ async function callEmail(type, userId, data) {
 async function callPayU(action, body) {
   try {
     const res  = await fetch("/api/payment", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({action,...body}) });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message||data.error||"Payment error");
+    const data = await parseApiResponse(res, "Payment service error");
+    if (!res.ok) throw new Error(data?.message || data?.error || "Payment error");
     return data;
   } catch(e) {
     console.error("callPayU error:", e.message);
     throw e;
+  }
+}
+
+async function parseApiResponse(res, fallbackMessage) {
+  const raw = await res.text();
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw);
+  } catch {
+    const msg = raw.slice(0, 180).trim() || fallbackMessage;
+    throw new Error(msg);
   }
 }
 
