@@ -763,7 +763,7 @@ function UserMenu({ user, profile, onSignOut, onUpgrade, onInvite, onAdmin, onDa
             {!isPro&&lifetimeLeft>0&&!["admin","founder"].includes(profile?.role)&&<div style={{ marginTop:6, fontSize:12, color:C.purple, fontWeight:600 }}>⚡ {lifetimeLeft} lifetime {lifetimeLeft===1?"access":"accesses"} remaining</div>}
             {isPro&&profile?.plan_expires_at&&profile?.plan!=="founding_user"&&<div style={{ marginTop:5, fontSize:11.5, color:C.ink3 }}>Active until {new Date(profile.plan_expires_at).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}</div>}
           </div>
-          {!isPro&&<button onClick={onUpgrade} style={{ width:"100%", padding:"11px 14px", textAlign:"left", fontSize:13.5, fontWeight:600, color:C.amber, cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", borderBottom:`1px solid ${C.border}`, minHeight:44 }}>⚡ Upgrade to Pro</button>}
+          {!isPro&&<button onClick={()=>onUpgrade("pro_monthly")} style={{ width:"100%", padding:"11px 14px", textAlign:"left", fontSize:13.5, fontWeight:600, color:C.amber, cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", borderBottom:`1px solid ${C.border}`, minHeight:44 }}>⚡ Upgrade to Pro</button>}
           {!isPro&&<button onClick={onInvite} style={{ width:"100%", padding:"11px 14px", textAlign:"left", fontSize:13.5, fontWeight:600, color:C.blue, cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", borderBottom:`1px solid ${C.border}`, minHeight:44 }}>🎟️ Enter invite code</button>}
           {user&&<button onClick={()=>{ setOpen(false); onDashboard?.(); }} style={{ width:"100%", padding:"11px 14px", textAlign:"left", fontSize:13.5, fontWeight:600, color:C.sage, cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", borderBottom:`1px solid ${C.border}`, minHeight:44 }}>📊 My Dashboard</button>}
           {(["admin","founder"].includes(profile?.role) || user?.email==="mohidmd58@gmail.com")&&(
@@ -830,7 +830,7 @@ function ProfileOptimizer({ resume, jd, company, role, userId, isPro, onUpgrade 
       <div style={{ fontSize:44, marginBottom:14 }}>💼</div>
       <h3 style={{ fontFamily:"'Lora',Georgia,serif", fontSize:20, color:C.ink, marginBottom:8, fontWeight:700 }}>LinkedIn & Naukri Optimiser</h3>
       <p style={{ fontSize:14, color:C.ink2, lineHeight:1.7, marginBottom:22, maxWidth:380, margin:"0 auto 22px" }}>Get AI-written headlines, about sections, and keyword recommendations for the Indian job market. Available on Pro plan.</p>
-      <Btn onClick={onUpgrade} bg={C.sage} size="lg">Upgrade to Pro →</Btn>
+      <Btn onClick={()=>onUpgrade("pro_monthly")} bg={C.sage} size="lg">Upgrade to Pro →</Btn>
     </div>
   );
 
@@ -1386,8 +1386,9 @@ function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onP
     <div style={{ minHeight:"100vh", background:C.bg }}>
       {showInvite&&user&&<InviteCodeModal user={user} onClose={()=>setShowInvite(false)} onSuccess={onProfileRefresh} toast={toast}/>}
       <div className="ann-bar" style={{ background:C.sage, color:"#fff", textAlign:"center", padding:"9px 16px", fontSize:13.5, fontWeight:500, lineHeight:1.5 }}>
-        KrackHire is in early beta — free to use, no account needed.{" "}
-        <button onClick={onEnter} className="inline" style={{ color:"#D4E6DA", fontWeight:700, textDecoration:"underline", cursor:"pointer", background:"none", border:"none", fontSize:13.5, fontFamily:"inherit", minHeight:"unset", minWidth:"unset" }}>Try it →</button>
+        {user
+          ?<>Welcome back! KrackHire is in early beta — your results are saved.{" "}<button onClick={onEnter} className="inline" style={{ color:"#D4E6DA", fontWeight:700, textDecoration:"underline", cursor:"pointer", background:"none", border:"none", fontSize:13.5, fontFamily:"inherit", minHeight:"unset", minWidth:"unset" }}>Open the tool →</button></>
+          :<>KrackHire is in early beta — free to use, no account needed.{" "}<button onClick={onEnter} className="inline" style={{ color:"#D4E6DA", fontWeight:700, textDecoration:"underline", cursor:"pointer", background:"none", border:"none", fontSize:13.5, fontFamily:"inherit", minHeight:"unset", minWidth:"unset" }}>Try it →</button></>}
       </div>
 
       <nav style={{ position:"sticky", top:0, zIndex:200, height:56, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 clamp(14px,5vw,52px)", background:scrolled?"rgba(249,248,246,.96)":"transparent", backdropFilter:"blur(14px)", borderBottom:`1px solid ${scrolled?C.border:"transparent"}`, transition:"all .3s" }}>
@@ -1398,7 +1399,7 @@ function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onP
           ))}
         </div>
         <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-          {user?<UserMenu user={user} profile={profile} onSignOut={onSignOut} onUpgrade={onUpgrade} onInvite={()=>setShowInvite(true)} onAdmin={onAdmin} onDashboard={onDashboard}/>
+          {user?<><Btn onClick={onEnter} size="sm" bg={C.sage} className="desktop-only">Open tool</Btn><UserMenu user={user} profile={profile} onSignOut={onSignOut} onUpgrade={onUpgrade} onInvite={()=>setShowInvite(true)} onAdmin={onAdmin} onDashboard={onDashboard}/></>
                :<><OutBtn onClick={onShowAuth} size="sm" className="desktop-only">Sign in</OutBtn><Btn onClick={onEnter} size="sm" bg={C.sage}>Try free</Btn></>}
           <button className="mobile-only" onClick={()=>setMenuOpen(!menuOpen)} style={{ padding:"8px 10px", borderRadius:7, color:C.ink2, fontSize:20, lineHeight:1, minHeight:44, minWidth:44 }}>{menuOpen?"✕":"☰"}</button>
         </div>
@@ -1430,7 +1431,7 @@ function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onP
             {!user&&<OutBtn onClick={onShowAuth} size="lg">Sign in to save</OutBtn>}
           </div>
           <div className="hero-trust" style={{ display:"flex", flexWrap:"wrap", gap:16 }}>
-            {["No account needed","No credit card","Data not stored","Built for India"].map(t=>(
+            {(user?["Results saved","No credit card","Data not stored","Built for India"]:["No account needed","No credit card","Data not stored","Built for India"]).map(t=>(
               <span key={t} className="inline" style={{ fontSize:13, color:C.ink3, gap:5, minHeight:"unset", minWidth:"unset" }}>
                 <span style={{ color:C.sage }}>✓</span>{t}
               </span>
@@ -1525,7 +1526,7 @@ function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onP
                 <div style={{ fontSize:11, fontWeight:700, color:C.ink3, textTransform:"uppercase", letterSpacing:.8, marginBottom:14 }}>Free</div>
                 <div className="pricing-price" style={{ fontFamily:"'Lora',Georgia,serif", fontSize:40, lineHeight:1, color:C.ink, marginBottom:3 }}>₹0</div>
                 <div style={{ fontSize:13, color:C.ink3, marginBottom:20 }}>forever</div>
-                <Btn onClick={onEnter} full bg={C.ink} style={{ marginBottom:20, fontSize:14 }}>Start free →</Btn>
+                <Btn onClick={onEnter} full bg={C.ink} style={{ marginBottom:20, fontSize:14 }}>{user?"Open the tool →":"Start free →"}</Btn>
                 <div style={{ height:1, background:C.border, marginBottom:16 }}/>
                 {["3 analyses / month","Resume score","Gap analysis",{dim:"Cover letter"},{dim:"PDF report"},{dim:"Job tracker"}].map((f,i)=>{ const d=typeof f==="object"; return <div key={i} style={{ display:"flex", alignItems:"center", gap:9, fontSize:13.5, color:d?C.ink4:C.ink2, marginBottom:8 }}><span className="inline" style={{ color:d?C.ink4:C.sage, fontWeight:700, minHeight:"unset", minWidth:"unset" }}>{d?"—":"✓"}</span>{d?f.dim:f}</div>; })}
               </Card>
@@ -1639,10 +1640,10 @@ function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onP
       <section className="section-pad" style={{ background:C.sageBg, borderTop:`1px solid ${C.sage}25`, padding:"72px clamp(16px,5vw,52px)", textAlign:"center" }}>
         <Reveal>
           <h2 className="section-title" style={{ fontFamily:"'Lora',Georgia,serif", fontSize:"clamp(24px,4vw,40px)", lineHeight:1.15, color:C.ink, marginBottom:12 }}>Start improving your applications today.</h2>
-          <p style={{ fontSize:16, color:C.ink2, marginBottom:28, lineHeight:1.75, maxWidth:420, margin:"0 auto 28px" }}>No account. No credit card. Paste your resume and get honest feedback in seconds.</p>
+          <p style={{ fontSize:16, color:C.ink2, marginBottom:28, lineHeight:1.75, maxWidth:420, margin:"0 auto 28px" }}>{user?"Your results are saved. Paste your resume and get honest feedback in seconds.":"No account. No credit card. Paste your resume and get honest feedback in seconds."}</p>
           <Btn onClick={onEnter} size="lg" bg={C.sage}>Open KrackHire — free</Btn>
           <div style={{ marginTop:18, display:"flex", justifyContent:"center", gap:18, flexWrap:"wrap", fontSize:13, color:C.ink3 }}>
-            {["No account needed","No credit card","Data not stored","Made in Hyderabad 🇮🇳"].map(t=>(
+            {(user?["Results saved","No credit card","Data not stored","Made in Hyderabad 🇮🇳"]:["No account needed","No credit card","Data not stored","Made in Hyderabad 🇮🇳"]).map(t=>(
               <span key={t} className="inline" style={{ gap:4, minHeight:"unset", minWidth:"unset" }}><span style={{ color:C.sage }}>✓</span>{t}</span>
             ))}
           </div>
@@ -1717,7 +1718,7 @@ function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onP
 
       <div className="mobile-cta" style={{ display:"none", position:"fixed", bottom:0, left:0, right:0, zIndex:198, padding:"10px 16px", background:"rgba(249,248,246,.97)", backdropFilter:"blur(12px)", borderTop:`1px solid ${C.border}`, alignItems:"center", justifyContent:"space-between", gap:12 }}>
         <div><div style={{ fontSize:13, fontWeight:700, color:C.ink }}>KrackHire</div><div style={{ fontSize:11.5, color:C.ink3 }}>Free resume analysis tool</div></div>
-        <Btn onClick={onEnter} size="sm" bg={C.sage}>Try free</Btn>
+        <Btn onClick={onEnter} size="sm" bg={C.sage}>{user?"Open tool":"Try free"}</Btn>
       </div>
     </div>
   );
@@ -1851,7 +1852,7 @@ function Tool({ onBack, onDashboard, user, profile, onShowAuth, onUpgrade, onPro
       })
         .catch(e=>{ setE("gap",e.message); if(e.message.includes("LIMIT_REACHED")){
             toast("Monthly limit reached. Upgrade to Pro.","warn");
-            setTimeout(()=>onUpgrade(),1600);
+            setTimeout(()=>onUpgrade("pro_monthly"),1600);
           } })
         .finally(()=>{ setL("gap",false); setShowFeedback(true); }),
       callAPI("resume",payload).then(r=>setR("resume",r)).catch(e=>setE("resume",e.message)).finally(()=>setL("resume",false)),
@@ -1945,7 +1946,7 @@ Type "start" to begin, or ask me anything about the role first.`}]);
                   {(!profile?.plan||profile?.plan==="free")&&(
                     <div style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"7px 14px", borderRadius:99, background:C.amberBg, border:`1px solid ${C.amber}25` }}>
                       <span className="inline" style={{ fontSize:13, color:C.amber, fontWeight:600, minHeight:"unset", minWidth:"unset" }}>{profile?.analyses_this_month||0}/3 free analyses used this month</span>
-                      <button onClick={()=>onUpgrade()} style={{ fontSize:12, color:C.amber, fontWeight:700, textDecoration:"underline", cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", minHeight:"unset" }}>Upgrade →</button>
+                      <button onClick={()=>onUpgrade("pro_monthly")} style={{ fontSize:12, color:C.amber, fontWeight:700, textDecoration:"underline", cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", minHeight:"unset" }}>Upgrade →</button>
                     </div>
                   )}
                   {lifetimeLeft>0&&!["admin","founder"].includes(profile?.role)&&<div style={{ display:"inline-flex", alignItems:"center", gap:6, padding:"7px 14px", borderRadius:99, background:C.purpleBg, border:`1px solid ${C.purple}25` }}><span className="inline" style={{ fontSize:13, color:C.purple, fontWeight:600, minHeight:"unset", minWidth:"unset" }}>⚡ {lifetimeLeft} lifetime {lifetimeLeft===1?"access":"accesses"} remaining</span></div>}
@@ -2029,7 +2030,7 @@ Type "start" to begin, or ask me anything about the role first.`}]);
             {!isPro&&ran&&!anyLoad&&(
               <div style={{ marginBottom:14, padding:"12px 16px", background:C.amberBg, borderRadius:10, border:`1px solid ${C.amber}25`, display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:10 }}>
                 <div style={{ fontSize:13.5, color:C.amber, fontWeight:600 }}>⚡ Pro: PDF report, unlimited analyses, job tracker — ₹49/month</div>
-                <Btn onClick={onUpgrade} bg={C.amber} size="sm">Upgrade now</Btn>
+                <Btn onClick={()=>onUpgrade("pro_monthly")} bg={C.amber} size="sm">Upgrade now</Btn>
               </div>
             )}
 
