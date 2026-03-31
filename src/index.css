@@ -1,101 +1,58 @@
 /* ═══════════════════════════════════════════════════════════════
-   KRACKHIRE — MOBILE RESPONSIVENESS ADDITIONS
-   Append these rules to the END of src/index.css
-   ⚠️ These are ADDITIONS only — zero desktop styles touched.
+   KRACKHIRE — PREMIUM MOBILE EXPERIENCE
+   Global reset, responsive layout, and mobile polish.
 ═══════════════════════════════════════════════════════════════ */
 
 /* ─────────────────────────────────────────────────────────────
-   1. PREVENT HORIZONTAL OVERFLOW GLOBALLY
+   GLOBAL RESET
    ───────────────────────────────────────────────────────────── */
-html, body {
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* ─────────────────────────────────────────────────────────────
-   2. TABLET (481px – 900px) — fills the gap your CSS misses
-   ───────────────────────────────────────────────────────────── */
-@media (max-width: 900px) and (min-width: 481px) {
-
-  /* Hero: 2-col → 1-col on tablet */
-  .hero-section {
-    grid-template-columns: 1fr !important;
-    padding: 48px 24px 56px !important;
-    gap: 32px !important;
-  }
-
-  /* Show hero visual on tablet (hide only on mobile) */
-  .hero-visual { display: block !important; }
-
-  /* How-it-works: 4-col → 2-col */
-  .how-grid {
-    grid-template-columns: 1fr 1fr !important;
-  }
-  .how-grid > div:nth-child(odd)  { border-right: 1px solid #E7E5E4 !important; }
-  .how-grid > div:nth-child(even) { border-right: none !important; }
-  .how-grid > div:nth-child(3),
-  .how-grid > div:nth-child(4)    { border-bottom: none !important; }
-
-  /* Reviews: 3-col → 2-col */
-  .reviews-grid { grid-template-columns: 1fr 1fr !important; }
-
-  /* FAQ: side-by-side → stacked */
-  .faq-grid { grid-template-columns: 1fr !important; gap: 28px !important; }
-
-  /* Tool input grid */
-  .input-grid { grid-template-columns: 1fr !important; }
-}
-
-/* =========================================================
-   GLOBAL RESET + FIXES
-========================================================= */
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
 }
 
 html, body {
   overflow-x: hidden;
   margin: 0;
   padding: 0;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Prevent media breaking layout */
-img, video {
+img, video, svg {
   max-width: 100%;
   height: auto;
   display: block;
 }
 
-/* =========================================================
-   PREMIUM TYPOGRAPHY
-========================================================= */
-
-/* Headings → premium serif */
+/* ─────────────────────────────────────────────────────────────
+   TYPOGRAPHY — Premium serif headings, clean body
+   ───────────────────────────────────────────────────────────── */
 .hero-title,
 .section-title {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Lora', Georgia, serif;
   font-weight: 600;
-  letter-spacing: -0.5px;
-  line-height: 1.1;
-}
-
-/* Sub text */
-.hero-sub {
-  line-height: 1.6;
-  max-width: 100%;
-}
-
-/* Prevent text overflow */
-.hero-title,
-.hero-sub {
+  letter-spacing: -0.3px;
+  line-height: 1.12;
   overflow-wrap: break-word;
 }
 
-/* =========================================================
-   LAYOUT FIX (CRITICAL)
-========================================================= */
+.hero-sub {
+  line-height: 1.75;
+  max-width: 100%;
+  overflow-wrap: break-word;
+}
 
+/* ─────────────────────────────────────────────────────────────
+   LAYOUT — Prevent sections from overflowing
+   ───────────────────────────────────────────────────────────── */
 section,
 .hero-section {
   width: 100%;
@@ -103,22 +60,9 @@ section,
   overflow: hidden;
 }
 
-/* =========================================================
-   HERO SECTION (CLEAN + STABLE)
-========================================================= */
-
-.hero-section {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  align-items: center;
-  gap: 40px;
-  padding: 80px 40px;
-}
-
-/* =========================================================
-   GENERIC GRID FIX (REPLACES BAD STYLE SELECTORS)
-========================================================= */
-
+/* ─────────────────────────────────────────────────────────────
+   GENERIC UTILITY GRIDS
+   ───────────────────────────────────────────────────────────── */
 .two-col-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -131,163 +75,258 @@ section,
   gap: 20px;
 }
 
-/* =========================================================
-   BUTTON POLISH (PREMIUM FEEL)
-========================================================= */
-
+/* ─────────────────────────────────────────────────────────────
+   BUTTON BASE — Smooth, premium feel
+   ───────────────────────────────────────────────────────────── */
 button {
   border-radius: 10px;
-  transition: all 0.2s ease;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 button:hover {
   transform: translateY(-1px);
 }
 
-/* =========================================================
-   TABLET RESPONSIVENESS (≤ 900px)
-========================================================= */
+button:active {
+  transform: translateY(0);
+}
 
+/* ─────────────────────────────────────────────────────────────
+   TABLET (481px – 900px)
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 900px) and (min-width: 481px) {
+
+  .hero-section {
+    grid-template-columns: 1fr !important;
+    padding: 56px 28px 64px !important;
+    gap: 36px !important;
+  }
+
+  .hero-visual { display: block !important; }
+
+  .how-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .how-grid > div:nth-child(odd)  { border-right: 1px solid #E7E5E4 !important; }
+  .how-grid > div:nth-child(even) { border-right: none !important; }
+  .how-grid > div:nth-child(3),
+  .how-grid > div:nth-child(4)    { border-bottom: none !important; }
+
+  .reviews-grid { grid-template-columns: 1fr 1fr !important; }
+
+  .faq-grid { grid-template-columns: 1fr !important; gap: 28px !important; }
+
+  .input-grid { grid-template-columns: 1fr !important; }
+
+  .two-col-grid { grid-template-columns: 1fr; }
+
+  .three-col-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   TABLET FALLBACK (≤ 900px, covers tablet + mobile)
+   ───────────────────────────────────────────────────────────── */
 @media (max-width: 900px) {
 
   .hero-section {
     grid-template-columns: 1fr;
-    padding: 60px 30px;
-    gap: 30px;
+    padding: 56px 28px;
+    gap: 28px;
   }
 
-  .two-col-grid {
-    grid-template-columns: 1fr;
-  }
+  .two-col-grid { grid-template-columns: 1fr; }
 
-  .three-col-grid {
-    grid-template-columns: 1fr 1fr;
-  }
+  .three-col-grid { grid-template-columns: 1fr 1fr; }
 }
 
-/* =========================================================
-   MOBILE RESPONSIVENESS (≤ 480px)
-========================================================= */
-
-/* =========================================
-   CLEAN MOBILE (≤ 480px)
-========================================= */
+/* ─────────────────────────────────────────────────────────────
+   MOBILE (≤ 480px) — Premium, minimalistic, spacious
+   ───────────────────────────────────────────────────────────── */
 @media (max-width: 480px) {
 
-  /* Page spacing */
-  body {
-    padding: 0;
-  }
+  /* Base spacing */
+  body { padding: 0; }
 
-  section {
-    padding: 32px 16px;
-  }
+  section { padding: 40px 20px; }
 
-  /* NAVBAR */
+  /* NAV — frosted, compact */
   nav {
     height: 56px;
-    padding: 0 16px;
+    padding: 0 20px;
   }
 
-  /* HERO */
+  /* HERO — centred, generous padding */
   .hero-section {
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
     gap: 20px;
-    padding: 32px 16px 40px;
+    padding: 40px 20px 48px;
   }
 
   .hero-title {
-    font-size: 26px;
-    line-height: 1.2;
+    font-size: 28px;
+    line-height: 1.18;
+    letter-spacing: -0.4px;
   }
 
   .hero-sub {
-    font-size: 14px;
-    line-height: 1.6;
+    font-size: 15px;
+    line-height: 1.75;
+    color: #57534E;
   }
 
-  /* BUTTONS */
+  /* Hide hero illustration on mobile to keep it clean */
+  .hero-visual { display: none !important; }
+
+  /* HERO BUTTONS — full-width stack */
   .hero-btns {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    width: 100%;
   }
 
   .hero-btns button {
     width: 100%;
-    height: 44px;
-    font-size: 14px;
-  }
-
-  /* TRUST BADGES */
-  .hero-trust {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    font-size: 12px;
-  }
-
-  /* GRID FIX */
-  .two-col-grid,
-  .three-col-grid {
-    grid-template-columns: 1fr !important;
-  }
-
-  /* CARDS */
-  .pricing-card,
-  .feature-card,
-  .review-card {
-    padding: 16px;
+    height: 48px;
+    font-size: 15px;
+    font-weight: 600;
     border-radius: 12px;
   }
 
-  /* SECTION TITLES */
+  /* TRUST BADGES — tight wrap */
+  .hero-trust {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 12.5px;
+  }
+
+  /* GRIDS — single column */
+  .two-col-grid,
+  .three-col-grid,
+  .input-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* HOW-IT-WORKS — 2 col on mobile */
+  .how-grid {
+    grid-template-columns: 1fr 1fr !important;
+    border-radius: 14px !important;
+  }
+
+  /* PRICING — horizontal scroll for 3 cards */
+  .pricing-grid {
+    display: flex !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    gap: 12px !important;
+    padding-bottom: 4px !important;
+    scroll-snap-type: x mandatory !important;
+    scrollbar-width: none !important;
+  }
+  .pricing-grid::-webkit-scrollbar { display: none; }
+  .pricing-card {
+    min-width: 280px !important;
+    flex-shrink: 0 !important;
+    scroll-snap-align: start !important;
+    padding: 20px 18px !important;
+    border-radius: 14px !important;
+  }
+
+  /* REVIEWS — horizontal scroll */
+  .reviews-grid {
+    display: flex !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    gap: 12px !important;
+    padding-bottom: 4px !important;
+    scroll-snap-type: x mandatory !important;
+    scrollbar-width: none !important;
+    grid-template-columns: unset !important;
+  }
+  .reviews-grid::-webkit-scrollbar { display: none; }
+  .review-card {
+    min-width: 280px !important;
+    flex-shrink: 0 !important;
+    scroll-snap-align: start !important;
+  }
+
+  /* FEATURES grid */
+  .features-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .feature-card {
+    padding: 18px !important;
+    border-radius: 14px !important;
+  }
+
+  /* FAQ */
+  .faq-grid {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+
+  /* CONTACT */
+  .contact-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* SECTION HEADERS */
   .section-title {
-    font-size: 22px;
-    line-height: 1.3;
+    font-size: 24px;
+    line-height: 1.22;
   }
 
   .section-sub {
-    font-size: 14px;
+    font-size: 14.5px;
+    line-height: 1.7;
   }
 
-  /* FOOTER */
+  /* FOOTER — stacked */
   .footer-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 28px !important;
+  }
+
+  /* ANNOUNCEMENT BAR */
+  .ann-bar {
+    font-size: 12.5px;
+    padding: 8px 16px;
   }
 }
-/* =========================================================
-   TOUCH OPTIMIZATION
-========================================================= */
 
+/* ─────────────────────────────────────────────────────────────
+   TOUCH TARGETS (≤ 480px) — 48px minimum for accessibility
+   ───────────────────────────────────────────────────────────── */
 @media (max-width: 480px) {
   button, a {
     min-height: 44px;
   }
 
-  input, textarea {
-    font-size: 16px;
+  input, textarea, select {
+    font-size: 16px; /* Minimum 16px font-size prevents iOS auto-zoom on focus */
+    border-radius: 10px;
   }
 }
+
 /* ─────────────────────────────────────────────────────────────
-   5. LANDING PAGE — MOBILE STICKY CTA
-   The .mobile-cta is display:none by default (your existing rule).
-   Your existing CSS already handles display:flex on mobile.
-   Just ensure bottom padding so content doesn't hide behind it.
+   MOBILE STICKY CTA — footer clearance
    ───────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
-  /* Add padding so last section content isn't hidden by sticky CTA */
   footer { padding-bottom: 80px !important; }
 }
 
 /* ─────────────────────────────────────────────────────────────
-   6. TOOL PAGE — ensure analyze button doesn't get clipped
+   TOOL PAGE — analyse button row
    ───────────────────────────────────────────────────────────── */
 @media (max-width: 480px) {
-  /* Analyse button row: stack vertically */
   .kh-analyse-row {
     flex-direction: column !important;
     align-items: stretch !important;
@@ -296,7 +335,6 @@ button:hover {
   .kh-analyse-row > div { text-align: center !important; }
   .kh-analyse-row button { width: 100% !important; }
 
-  /* Ensure the "Analyse my resume →" button is always accessible */
   [style*="minWidth:200"] {
     min-width: unset !important;
     width: 100% !important;
@@ -304,85 +342,68 @@ button:hover {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   7. GAP ANALYSIS RESULTS — stack on mobile
+   GAP ANALYSIS — tabs and result grid
    ───────────────────────────────────────────────────────────── */
 @media (max-width: 480px) {
-  /* Interview round tabs: horizontal scroll */
-  [style*="display:\"flex\""][style*="gap:6"] {
+  .tabs-bar {
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch !important;
     flex-wrap: nowrap !important;
     scrollbar-width: none !important;
   }
+  .tabs-bar::-webkit-scrollbar { display: none; }
 
-  /* Round content grid: stack */
   [style*="gridTemplateColumns:\"1fr 1fr\""] {
     grid-template-columns: 1fr !important;
   }
 }
 
 /* ─────────────────────────────────────────────────────────────
-   8. WELCOME POPUP — keep inside viewport on mobile
+   WELCOME POPUP — constrained within viewport
    ───────────────────────────────────────────────────────────── */
 @media (max-width: 480px) {
-  /* WelcomePopup: full-width, anchored bottom */
   [style*="position:\"fixed\""][style*="bottom:24"][style*="right:24"] {
     right: 12px !important;
-    bottom: 72px !important; /* Above mobile sticky CTA */
+    bottom: 72px !important;
     left: 12px !important;
     max-width: calc(100vw - 24px) !important;
   }
 }
 
 /* ─────────────────────────────────────────────────────────────
-   9. SCORE SHARE CARD — full-width on mobile
+   SCORE SHARE CARD — full-width modal
    ───────────────────────────────────────────────────────────── */
 @media (max-width: 480px) {
-  /* ShareScoreCard modal inner */
   [style*="maxWidth:380"] {
     max-width: calc(100vw - 28px) !important;
   }
 }
 
 /* ─────────────────────────────────────────────────────────────
-   10. ANNOUNCEMENT BANNER (AnnouncementBanner component)
-   ───────────────────────────────────────────────────────────── */
-@media (max-width: 480px) {
-  /* Collapse CTA button to its own row */
-  [style*="background:bgClr"] {
-    flex-direction: column !important;
-    gap: 8px !important;
-  }
-}
-
-/* ─────────────────────────────────────────────────────────────
-   11. PDF REPORT MODAL — plan toggle full width
+   PDF REPORT MODAL — plan toggle
    ───────────────────────────────────────────────────────────── */
 @media (max-width: 480px) {
   .report-modal-inner [style*="display:\"flex\""][style*="gap:10"] {
-    flex-direction: row !important; /* Keep plan toggle side by side */
+    flex-direction: row !important;
   }
 }
 
 /* ─────────────────────────────────────────────────────────────
-   12. USER DASHBOARD — overview stat grid on very small screens
+   USER DASHBOARD — stat grid on very small screens
    ───────────────────────────────────────────────────────────── */
 @media (max-width: 360px) {
-  /* Stat cards: single column on tiny screens */
   [style*="minmax(140px,1fr)"] {
     grid-template-columns: 1fr 1fr !important;
   }
 }
 
 /* ─────────────────────────────────────────────────────────────
-   13. ADMIN DASHBOARD — user table on mobile
+   ADMIN DASHBOARD — user table on mobile
    ───────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
-  /* Admin user table header: hide on mobile */
   [style*="gridTemplateColumns:\"1fr 1fr 140px 120px 80px\""] {
     display: none !important;
   }
-  /* Admin user rows: stack */
   [style*="gridTemplateColumns:\"1fr 1fr 140px 120px 80px\""]:not(:first-child) {
     grid-template-columns: 1fr !important;
     gap: 10px !important;
@@ -390,10 +411,9 @@ button:hover {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   14. SMOOTH SCROLL RESTORATION on mobile
+   SMOOTH SCROLL — momentum scrolling on overflow containers
    ───────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
-  /* Better scroll inertia for modal inner content */
   .chat-messages,
   .dashboard-inner,
   [style*="overflowY:\"auto\""],
