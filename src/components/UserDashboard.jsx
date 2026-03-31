@@ -1,6 +1,6 @@
 // src/components/UserDashboard.jsx
-// Dedicated user dashboard — replaces modal-based History + Tracker
-// Integrated via setView('dashboard') in App.jsx
+// Fixed: now accepts supabaseClient as prop from App.jsx so session is preserved
+// This fixes the RLS issue where analyses weren't showing (unauthenticated client)
 
 import { createClient } from "@supabase/supabase-js";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -8,14 +8,6 @@ import { C } from "../lib/design.js";
 
 const SUPA_URL  = import.meta.env.VITE_SUPABASE_URL  || "";
 const SUPA_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
-const sb = SUPA_URL && SUPA_ANON ? createClient(SUPA_URL, SUPA_ANON) : null;
-
-if (!sb) {
-  console.warn('[Dashboard] Supabase client not initialized - missing env vars:', {
-    VITE_SUPABASE_URL: SUPA_URL ? "✓" : "✗",
-    VITE_SUPABASE_ANON_KEY: SUPA_ANON ? "✓" : "✗"
-  });
-}
 
 /* ── Helpers ── */
 const PREMIUM_PLANS = ["starter","early_adopter","pro","pro_monthly","pro_yearly",
@@ -84,86 +76,69 @@ const STATUS_COLORS = {
   Offer:C.sage, Rejected:C.red, "On Hold":C.stone
 };
 
-/* ── DB calls ── */
-async function fetchAnalyses(uid) {
-  if (!sb || !uid) {
-    console.warn('[Dashboard] Missing Supabase client or user ID for analyses fetch');
-    return [];
-  }
+/* ── DB calls — take sb as param so session is always present ── */
+async function fetchAnalyses(sb, uid) {
+  if (!sb || !uid) return [];
   try {
     const { data, error } = await sb.from("analyses")
       .select("id,company,role,gap_score,ats_score,skill_score,created_at")
-      .eq("user_id", uid).order("created_at", { ascending:false }).limit(50);
+      .eq("user_id", uid)
+      .order("created_at", { ascending:false })
+      .limit(50);
     if (error) {
-      console.error('[Dashboard] Error fetching analyses:', error);
+      console.error('[Dashboard] fetchAnalyses error:', error.message, error.code);
       return [];
     }
     console.log('[Dashboard] Loaded analyses:', data?.length);
     return data || [];
   } catch(e) {
-    console.error('[Dashboard] Exception fetching analyses:', e);
+    console.error('[Dashboard] fetchAnalyses exception:', e.message);
     return [];
   }
 }
 
-async function fetchJobs(uid) {
-  if (!sb || !uid) {
-    console.warn('[Dashboard] Missing Supabase client or user ID for jobs fetch');
-    return [];
-  }
+async function fetchJobs(sb, uid) {
+  if (!sb || !uid) return [];
   try {
     const { data, error } = await sb.from("job_tracker")
-      .select("*").eq("user_id", uid)
-      .order("applied_date", { ascending:false }).limit(100);
+      .select("*")
+      .eq("user_id", uid)
+      .order("applied_date", { ascending:false })
+      .limit(100);
     if (error) {
-      console.error('[Dashboard] Error fetching jobs:', error);
+      console.error('[Dashboard] fetchJobs error:', error.message, error.code);
       return [];
     }
-    console.log('[Dashboard] Loaded jobs:', data?.length);
     return data || [];
   } catch(e) {
-    console.error('[Dashboard] Exception fetching jobs:', e);
+    console.error('[Dashboard] fetchJobs exception:', e.message);
     return [];
   }
 }
 
-async function addJob(uid, job) {
-  if (!sb) {
-    console.error('[Dashboard] Supabase client not available for addJob');
-    return null;
-  }
+async function addJob(sb, uid, job) {
+  if (!sb) return null;
   try {
     const { data, error } = await sb.from("job_tracker")
       .insert({ ...job, user_id:uid }).select().single();
-    if (error) {
-      console.error('[Dashboard] Error adding job:', error);
-      return null;
-    }
+    if (error) { console.error('[Dashboard] addJob error:', error.message); return null; }
     return data;
   } catch(e) {
-    console.error('[Dashboard] Exception adding job:', e);
+    console.error('[Dashboard] addJob exception:', e.message);
     return null;
   }
 }
 
-async function updateJob(id, updates) {
+async function updateJob(sb, id, updates) {
   if (!sb) return;
-  try {
-    const { error } = await sb.from("job_tracker").update(updates).eq("id", id);
-    if (error) console.error('[Dashboard] Error updating job:', error);
-  } catch(e) {
-    console.error('[Dashboard] Exception updating job:', e);
-  }
+  await sb.from("job_tracker").update(updates).eq("id", id)
+    .catch(e => console.error('[Dashboard] updateJob error:', e.message));
 }
 
-async function deleteJob(id) {
+async function deleteJob(sb, id) {
   if (!sb) return;
-  try {
-    const { error } = await sb.from("job_tracker").delete().eq("id", id);
-    if (error) console.error('[Dashboard] Error deleting job:', error);
-  } catch(e) {
-    console.error('[Dashboard] Exception deleting job:', e);
-  }
+  await sb.from("job_tracker").delete().eq("id", id)
+    .catch(e => console.error('[Dashboard] deleteJob error:', e.message));
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -185,11 +160,6 @@ function OverviewTab({ user, profile, analyses, jobs, onNavigate, onUpgrade }) {
     JOB_STATUSES.forEach(st => s[st] = jobs.filter(j => j.status === st).length);
     return s;
   }, [jobs]);
-
-  const planColor = {
-    founding_user:C.purple, beta_friend:C.blue,
-    early_adopter:C.purple,
-  }[profile?.plan] || (isPro ? C.amber : C.stone);
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
@@ -362,7 +332,6 @@ function AnalysesTab({ analyses, loading, onRefresh }) {
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
-      {/* Controls */}
       <div style={{ display:"flex", gap:10, alignItems:"center" }}>
         <input value={search} onChange={e=>setSearch(e.target.value)}
           placeholder="Filter by role or company…"
@@ -378,7 +347,6 @@ function AnalysesTab({ analyses, loading, onRefresh }) {
         </div>
       </div>
 
-      {/* List */}
       {filtered.length === 0 ? (
         <div style={{ textAlign:"center", padding:"48px 20px", color:C.ink3 }}>
           <div style={{ fontSize:36, marginBottom:12 }}>📭</div>
@@ -434,7 +402,7 @@ function AnalysesTab({ analyses, loading, onRefresh }) {
 /* ═══════════════════════════════════════════════════════════
    TAB: JOB TRACKER
 ═══════════════════════════════════════════════════════════ */
-function TrackerTab({ jobs, setJobs, user, toast }) {
+function TrackerTab({ sb, jobs, setJobs, user, toast }) {
   const [showAdd,  setShowAdd]  = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const [form, setForm] = useState({
@@ -455,18 +423,18 @@ function TrackerTab({ jobs, setJobs, user, toast }) {
     if (!form.company.trim() || !form.role.trim()) {
       toast && toast("Company and role are required.", "error"); return;
     }
-    const saved = await addJob(user.id, form);
+    const saved = await addJob(sb, user.id, form);
     if (saved) { setJobs(p => [saved, ...p]); resetForm(); setShowAdd(false); }
   }
 
   async function handleStatusChange(id, status) {
-    await updateJob(id, { status });
+    await updateJob(sb, id, { status });
     setJobs(p => p.map(j => j.id===id ? {...j, status} : j));
   }
 
   async function handleDelete(id) {
     if (!confirm("Remove this job from tracker?")) return;
-    await deleteJob(id);
+    await deleteJob(sb, id);
     setJobs(p => p.filter(j => j.id !== id));
   }
 
@@ -483,8 +451,6 @@ function TrackerTab({ jobs, setJobs, user, toast }) {
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
-
-      {/* Status pills */}
       <div style={{ display:"flex", gap:8, overflowX:"auto", paddingBottom:4 }}>
         <button onClick={()=>setStatusFilter("all")}
           style={{ padding:"7px 16px", borderRadius:99, border:`1.5px solid ${statusFilter==="all"?C.sage:C.border}`,
@@ -513,7 +479,6 @@ function TrackerTab({ jobs, setJobs, user, toast }) {
         </button>
       </div>
 
-      {/* Add form */}
       {showAdd && (
         <div style={{ padding:"18px 18px", background:C.bg, borderRadius:12,
           border:`1px solid ${C.border}`, animation:"kh-slideUp .2s ease" }}>
@@ -533,8 +498,8 @@ function TrackerTab({ jobs, setJobs, user, toast }) {
                 {JOB_STATUSES.map(s => <option key={s}>{s}</option>)}
               </select>
             </div>
-            <SimpleField label="Round"           {...F("round")}          placeholder="e.g. Round 1"/>
-            <SimpleField label="Follow-up Date"  type="date" {...F("follow_up_date")}/>
+            <SimpleField label="Round"          {...F("round")}         placeholder="e.g. Round 1"/>
+            <SimpleField label="Follow-up Date" type="date" {...F("follow_up_date")}/>
           </div>
           <SimpleField label="Notes" {...F("notes")} placeholder="Any notes…" rows={2}/>
           <div style={{ display:"flex", gap:8, marginTop:14 }}>
@@ -553,7 +518,6 @@ function TrackerTab({ jobs, setJobs, user, toast }) {
         </div>
       )}
 
-      {/* Jobs list */}
       {visible.length === 0 ? (
         <div style={{ textAlign:"center", padding:"48px 20px", color:C.ink3 }}>
           <div style={{ fontSize:36, marginBottom:12 }}>📋</div>
@@ -606,7 +570,6 @@ function TrackerTab({ jobs, setJobs, user, toast }) {
   );
 }
 
-/* simple field used inside TrackerTab */
 function SimpleField({ label, value, onChange, placeholder, rows, type="text" }) {
   const [f, setF] = useState(false);
   const base = {
@@ -639,13 +602,9 @@ function SimpleField({ label, value, onChange, placeholder, rows, type="text" })
 ═══════════════════════════════════════════════════════════ */
 function AccountTab({ user, profile, onSignOut, onUpgrade, onInvite }) {
   const isPro = isPremiumPlan(profile?.plan, profile?.plan_expires_at);
-
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:16, maxWidth:520 }}>
-
-      {/* Profile card */}
-      <div style={{ background:C.surface, borderRadius:12, border:`1px solid ${C.border}`,
-        overflow:"hidden" }}>
+      <div style={{ background:C.surface, borderRadius:12, border:`1px solid ${C.border}`, overflow:"hidden" }}>
         <div style={{ padding:"20px 20px", background:C.bg,
           borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", gap:14 }}>
           {user?.user_metadata?.avatar_url ? (
@@ -666,9 +625,9 @@ function AccountTab({ user, profile, onSignOut, onUpgrade, onInvite }) {
           </div>
         </div>
         {[
-          ["Plan",          planLabel(profile?.plan)],
-          ["Analyses used", `${profile?.analyses_this_month||0} this month`],
-          ["Lifetime accesses", `${profile?.lifetime_accesses_remaining??0} remaining`],
+          ["Plan",              planLabel(profile?.plan)],
+          ["Analyses used",    `${profile?.analyses_this_month||0} this month`],
+          ["Lifetime accesses",`${profile?.lifetime_accesses_remaining??0} remaining`],
           profile?.plan_expires_at && !["founding_user","early_adopter"].includes(profile.plan)
             ? ["Plan expires", new Date(profile.plan_expires_at).toLocaleDateString("en-IN",
                 { day:"numeric", month:"long", year:"numeric" })]
@@ -681,8 +640,6 @@ function AccountTab({ user, profile, onSignOut, onUpgrade, onInvite }) {
           </div>
         ))}
       </div>
-
-      {/* Actions */}
       {!isPro && (
         <button onClick={onUpgrade}
           style={{ padding:"14px 20px", borderRadius:10, background:C.sage,
@@ -693,7 +650,6 @@ function AccountTab({ user, profile, onSignOut, onUpgrade, onInvite }) {
           <span style={{ opacity:.8 }}>₹49/month →</span>
         </button>
       )}
-
       <button onClick={onInvite}
         style={{ padding:"14px 20px", borderRadius:10, background:C.blueBg,
           color:C.blue, fontSize:14, fontWeight:600, cursor:"pointer",
@@ -701,7 +657,6 @@ function AccountTab({ user, profile, onSignOut, onUpgrade, onInvite }) {
           minHeight:52, display:"flex", alignItems:"center", gap:10 }}>
         🎟️ Redeem invite code
       </button>
-
       <button onClick={onSignOut}
         style={{ padding:"14px 20px", borderRadius:10, background:C.redBg,
           color:C.red, fontSize:14, fontWeight:600, cursor:"pointer",
@@ -709,7 +664,6 @@ function AccountTab({ user, profile, onSignOut, onUpgrade, onInvite }) {
           minHeight:52, display:"flex", alignItems:"center", gap:10 }}>
         Sign out
       </button>
-
       <p style={{ fontSize:12.5, color:C.ink3, lineHeight:1.7 }}>
         For billing issues or account deletion, email{" "}
         <a href="mailto:hellokrackhire@gmail.com" style={{ color:C.blue }}>
@@ -722,62 +676,54 @@ function AccountTab({ user, profile, onSignOut, onUpgrade, onInvite }) {
 
 /* ═══════════════════════════════════════════════════════════
    MAIN EXPORT
+   NOW ACCEPTS: sb prop (the authenticated Supabase client from App.jsx)
+   In App.jsx, pass it like: <UserDashboard sb={sb} user={user} ... />
 ═══════════════════════════════════════════════════════════ */
 const TABS = [
-  { id:"overview",  label:"Overview",  icon:"🏠" },
-  { id:"analyses",  label:"Analyses",  icon:"🔍" },
-  { id:"tracker",   label:"Job Tracker",icon:"📋" },
-  { id:"account",   label:"Account",   icon:"👤" },
+  { id:"overview",   label:"Overview",    icon:"🏠" },
+  { id:"analyses",   label:"Analyses",    icon:"🔍" },
+  { id:"tracker",    label:"Job Tracker", icon:"📋" },
+  { id:"account",    label:"Account",     icon:"👤" },
 ];
 
 export default function UserDashboard({
+  sb: sbProp,                     // ← authenticated client from App.jsx
   user, profile, onBack, onSignOut, onUpgrade, onInvite, toast
 }) {
-  const [activeTab,  setActiveTab]  = useState("overview");
-  const [analyses,   setAnalyses]   = useState([]);
-  const [jobs,       setJobs]       = useState([]);
-  const [loadingA,   setLoadingA]   = useState(true);
-  const [loadingJ,   setLoadingJ]   = useState(true);
+  // Use the passed-in client if available, otherwise create one as fallback
+  const sb = useMemo(() => {
+    if (sbProp) return sbProp;
+    if (!SUPA_URL || !SUPA_ANON) return null;
+    return createClient(SUPA_URL, SUPA_ANON);
+  }, [sbProp]);
+
+  const [activeTab, setActiveTab] = useState("overview");
+  const [analyses,  setAnalyses]  = useState([]);
+  const [jobs,      setJobs]      = useState([]);
+  const [loadingA,  setLoadingA]  = useState(true);
+  const [loadingJ,  setLoadingJ]  = useState(true);
 
   const loadAnalyses = useCallback(async () => {
-    if (!user?.id) {
-      console.warn('[Dashboard] No user ID available for fetchAnalyses');
-      return;
-    }
+    if (!user?.id) return;
     setLoadingA(true);
-    try {
-      const data = await fetchAnalyses(user.id);
-      setAnalyses(data);
-    } catch(e) {
-      console.error('[Dashboard] Failed to load analyses:', e);
-      setAnalyses([]);
-    }
+    const data = await fetchAnalyses(sb, user.id);
+    setAnalyses(data);
     setLoadingA(false);
-  }, [user?.id]);
+  }, [sb, user?.id]);
 
   const loadJobs = useCallback(async () => {
-    if (!user?.id) {
-      console.warn('[Dashboard] No user ID available for fetchJobs');
-      return;
-    }
+    if (!user?.id) return;
     setLoadingJ(true);
-    try {
-      const data = await fetchJobs(user.id);
-      setJobs(data);
-    } catch(e) {
-      console.error('[Dashboard] Failed to load jobs:', e);
-      setJobs([]);
-    }
+    const data = await fetchJobs(sb, user.id);
+    setJobs(data);
     setLoadingJ(false);
-  }, [user?.id]);
+  }, [sb, user?.id]);
 
-  useEffect(() => { 
-    console.log('[Dashboard] Component mounted', { userId: user?.id, email: user?.email });
-    loadAnalyses(); 
-    loadJobs(); 
+  useEffect(() => {
+    loadAnalyses();
+    loadJobs();
   }, [loadAnalyses, loadJobs]);
 
-  // Scroll to top on mount
   useEffect(() => { window.scrollTo({ top:0, behavior:"instant" }); }, []);
 
   return (
@@ -789,14 +735,12 @@ export default function UserDashboard({
         @media(max-width:768px){.tracker-input-grid{grid-template-columns:1fr!important}}
       `}</style>
 
-      {/* Header */}
       <header style={{ position:"sticky", top:0, zIndex:100, height:54,
         display:"flex", alignItems:"center", justifyContent:"space-between",
         padding:"0 clamp(14px,4vw,32px)",
         background:"rgba(249,248,246,.97)", backdropFilter:"blur(14px)",
         borderBottom:`1px solid ${C.border}` }}>
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          {/* Logo */}
           <div style={{ display:"flex", alignItems:"center", gap:8, fontWeight:700,
             fontSize:15, color:C.ink, letterSpacing:"-.3px" }}>
             <svg width="26" height="26" viewBox="0 0 40 40" fill="none">
@@ -819,8 +763,6 @@ export default function UserDashboard({
       </header>
 
       <div style={{ maxWidth:780, margin:"0 auto", padding:"24px clamp(14px,4vw,24px) 80px" }}>
-
-        {/* Tab bar */}
         <div style={{ display:"flex", gap:2, borderBottom:`1px solid ${C.border}`,
           marginBottom:24, overflowX:"auto" }}>
           {TABS.map(t => (
@@ -845,23 +787,11 @@ export default function UserDashboard({
           ))}
         </div>
 
-        {/* Content */}
         <div style={{ animation:"kh-slideUp .25s ease" }}>
-          {activeTab === "overview" && (
-            <OverviewTab user={user} profile={profile}
-              analyses={analyses} jobs={jobs}
-              onNavigate={setActiveTab} onUpgrade={onUpgrade}/>
-          )}
-          {activeTab === "analyses" && (
-            <AnalysesTab analyses={analyses} loading={loadingA} onRefresh={loadAnalyses}/>
-          )}
-          {activeTab === "tracker" && (
-            <TrackerTab jobs={jobs} setJobs={setJobs} user={user} toast={toast}/>
-          )}
-          {activeTab === "account" && (
-            <AccountTab user={user} profile={profile}
-              onSignOut={onSignOut} onUpgrade={onUpgrade} onInvite={onInvite}/>
-          )}
+          {activeTab === "overview"  && <OverviewTab user={user} profile={profile} analyses={analyses} jobs={jobs} onNavigate={setActiveTab} onUpgrade={onUpgrade}/>}
+          {activeTab === "analyses"  && <AnalysesTab analyses={analyses} loading={loadingA} onRefresh={loadAnalyses}/>}
+          {activeTab === "tracker"   && <TrackerTab sb={sb} jobs={jobs} setJobs={setJobs} user={user} toast={toast}/>}
+          {activeTab === "account"   && <AccountTab user={user} profile={profile} onSignOut={onSignOut} onUpgrade={onUpgrade} onInvite={onInvite}/>}
         </div>
       </div>
     </div>
