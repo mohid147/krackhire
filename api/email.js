@@ -14,19 +14,67 @@ const BREVO_KEY = process.env.BREVO_API_KEY || ''
 const FROM      = { name: 'KrackHire', email: 'hellokrackhire@gmail.com' }
 const SITE      = process.env.VITE_SITE_URL || 'https://www.krackhire.in'
 
-// ── Send via Brevo ────────────────────────────────────────────
+// ── RETRY CONFIG (exponential backoff) ──────────────────────
+const RETRY_CONFIG = {
+  maxAttempts: 3,
+  initialDelayMs: 500,
+  backoffMultiplier: 2,
+}
+
+// ── Send via Brevo with Retry Logic ─────────────────────────
+async function sendWithRetry({ to, subject, html }) {
+  let lastError = null
+  
+  for (let attempt = 1; attempt <= RETRY_CONFIG.maxAttempts; attempt++) {
+    try {
+      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method:  'POST',
+        headers: { 'api-key': BREVO_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sender: FROM, to: [{ email: to }], subject, htmlContent: html }),
+      })
+      
+      const data = await res.json()
+      
+      if (res.ok) {
+        console.log(`[email] Sent successfully to ${to} on attempt ${attempt}`)
+        return { ok: true, id: data.messageId }
+      }
+      
+      // Temporary errors get retried, permanent errors fail immediately
+      if (attempt < RETRY_CONFIG.maxAttempts && (res.status === 429 || res.status >= 500)) {
+        lastError = data
+        const delayMs = RETRY_CONFIG.initialDelayMs * Math.pow(RETRY_CONFIG.backoffMultiplier, attempt - 1)
+        console.warn(`[email] Retry ${attempt}/${RETRY_CONFIG.maxAttempts} in ${delayMs}ms due to status ${res.status}`)
+        await new Promise(r => setTimeout(r, delayMs))
+        continue
+      }
+      
+      // Permanent error - don't retry
+      console.error(`[email] Brevo error (attempt ${attempt}):`, data)
+      lastError = data
+      break
+    } catch (e) {
+      lastError = e
+      
+      if (attempt < RETRY_CONFIG.maxAttempts) {
+        const delayMs = RETRY_CONFIG.initialDelayMs * Math.pow(RETRY_CONFIG.backoffMultiplier, attempt - 1)
+        console.warn(`[email] Retry ${attempt}/${RETRY_CONFIG.maxAttempts} in ${delayMs}ms due to:`, e.message)
+        await new Promise(r => setTimeout(r, delayMs))
+        continue
+      }
+      
+      console.error(`[email] Failed after ${RETRY_CONFIG.maxAttempts} attempts:`, e.message)
+      break
+    }
+  }
+  
+  return { ok: false, error: lastError?.message || lastError?.toString() }
+}
+
+// ── Legacy send function (used for backward compatibility) ────
 async function send({ to, subject, html }) {
   if (!BREVO_KEY) { console.warn('[email] BREVO_API_KEY missing'); return { ok:false } }
-  try {
-    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method:  'POST',
-      headers: { 'api-key': BREVO_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sender: FROM, to: [{ email: to }], subject, htmlContent: html }),
-    })
-    const data = await res.json()
-    if (!res.ok) { console.error('[email] Brevo error:', data); return { ok:false, data } }
-    return { ok:true, id: data.messageId }
-  } catch(e) { console.error('[email] Send error:', e.message); return { ok:false } }
+  return sendWithRetry({ to, subject, html })
 }
 
 // ── Log to DB (fully silent — never crashes main flow) ──────────

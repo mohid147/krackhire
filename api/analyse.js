@@ -10,14 +10,45 @@ function getSB() {
   return createClient(url, key, { auth: { autoRefreshToken:false, persistSession:false } })
 }
 
-// ── IP RATE LIMITER (anon users) ──────────────────────────────
+// ── IP RATE LIMITER (anon users) with automatic cleanup ──────
 const rlMap = new Map()
+let lastCleanup = Date.now()
+
 function checkRL(ip) {
-  const now=Date.now(), W=60*60*1000, MAX=5
-  const e=rlMap.get(ip)||{count:0,start:now}
-  if (now-e.start>W){rlMap.set(ip,{count:1,start:now});return true}
-  if (e.count>=MAX) return false
-  e.count++; rlMap.set(ip,e); return true
+  const now = Date.now()
+  const W = 60 * 60 * 1000  // 1 hour window
+  const MAX = 5             // Max 5 reqs per hour
+  
+  // Periodic cleanup: every 1000 requests, remove expired entries
+  // Prevents memory leak from Map growing unbounded
+  if (now - lastCleanup > 10 * 60 * 1000) {  // Every 10 minutes
+    const threshold = now - W
+    let removed = 0
+    for (const [key, val] of rlMap) {
+      if (val.start < threshold) {
+        rlMap.delete(key)
+        removed++
+      }
+    }
+    if (removed > 0) console.log(`[RL] Cleaned ${removed} expired entries, Map size: ${rlMap.size}`)
+    lastCleanup = now
+  }
+  
+  const e = rlMap.get(ip) || { count: 0, start: now }
+  
+  // Reset window if expired
+  if (now - e.start > W) {
+    rlMap.set(ip, { count: 1, start: now })
+    return true
+  }
+  
+  // Check limit
+  if (e.count >= MAX) return false
+  
+  // Increment and return
+  e.count++
+  rlMap.set(ip, e)
+  return true
 }
 
 // ── SANITIZE INPUT ────────────────────────────────────────────

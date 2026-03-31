@@ -4,21 +4,12 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { useState } from "react";
+import { C } from "../lib/design.js";
 
 /* ── Supabase client (re-uses env vars already in your app) ── */
 const SUPA_URL  = import.meta.env.VITE_SUPABASE_URL  || "";
 const SUPA_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 const sb = SUPA_URL && SUPA_ANON ? createClient(SUPA_URL, SUPA_ANON) : null;
-
-/* ── Design tokens — mirrors your existing C object ── */
-const C = {
-  bg:"#F9F8F6", surface:"#FFFFFF", ink:"#1C1917",
-  ink2:"#57534E", ink3:"#A8A29E", ink4:"#E7E5E4", border:"#E7E5E4",
-  sage:"#3D6B4F", sageBg:"#F0F5F2",
-  red:"#C0392B", redBg:"#FDF2F2",
-  blue:"#1D4ED8", blueBg:"#EFF6FF",
-  amber:"#B45309", amberBg:"#FFFBEB",
-};
 
 /* ── Tiny primitives (self-contained so this file is portable) ── */
 const Spin = ({ s = 16, c = C.sage }) => (

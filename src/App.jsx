@@ -8,6 +8,7 @@ import PDFReportModal from './components/PDFReportModal.jsx';
 import { HomePageSEO } from './components/SEO';
 import { ProductSchema } from './components/StructuredData';
 import UserDashboard from './components/UserDashboard.jsx';
+import { C } from './lib/design.js';
 
 /* ─── SUPABASE ───────────────────────────────────────────── */
 const SUPA_URL  = import.meta.env.VITE_SUPABASE_URL  || "";
@@ -127,17 +128,8 @@ function planDisplayLabel(plan) {
   return m[plan] || (plan ? plan.charAt(0).toUpperCase()+plan.slice(1) : "Free");
 }
 
-/* ─── DESIGN TOKENS ──────────────────────────────────────── */
-const C = {
-  bg:"#F9F8F6", surface:"#FFFFFF", ink:"#1C1917",
-  ink2:"#57534E", ink3:"#A8A29E", ink4:"#E7E5E4", border:"#E7E5E4",
-  sage:"#3D6B4F", sageBg:"#F0F5F2", sageMid:"#D4E6DA",
-  red:"#C0392B",   redBg:"#FDF2F2",
-  amber:"#B45309", amberBg:"#FFFBEB",
-  blue:"#1D4ED8",  blueBg:"#EFF6FF",
-  purple:"#5B21B6",purpleBg:"#F5F3FF",
-  stone:"#78716C",
-};
+/* ─── DESIGN TOKENS (shared across all components) ──────── */
+// Imported from: src/lib/design.js
 
 /* ─── TOAST ──────────────────────────────────────────────── */
 function ToastItem({ id, msg, type, onClose }) {
