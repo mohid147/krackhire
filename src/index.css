@@ -165,184 +165,143 @@ button:hover {
   }
 }
 
-/* =========================================================
-   MOBILE RESPONSIVENESS (≤ 480px)
-========================================================= */
-
-/* =========================================
-   CLEAN MOBILE (≤ 480px)
-========================================= */
+/* ═══════════════════════════════════════════════
+   🔥 PREMIUM MOBILE EXPERIENCE (≤ 480px)
+   This adds luxury feel — spacing, depth, motion
+═══════════════════════════════════════════════ */
 @media (max-width: 480px) {
 
-  /* Page spacing */
-  body {
-    padding: 0;
-  }
-
+  /* ----------------------------------
+     1. GLOBAL SPACING (BREATHING SPACE)
+  ---------------------------------- */
   section {
-    padding: 32px 16px;
+    padding: 48px 20px !important;
   }
 
-  /* NAVBAR */
-  nav {
-    height: 56px;
-    padding: 0 16px;
-  }
-
-  /* HERO */
+  /* ----------------------------------
+     2. HERO — PREMIUM LOOK
+  ---------------------------------- */
   .hero-section {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    padding: 32px 16px 40px;
+    padding: 48px 20px 56px !important;
+    gap: 24px !important;
   }
 
   .hero-title {
-    font-size: 26px;
-    line-height: 1.2;
+    font-size: 28px;
+    line-height: 1.25;
+    letter-spacing: -0.3px;
   }
 
   .hero-sub {
-    font-size: 14px;
-    line-height: 1.6;
+    font-size: 15px;
+    opacity: 0.85;
   }
 
-  /* BUTTONS */
-  .hero-btns {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
+  /* CTA BUTTON (Luxury feel) */
   .hero-btns button {
-    width: 100%;
-    height: 44px;
-    font-size: 14px;
+    border-radius: 14px;
+    font-weight: 500;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+    transition: all 0.25s ease;
   }
 
-  /* TRUST BADGES */
-  .hero-trust {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    font-size: 12px;
+  .hero-btns button:active {
+    transform: scale(0.97);
+    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
   }
 
-  /* GRID FIX */
-  .two-col-grid,
-  .three-col-grid {
-    grid-template-columns: 1fr !important;
-  }
-
-  /* CARDS */
+  /* ----------------------------------
+     3. CARDS — GLASS / PREMIUM FEEL
+  ---------------------------------- */
   .pricing-card,
   .feature-card,
   .review-card {
-    padding: 16px;
-    border-radius: 12px;
+    padding: 18px !important;
+    border-radius: 16px !important;
+    background: rgba(255,255,255,0.7);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
   }
 
-  /* SECTION TITLES */
+  .pricing-card:active,
+  .feature-card:active,
+  .review-card:active {
+    transform: scale(0.98);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+  }
+
+  /* ----------------------------------
+     4. SECTION TITLES — CLEAN PREMIUM
+  ---------------------------------- */
   .section-title {
-    font-size: 22px;
-    line-height: 1.3;
+    font-size: 24px;
+    margin-bottom: 10px;
   }
 
   .section-sub {
     font-size: 14px;
+    opacity: 0.75;
   }
 
-  /* FOOTER */
-  .footer-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-  }
-}
-/* =========================================================
-   TOUCH OPTIMIZATION
-========================================================= */
-
-@media (max-width: 480px) {
-  button, a {
-    min-height: 44px;
+  /* ----------------------------------
+     5. NAVBAR — MODERN COMPACT
+  ---------------------------------- */
+  nav {
+    backdrop-filter: blur(10px);
+    background: rgba(255,255,255,0.7);
+    border-bottom: 1px solid rgba(0,0,0,0.05);
   }
 
-  input, textarea {
-    font-size: 16px;
-  }
-}
-/* ─────────────────────────────────────────────────────────────
-   5. LANDING PAGE — MOBILE STICKY CTA
-   The .mobile-cta is display:none by default (your existing rule).
-   Your existing CSS already handles display:flex on mobile.
-   Just ensure bottom padding so content doesn't hide behind it.
-   ───────────────────────────────────────────────────────────── */
-@media (max-width: 768px) {
-  /* Add padding so last section content isn't hidden by sticky CTA */
-  footer { padding-bottom: 80px !important; }
-}
-
-/* ─────────────────────────────────────────────────────────────
-   6. TOOL PAGE — ensure analyze button doesn't get clipped
-   ───────────────────────────────────────────────────────────── */
-@media (max-width: 480px) {
-  /* Analyse button row: stack vertically */
-  .kh-analyse-row {
-    flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 10px !important;
-  }
-  .kh-analyse-row > div { text-align: center !important; }
-  .kh-analyse-row button { width: 100% !important; }
-
-  /* Ensure the "Analyse my resume →" button is always accessible */
-  [style*="minWidth:200"] {
-    min-width: unset !important;
-    width: 100% !important;
-  }
-}
-
-/* ─────────────────────────────────────────────────────────────
-   7. GAP ANALYSIS RESULTS — stack on mobile
-   ───────────────────────────────────────────────────────────── */
-@media (max-width: 480px) {
-  /* Interview round tabs: horizontal scroll */
-  [style*="display:\"flex\""][style*="gap:6"] {
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-    flex-wrap: nowrap !important;
-    scrollbar-width: none !important;
+  /* ----------------------------------
+     6. SMOOTH ENTRY ANIMATIONS
+  ---------------------------------- */
+  .hero-section,
+  section,
+  .pricing-card,
+  .feature-card,
+  .review-card {
+    animation: fadeUp 0.6s ease both;
   }
 
-  /* Round content grid: stack */
-  [style*="gridTemplateColumns:\"1fr 1fr\""] {
-    grid-template-columns: 1fr !important;
+  @keyframes fadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
+
+  /* ----------------------------------
+     7. SCROLL SMOOTHNESS
+  ---------------------------------- */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* ----------------------------------
+     8. MICRO INTERACTIONS (IMPORTANT)
+  ---------------------------------- */
+  button {
+    transition: all 0.2s ease;
+  }
+
+  button:active {
+    transform: scale(0.96);
+  }
+
+  /* ----------------------------------
+     9. REMOVE “CLUTTER FEEL”
+  ---------------------------------- */
+  .hero-trust {
+    opacity: 0.8;
+  }
+
 }
 
-/* ─────────────────────────────────────────────────────────────
-   8. WELCOME POPUP — keep inside viewport on mobile
-   ───────────────────────────────────────────────────────────── */
-@media (max-width: 480px) {
-  /* WelcomePopup: full-width, anchored bottom */
-  [style*="position:\"fixed\""][style*="bottom:24"][style*="right:24"] {
-    right: 12px !important;
-    bottom: 72px !important; /* Above mobile sticky CTA */
-    left: 12px !important;
-    max-width: calc(100vw - 24px) !important;
-  }
-}
-
-/* ─────────────────────────────────────────────────────────────
-   9. SCORE SHARE CARD — full-width on mobile
-   ───────────────────────────────────────────────────────────── */
-@media (max-width: 480px) {
-  /* ShareScoreCard modal inner */
-  [style*="maxWidth:380"] {
-    max-width: calc(100vw - 28px) !important;
-  }
-}
 
 /* ─────────────────────────────────────────────────────────────
    10. ANNOUNCEMENT BANNER (AnnouncementBanner component)
