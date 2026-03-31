@@ -1,193 +1,143 @@
-/* ═══════════════════════════════════════════════════════════════
-   KRACKHIRE — MOBILE RESPONSIVENESS ADDITIONS
-   Append these rules to the END of src/index.css
-   ⚠️ These are ADDITIONS only — zero desktop styles touched.
-═══════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════
+   KRACKHIRE — FINAL MOBILE + PREMIUM EXPERIENCE
+   Paste at END of index.css
+═══════════════════════════════════════════════════════ */
 
-/* ─────────────────────────────────────────────────────────────
-   1. PREVENT HORIZONTAL OVERFLOW GLOBALLY
-   ───────────────────────────────────────────────────────────── */
-html, body {
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* ─────────────────────────────────────────────────────────────
-   2. TABLET (481px – 900px) — fills the gap your CSS misses
-   ───────────────────────────────────────────────────────────── */
-@media (max-width: 900px) and (min-width: 481px) {
-
-  /* Hero: 2-col → 1-col on tablet */
-  .hero-section {
-    grid-template-columns: 1fr !important;
-    padding: 48px 24px 56px !important;
-    gap: 32px !important;
-  }
-
-  /* Show hero visual on tablet (hide only on mobile) */
-  .hero-visual { display: block !important; }
-
-  /* How-it-works: 4-col → 2-col */
-  .how-grid {
-    grid-template-columns: 1fr 1fr !important;
-  }
-  .how-grid > div:nth-child(odd)  { border-right: 1px solid #E7E5E4 !important; }
-  .how-grid > div:nth-child(even) { border-right: none !important; }
-  .how-grid > div:nth-child(3),
-  .how-grid > div:nth-child(4)    { border-bottom: none !important; }
-
-  /* Reviews: 3-col → 2-col */
-  .reviews-grid { grid-template-columns: 1fr 1fr !important; }
-
-  /* FAQ: side-by-side → stacked */
-  .faq-grid { grid-template-columns: 1fr !important; gap: 28px !important; }
-
-  /* Tool input grid */
-  .input-grid { grid-template-columns: 1fr !important; }
-}
-
-/* =========================================================
-   GLOBAL RESET + FIXES
-========================================================= */
+/* GLOBAL RESET */
 * {
   box-sizing: border-box;
 }
 
 html, body {
-  overflow-x: hidden;
   margin: 0;
   padding: 0;
-  font-family: 'Inter', system-ui, sans-serif;
+  overflow-x: hidden;
+  font-family: system-ui, -apple-system, sans-serif;
+  scroll-behavior: smooth;
 }
 
-/* Prevent media breaking layout */
+/* MEDIA SAFETY */
 img, video {
   max-width: 100%;
   height: auto;
   display: block;
 }
 
-/* =========================================================
-   PREMIUM TYPOGRAPHY
-========================================================= */
-
-/* Headings → premium serif */
-.hero-title,
-.section-title {
-  font-family: 'Playfair Display', serif;
-  font-weight: 600;
-  letter-spacing: -0.5px;
-  line-height: 1.1;
+/* =========================================
+   PREMIUM LOADER (replace cheap spinner)
+========================================= */
+.loader {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: conic-gradient(#2f5d50 12%, transparent 12%);
+  animation: spin 0.9s linear infinite;
+  margin: 20px auto;
 }
 
-/* Sub text */
-.hero-sub {
-  line-height: 1.6;
-  max-width: 100%;
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
-/* Prevent text overflow */
-.hero-title,
-.hero-sub {
-  overflow-wrap: break-word;
+/* =========================================
+   IMAGE SKELETON (PERFORMANCE UX)
+========================================= */
+.img-skeleton {
+  width: 100%;
+  height: 180px;
+  border-radius: 16px;
+  background: linear-gradient(
+    90deg,
+    #f2f2f2 25%,
+    #e6e6e6 37%,
+    #f2f2f2 63%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.2s infinite;
 }
 
-/* =========================================================
-   LAYOUT FIX (CRITICAL)
-========================================================= */
+@keyframes shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
 
-section,
-.hero-section {
+/* =========================================
+   BASE LAYOUT SAFETY
+========================================= */
+section, .hero-section {
   width: 100%;
   position: relative;
   overflow: hidden;
 }
 
-/* =========================================================
-   HERO SECTION (CLEAN + STABLE)
-========================================================= */
-
-.hero-section {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  align-items: center;
-  gap: 40px;
-  padding: 80px 40px;
-}
-
-/* =========================================================
-   GENERIC GRID FIX (REPLACES BAD STYLE SELECTORS)
-========================================================= */
-
-.two-col-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
-
-.three-col-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-}
-
-/* =========================================================
-   BUTTON POLISH (PREMIUM FEEL)
-========================================================= */
-
+/* =========================================
+   PREMIUM BUTTONS
+========================================= */
 button {
-  border-radius: 10px;
+  border-radius: 12px;
   transition: all 0.2s ease;
 }
 
-button:hover {
-  transform: translateY(-1px);
+button:active {
+  transform: scale(0.96);
 }
 
-/* =========================================================
-   TABLET RESPONSIVENESS (≤ 900px)
-========================================================= */
-
+/* =========================================
+   TABLET (≤ 900px)
+========================================= */
 @media (max-width: 900px) {
 
   .hero-section {
-    grid-template-columns: 1fr;
-    padding: 60px 30px;
-    gap: 30px;
+    grid-template-columns: 1fr !important;
+    padding: 60px 28px !important;
+    gap: 32px !important;
   }
 
   .two-col-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
   }
 
   .three-col-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr !important;
   }
 }
 
-/* ═══════════════════════════════════════════════
-   🔥 PREMIUM MOBILE EXPERIENCE (≤ 480px)
-   This adds luxury feel — spacing, depth, motion
-═══════════════════════════════════════════════ */
+/* =========================================
+   🚀 MOBILE PREMIUM (≤ 480px)
+========================================= */
 @media (max-width: 480px) {
 
-  /* ----------------------------------
-     1. GLOBAL SPACING (BREATHING SPACE)
-  ---------------------------------- */
+  /* GLOBAL SPACING */
   section {
     padding: 48px 20px !important;
   }
 
-  /* ----------------------------------
-     2. HERO — PREMIUM LOOK
-  ---------------------------------- */
+  /* NAVBAR CLEAN */
+  nav {
+    height: 56px;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    backdrop-filter: blur(10px);
+    background: rgba(255,255,255,0.75);
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+  }
+
+  .nav-links {
+    display: none !important;
+  }
+
+  /* HERO */
   .hero-section {
-    padding: 48px 20px 56px !important;
+    display: flex !important;
+    flex-direction: column !important;
     gap: 24px !important;
+    padding: 40px 20px 50px !important;
   }
 
   .hero-title {
-    font-size: 28px;
+    font-size: 26px !important;
     line-height: 1.25;
     letter-spacing: -0.3px;
   }
@@ -195,47 +145,67 @@ button:hover {
   .hero-sub {
     font-size: 15px;
     opacity: 0.85;
+    line-height: 1.6;
   }
 
-  /* CTA BUTTON (Luxury feel) */
+  /* HERO IMAGE FIX */
+  .hero-visual img {
+    border-radius: 16px;
+    max-height: 260px;
+    object-fit: cover;
+  }
+
+  /* BUTTONS */
+  .hero-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
   .hero-btns button {
+    width: 100%;
+    height: 46px;
+    font-size: 14px;
     border-radius: 14px;
-    font-weight: 500;
     box-shadow: 0 6px 20px rgba(0,0,0,0.08);
-    transition: all 0.25s ease;
   }
 
-  .hero-btns button:active {
-    transform: scale(0.97);
-    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+  /* TRUST */
+  .hero-trust {
+    font-size: 12px;
+    opacity: 0.8;
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
-  /* ----------------------------------
-     3. CARDS — GLASS / PREMIUM FEEL
-  ---------------------------------- */
+  /* CARDS (PREMIUM) */
   .pricing-card,
   .feature-card,
   .review-card {
     padding: 18px !important;
     border-radius: 16px !important;
-    background: rgba(255,255,255,0.7);
+    background: rgba(255,255,255,0.75);
     backdrop-filter: blur(10px);
     box-shadow: 0 10px 30px rgba(0,0,0,0.06);
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    transition: all 0.25s ease;
   }
 
   .pricing-card:active,
   .feature-card:active,
   .review-card:active {
     transform: scale(0.98);
-    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
   }
 
-  /* ----------------------------------
-     4. SECTION TITLES — CLEAN PREMIUM
-  ---------------------------------- */
+  /* GRID FIX */
+  .two-col-grid,
+  .three-col-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* SECTION TITLES */
   .section-title {
     font-size: 24px;
+    line-height: 1.3;
     margin-bottom: 10px;
   }
 
@@ -244,30 +214,52 @@ button:hover {
     opacity: 0.75;
   }
 
-  /* ----------------------------------
-     5. NAVBAR — MODERN COMPACT
-  ---------------------------------- */
-  nav {
-    backdrop-filter: blur(10px);
-    background: rgba(255,255,255,0.7);
-    border-bottom: 1px solid rgba(0,0,0,0.05);
+  /* POPUP (BOTTOM SHEET STYLE) */
+  .welcome-popup {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    border-radius: 20px 20px 0 0 !important;
+    padding: 16px;
   }
 
-  /* ----------------------------------
-     6. SMOOTH ENTRY ANIMATIONS
-  ---------------------------------- */
-  .hero-section,
+  /* BANNER FIX */
+  .announcement-banner {
+    font-size: 12px;
+    padding: 8px;
+    text-align: center;
+  }
+
+  /* ANALYSE BUTTON FIX */
+  .kh-analyse-row {
+    flex-direction: column !important;
+    gap: 10px;
+  }
+
+  .kh-analyse-row button {
+    width: 100% !important;
+  }
+
+  /* PREVENT OVERFLOW BUGS */
+  div {
+    max-width: 100%;
+  }
+
+  /* SMOOTH ENTRY ANIMATION */
   section,
+  .hero-section,
   .pricing-card,
   .feature-card,
   .review-card {
-    animation: fadeUp 0.6s ease both;
+    animation: fadeUp 0.5s ease both;
   }
 
   @keyframes fadeUp {
     from {
       opacity: 0;
-      transform: translateY(16px);
+      transform: translateY(18px);
     }
     to {
       opacity: 1;
@@ -275,88 +267,25 @@ button:hover {
     }
   }
 
-  /* ----------------------------------
-     7. SCROLL SMOOTHNESS
-  ---------------------------------- */
-  html {
-    scroll-behavior: smooth;
-  }
-
-  /* ----------------------------------
-     8. MICRO INTERACTIONS (IMPORTANT)
-  ---------------------------------- */
-  button {
-    transition: all 0.2s ease;
-  }
-
-  button:active {
-    transform: scale(0.96);
-  }
-
-  /* ----------------------------------
-     9. REMOVE “CLUTTER FEEL”
-  ---------------------------------- */
-  .hero-trust {
-    opacity: 0.8;
-  }
-
 }
 
-
-/* ─────────────────────────────────────────────────────────────
-   10. ANNOUNCEMENT BANNER (AnnouncementBanner component)
-   ───────────────────────────────────────────────────────────── */
+/* =========================================
+   TOUCH OPTIMIZATION
+========================================= */
 @media (max-width: 480px) {
-  /* Collapse CTA button to its own row */
-  [style*="background:bgClr"] {
-    flex-direction: column !important;
-    gap: 8px !important;
+  button, a {
+    min-height: 44px;
+  }
+
+  input, textarea {
+    font-size: 16px;
   }
 }
 
-/* ─────────────────────────────────────────────────────────────
-   11. PDF REPORT MODAL — plan toggle full width
-   ───────────────────────────────────────────────────────────── */
-@media (max-width: 480px) {
-  .report-modal-inner [style*="display:\"flex\""][style*="gap:10"] {
-    flex-direction: row !important; /* Keep plan toggle side by side */
-  }
-}
-
-/* ─────────────────────────────────────────────────────────────
-   12. USER DASHBOARD — overview stat grid on very small screens
-   ───────────────────────────────────────────────────────────── */
-@media (max-width: 360px) {
-  /* Stat cards: single column on tiny screens */
-  [style*="minmax(140px,1fr)"] {
-    grid-template-columns: 1fr 1fr !important;
-  }
-}
-
-/* ─────────────────────────────────────────────────────────────
-   13. ADMIN DASHBOARD — user table on mobile
-   ───────────────────────────────────────────────────────────── */
-@media (max-width: 768px) {
-  /* Admin user table header: hide on mobile */
-  [style*="gridTemplateColumns:\"1fr 1fr 140px 120px 80px\""] {
-    display: none !important;
-  }
-  /* Admin user rows: stack */
-  [style*="gridTemplateColumns:\"1fr 1fr 140px 120px 80px\""]:not(:first-child) {
-    grid-template-columns: 1fr !important;
-    gap: 10px !important;
-  }
-}
-
-/* ─────────────────────────────────────────────────────────────
-   14. SMOOTH SCROLL RESTORATION on mobile
-   ───────────────────────────────────────────────────────────── */
-@media (max-width: 768px) {
-  /* Better scroll inertia for modal inner content */
-  .chat-messages,
-  .dashboard-inner,
-  [style*="overflowY:\"auto\""],
-  [style*="WebkitOverflowScrolling:\"touch\""] {
-    -webkit-overflow-scrolling: touch !important;
-  }
+/* =========================================
+   SCROLL SMOOTHNESS
+========================================= */
+.chat-messages,
+.dashboard-inner {
+  -webkit-overflow-scrolling: touch;
 }
