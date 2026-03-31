@@ -3164,6 +3164,7 @@ export default function KrackHire() {
          view==="refund"    ? <RefundPage   onBack={()=>navigate("landing")}/> :
          view==="dashboard" ? (
            <UserDashboard
+             sb={sb}
              user={user}
              profile={profile}
              onBack={()=>navigate("tool")}
