@@ -7,7 +7,7 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  -webkit-tap-highlight-color: transparent; /* Removes gray flash on mobile tap */
+  -webkit-tap-highlight-color: transparent;
 }
 
 html {
@@ -25,7 +25,6 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Custom Scrollbar for Desktop */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: #F9F8F6; }
 ::-webkit-scrollbar-thumb { background: #D6D3D1; border-radius: 4px; }
@@ -40,7 +39,7 @@ body {
   justify-content: center;
 }
 
-/* Mobile vs Desktop Toggles */
+/* CRITICAL: Display toggles for the Header Fix */
 .mobile-only { display: none !important; }
 .desktop-only { display: flex !important; }
 
@@ -50,7 +49,7 @@ body {
 }
 
 /* ════════════════════════════════════════════════════════
-   3. ANIMATIONS (LIVING UI)
+   3. ANIMATIONS
 ════════════════════════════════════════════════════════ */
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(16px); }
@@ -91,25 +90,21 @@ body {
 /* ════════════════════════════════════════════════════════
    4. CORE COMPONENTS
 ════════════════════════════════════════════════════════ */
-
-/* Buttons */
 .kh-btn, .kh-out {
   user-select: none;
   position: relative;
   overflow: hidden;
+  transition: all 0.2s ease;
 }
 
 .kh-btn:active, .kh-out:active {
-  transform: scale(0.97) !important;
-  transition: transform 0.1s ease !important;
+  transform: scale(0.96) !important;
 }
 
-/* Make primary buttons pulse softly to draw attention */
 .hero-btns .kh-btn:first-child {
   animation: softPulse 3s infinite;
 }
 
-/* Cards */
 .kh-card {
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
 }
@@ -126,7 +121,6 @@ body {
   background: #FAFAFA !important;
 }
 
-/* Input Grids */
 .input-grid {
   display: grid;
   gap: 16px;
@@ -136,8 +130,6 @@ body {
    5. MOBILE OPTIMIZATION (≤ 768px)
 ════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
-  
-  /* Layout Adjustments */
   .section-pad {
     padding: 60px 20px !important;
   }
@@ -149,7 +141,6 @@ body {
     gap: 40px !important;
   }
 
-  /* Typography Scaling */
   .hero-title {
     font-size: 34px !important;
     background: linear-gradient(135deg, #1C1917 0%, #44403C 100%);
@@ -167,7 +158,6 @@ body {
     font-size: 28px !important;
   }
 
-  /* Buttons & Touch Targets */
   .hero-btns {
     justify-content: center;
     flex-direction: column;
@@ -176,10 +166,9 @@ body {
 
   .hero-btns button {
     width: 100%;
-    height: 52px !important; /* Ergonomic touch target */
+    height: 52px !important;
   }
 
-  /* Grid Flattening */
   .features-grid,
   .pricing-grid,
   .how-grid,
@@ -189,7 +178,6 @@ body {
     grid-template-columns: 1fr !important;
   }
 
-  /* Specific Component Fixes for Mobile */
   .how-grid > div {
     border-right: none !important;
     border-bottom: 1px solid #E7E5E4;
@@ -202,21 +190,19 @@ body {
     padding: 32px 20px !important;
   }
 
-  /* Horizontal Scroll Rows (Mobile swipeable areas) */
   .tabs-bar,
   .progress-steps {
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
-    scrollbar-width: none; /* Hide in Firefox */
+    scrollbar-width: none;
   }
   
   .tabs-bar::-webkit-scrollbar,
   .progress-steps::-webkit-scrollbar {
-    display: none; /* Hide in Chrome/Safari */
+    display: none;
   }
 
-  /* Fix Chat UI on mobile */
   .chat-input-row {
     flex-direction: column;
   }
@@ -226,18 +212,7 @@ body {
   }
 }
 
-/* ════════════════════════════════════════════════════════
-   6. SMALL MOBILE DEVICES (≤ 380px)
-════════════════════════════════════════════════════════ */
 @media (max-width: 380px) {
-  .hero-title {
-    font-size: 28px !important;
-  }
-  .section-pad {
-    padding: 48px 16px !important;
-  }
-  .score-card-inner > div:first-child {
-    justify-content: center;
-    width: 100%;
-  }
+  .hero-title { font-size: 28px !important; }
+  .section-pad { padding: 48px 16px !important; }
 }
