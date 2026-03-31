@@ -130,42 +130,143 @@ body {
    5. MOBILE OPTIMIZATION (≤ 768px)
 ════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
-  /* 1. Reduce the gap between navbar items */
-  /* (Replace .navbar with your actual header container class) */
-  .navbar {
-    gap: 8px !important;
-    padding: 10px 12px !important;
+  .section-pad {
+    padding: 48px 16px !important;
   }
 
-  /* 2. Shrink the 'Open tool' button */
-  /* (Replace .navbar-open-tool with the actual button class) */
-  .navbar-open-tool {
-    padding: 6px 12px !important;
-    font-size: 13px !important;
-    white-space: nowrap !important;
+  /* Compact announcement bar */
+  .ann-bar {
+    font-size: 12.5px !important;
+    padding: 7px 12px !important;
+    line-height: 1.45 !important;
   }
 
-  /* 3. Hide 'Founding Member' text, keep the 'M' avatar */
-  /* (Replace .profile-text with the class that wraps the text) */
-  .profile-text {
+  .hero-section {
+    grid-template-columns: 1fr !important;
+    text-align: center;
+    padding-top: 32px !important;
+    gap: 32px !important;
+  }
+
+  /* Hide the example score card on mobile — saves ~250px of vertical scroll */
+  .hero-visual {
     display: none !important;
   }
 
-  /* 4. Shrink the profile container to fit just the avatar */
-  /* (Replace .profile-pill with your actual pill class) */
-  .profile-pill {
-    padding: 4px !important;
-    min-width: auto !important;
+  .hero-title {
+    font-size: 34px !important;
+    background: linear-gradient(135deg, #1C1917 0%, #44403C 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .hero-sub {
+    font-size: 16px !important;
+    margin: 14px auto !important;
+    padding: 0 8px;
+  }
+
+  .section-title {
+    font-size: 26px !important;
+  }
+
+  .hero-btns {
+    justify-content: center;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .hero-btns button {
+    width: 100%;
+    height: 52px !important;
+  }
+
+  /* Features use 2 columns on mobile to halve vertical scroll length */
+  .features-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .pricing-grid,
+  .how-grid,
+  .reviews-grid,
+  .input-grid,
+  .contact-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .how-grid > div {
+    border-right: none !important;
+    border-bottom: 1px solid #E7E5E4;
+  }
+  .how-grid > div:last-child {
+    border-bottom: none !important;
+  }
+
+  .pricing-card {
+    padding: 28px 18px !important;
+  }
+
+  /* Reviews header stacks the title and CTA button vertically */
+  .reviews-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+  }
+
+  /* Score card inner: stack rings + summary + actions vertically */
+  .score-card-inner {
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+  }
+
+  /* Tool header action buttons scroll horizontally */
+  .tool-header-actions {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tool-header-actions::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Footer bottom bar: stack copyright and links */
+  .footer-bottom {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
+  }
+
+  .tabs-bar,
+  .progress-steps {
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  
+  .tabs-bar::-webkit-scrollbar,
+  .progress-steps::-webkit-scrollbar {
+    display: none;
+  }
+
+  .chat-input-row {
+    flex-direction: column;
+  }
+  .chat-input-row button {
+    width: 100%;
+    height: 48px;
   }
 }
-  
-  /* Hides the redundant button in the nav header */
-  .navbar-open-tool {
-    display: none !important; 
+
+@media (max-width: 359px) {
+  /* On very small phones (< 360px), revert features back to 1-column for readability */
+  .features-grid {
+    grid-template-columns: 1fr !important;
   }
-} /* <--- Syntax Error Fixed: Removed the extra '}' here */
+}
 
 @media (max-width: 380px) {
   .hero-title { font-size: 28px !important; }
-  .section-pad { padding: 48px 16px !important; }
+  .section-pad { padding: 40px 14px !important; }
+  .section-title { font-size: 24px !important; }
 }
