@@ -1,6 +1,7 @@
 // api/analyse.js — KrackHire v8
 // Fixed: pro_monthly in PREMIUM_PLANS, profile_optimize gated,
 //        userId verified via Supabase auth, CORS locked to origin
+//        BUGFIX: syntax error on CORS origin line (missing fallback value)
 
 import { createClient } from '@supabase/supabase-js'
 
@@ -19,9 +20,8 @@ function checkRL(ip) {
   const W = 60 * 60 * 1000  // 1 hour window
   const MAX = 5             // Max 5 reqs per hour
   
-  // Periodic cleanup: every 1000 requests, remove expired entries
-  // Prevents memory leak from Map growing unbounded
-  if (now - lastCleanup > 10 * 60 * 1000) {  // Every 10 minutes
+  // Periodic cleanup every 10 minutes
+  if (now - lastCleanup > 10 * 60 * 1000) {
     const threshold = now - W
     let removed = 0
     for (const [key, val] of rlMap) {
@@ -36,16 +36,13 @@ function checkRL(ip) {
   
   const e = rlMap.get(ip) || { count: 0, start: now }
   
-  // Reset window if expired
   if (now - e.start > W) {
     rlMap.set(ip, { count: 1, start: now })
     return true
   }
   
-  // Check limit
   if (e.count >= MAX) return false
   
-  // Increment and return
   e.count++
   rlMap.set(ip, e)
   return true
@@ -133,19 +130,16 @@ const MAX_TOK = { gap:1100, resume:1400, cover:650, email:380, interview:550, pr
 
 // ── PLAN CONFIG ───────────────────────────────────────────────
 const FREE_LIMIT    = 3
-// FIX: Added pro_monthly (was missing — caused pro_monthly users to be blocked)
 const PREMIUM_PLANS = [
   'starter','early_adopter',
-  'pro','pro_monthly','pro_yearly',   // ← pro_monthly was missing in v6
+  'pro','pro_monthly','pro_yearly',
   'college_basic','college_pro',
   'premium','founding_user','beta_friend'
 ]
-// Types that require premium access (not just gap)
 const GATED_TYPES = ['gap', 'profile_optimize']
 
-// ── VERIFY USER FROM JWT (security fix) ──────────────────────
+// ── VERIFY USER FROM JWT ──────────────────────────────────────
 async function verifyUser(req, sb) {
-  // Extract bearer token from Authorization header if present
   const authHeader = req.headers['authorization']||''
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null
   if (!token || !sb) return null
@@ -158,9 +152,9 @@ async function verifyUser(req, sb) {
 
 // ── MAIN HANDLER ──────────────────────────────────────────────
 export default async function handler(req, res) {
-  // CORS — locked to allowed origin, never wildcard
-  const origin = req.headers['origin']||
-  const allowed = process.env.ALLOWED_ORIGIN||'https://www.krackhire.in'
+  // CORS — FIXED: was `const origin = req.headers['origin']||` (missing fallback → syntax error)
+  const origin = req.headers['origin'] || '' // FIXED: was `req.headers['origin']||` with nothing after ||
+  const allowed = process.env.ALLOWED_ORIGIN || 'https://www.krackhire.in'
   
   // CRITICAL SECURITY: Never allow wildcard CORS
   if (allowed === '*') {
@@ -192,12 +186,7 @@ export default async function handler(req, res) {
   const sb = getSB()
 
   // ── ENTITLEMENT CHECK ─────────────────────────────────────
-  // CRITICAL SECURITY: Verify user ID matches authenticated user
-  // This prevents ID spoofing attacks where users exhaust others' quotas
   if (GATED_TYPES.includes(type) && userId) {
-    // TODO: Extract from Authorization header JWT in production
-    // For now, accept userId from authenticated context only
-    // When client sends userId, server should verify it matches auth token
     if (userId && sb) {
       try {
         const { data: prof } = await sb.from('profiles')
@@ -205,8 +194,7 @@ export default async function handler(req, res) {
           .eq('id', userId).single()
 
         if (prof) {
-          // Admin + founder: unlimited
-          if (['admin','founder'].includes(prof.role)) { /* pass through */ }
+          if (['admin','founder'].includes(prof.role)) { /* unlimited */ }
           else {
             const planActive =
               PREMIUM_PLANS.includes(prof.plan) &&
@@ -216,7 +204,6 @@ export default async function handler(req, res) {
             const hasLifetimeAccess = (prof.lifetime_accesses_remaining||0) > 0
 
             if (!planActive && !hasLifetimeAccess) {
-              // Free user — check monthly limit
               const now        = new Date()
               const lastReset  = new Date(prof.month_reset||now)
               const isNewMonth = now.getMonth()!==lastReset.getMonth() ||
@@ -229,21 +216,18 @@ export default async function handler(req, res) {
                   code:'LIMIT_REACHED', plan:prof.plan, limit:FREE_LIMIT
                 })
 
-              // Increment usage
               await sb.from('profiles').update({
                 analyses_this_month: isNewMonth ? 1 : used+1,
                 month_reset: isNewMonth ? now.toISOString() : prof.month_reset,
               }).eq('id', userId).catch(e=>console.error('Usage update error:',e.message))
 
             } else if (hasLifetimeAccess && !planActive) {
-              // Consume one lifetime access
               await sb.from('profiles').update({
                 lifetime_accesses_remaining: Math.max(0,(prof.lifetime_accesses_remaining||0)-1),
                 lifetime_access_last_used: new Date().toISOString(),
               }).eq('id', userId).catch(e=>console.error('Lifetime update error:',e.message))
 
             } else if (planActive) {
-              // Premium user — track for analytics only, never block
               const now        = new Date()
               const lastReset  = new Date(prof.month_reset||now)
               const isNewMonth = now.getMonth()!==lastReset.getMonth() ||
@@ -258,7 +242,6 @@ export default async function handler(req, res) {
       } catch(e) { console.error('Entitlement check error:', e.message) }
 
     } else if (!userId) {
-      // Anonymous user — IP rate limit
       const ip = (req.headers['x-forwarded-for']||'').split(',')[0].trim()||'unknown'
       if (!checkRL(ip))
         return res.status(429).json({
@@ -286,7 +269,6 @@ export default async function handler(req, res) {
     `Role: ${sRole||'Not specified'}`
   ].join('\n')
 
-  // Build messages array
   let chatMsgs
   if (type==='interview' && Array.isArray(messages) && messages.length>0) {
     chatMsgs = messages
