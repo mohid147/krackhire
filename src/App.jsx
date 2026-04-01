@@ -1464,11 +1464,7 @@ function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onP
         <div className="mobile-only" style={{ gap: 12, alignItems: "center" }}>
           {user ? (
             <button onClick={onDashboard} style={{ width: 34, height: 34, borderRadius: "50%", border: `2px solid ${C.sage}40`, background: C.sageBg, display: "flex", alignItems: "center", justifyContent: "center", color: C.sage, fontWeight: 700, fontSize: 14, padding: 0, cursor: "pointer" }}>
-              {user.user_metadata?.avatar_url ? (
-                <img src={user.user_metadata.avatar_url} style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} alt="Profile" />
-              ) : (
-                (user.user_metadata?.name || user.email || "U")[0].toUpperCase()
-              )}
+              {(user.user_metadata?.name || user.email || "U")[0].toUpperCase()}
             </button>
           ) : (
             <button onClick={onShowAuth} style={{ fontSize: 13.5, fontWeight: 600, color: C.sage, background: "transparent", border: "none", padding: 0, cursor: "pointer" }}>
