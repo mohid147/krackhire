@@ -1440,61 +1440,52 @@ function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onP
         {/* Left: Logo */}
         <Logo size="sm" />
 
-        {/* 🔴 NEW: REACT CONDITIONALLY RENDERS BASED ON SCREEN SIZE */}
-        {!isMobile ? (
-          /* 💻 DESKTOP VIEW */
-          <>
-            <div style={{ gap: 24, display: "flex", alignItems: "center" }}>
-              {navLinks.map(([h, l]) => (
-                <a key={l} href={h} style={{ fontSize: 13.5, fontWeight: 500, color: C.ink2, textDecoration: "none" }}>{l}</a>
-              ))}
-            </div>
-            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-              {user ? (
-                <>
-                  <Btn onClick={onEnter} size="sm" bg={C.sage}>Open tool</Btn>
-                  <UserMenu user={user} profile={profile} onSignOut={onSignOut} onUpgrade={onUpgrade} onInvite={() => setShowInvite(true)} onAdmin={onAdmin} onDashboard={onDashboard} />
-                </>
-              ) : (
-                <>
-                  <OutBtn onClick={onShowAuth} size="sm">Sign in</OutBtn>
-                  <Btn onClick={onEnter} size="sm" bg={C.sage}>Try free</Btn>
-                </>
-              )}
-            </div>
-          </>
-        ) : (
-          /* 📱 MOBILE VIEW (Guaranteed not to show desktop buttons) */
-          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            {user ? (
-              <button onClick={onDashboard} style={{ width: 34, height: 34, borderRadius: "50%", border: `2px solid ${C.sage}40`, background: C.sageBg, display: "flex", alignItems: "center", justifyContent: "center", color: C.sage, fontWeight: 700, fontSize: 14, padding: 0, cursor: "pointer" }}>
-                {user.user_metadata?.avatar_url ? (
-                  <img src={user.user_metadata.avatar_url} style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} alt="Profile" />
-                ) : (
-                  (user.user_metadata?.name || user.email || "U")[0].toUpperCase()
-                )}
-              </button>
-            ) : (
-              <button onClick={onShowAuth} style={{ fontSize: 13.5, fontWeight: 600, color: C.sage, background: "transparent", border: "none", padding: 0, cursor: "pointer" }}>
-                Sign In
-              </button>
-            )}
+        {/* Desktop nav — hidden on mobile via CSS (reliable at all times) */}
+        <div className="desktop-only" style={{ gap: 24, alignItems: "center" }}>
+          {navLinks.map(([h, l]) => (
+            <a key={l} href={h} style={{ fontSize: 13.5, fontWeight: 500, color: C.ink2, textDecoration: "none" }}>{l}</a>
+          ))}
+        </div>
+        <div className="desktop-only" style={{ gap: 12, alignItems: "center" }}>
+          {user ? (
+            <>
+              <Btn onClick={onEnter} size="sm" bg={C.sage}>Open tool</Btn>
+              <UserMenu user={user} profile={profile} onSignOut={onSignOut} onUpgrade={onUpgrade} onInvite={() => setShowInvite(true)} onAdmin={onAdmin} onDashboard={onDashboard} />
+            </>
+          ) : (
+            <>
+              <OutBtn onClick={onShowAuth} size="sm">Sign in</OutBtn>
+              <Btn onClick={onEnter} size="sm" bg={C.sage}>Try free</Btn>
+            </>
+          )}
+        </div>
 
-            <button onClick={() => setMenuOpen(!menuOpen)} style={{ padding: "6px", borderRadius: "8px", color: C.ink, background: C.surface, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", minWidth: 38, minHeight: 38, cursor: "pointer" }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                {menuOpen ? (
-                  <><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></>
-                ) : (
-                  <><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></>
-                )}
-              </svg>
+        {/* Mobile nav — hidden on desktop via CSS */}
+        <div className="mobile-only" style={{ gap: 12, alignItems: "center" }}>
+          {user ? (
+            <button onClick={onDashboard} style={{ width: 34, height: 34, borderRadius: "50%", border: `2px solid ${C.sage}40`, background: C.sageBg, display: "flex", alignItems: "center", justifyContent: "center", color: C.sage, fontWeight: 700, fontSize: 14, padding: 0, cursor: "pointer" }}>
+              {(user.user_metadata?.name || user.email || "U")[0].toUpperCase()}
             </button>
-          </div>
-        )}
+          ) : (
+            <button onClick={onShowAuth} style={{ fontSize: 13.5, fontWeight: 600, color: C.sage, background: "transparent", border: "none", padding: 0, cursor: "pointer" }}>
+              Sign In
+            </button>
+          )}
+
+          <button onClick={() => setMenuOpen(!menuOpen)} style={{ padding: "6px", borderRadius: "8px", color: C.ink, background: C.surface, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", minWidth: 38, minHeight: 38, cursor: "pointer" }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              {menuOpen ? (
+                <><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></>
+              ) : (
+                <><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></>
+              )}
+            </svg>
+          </button>
+        </div>
       </nav>
 
       {/* Mobile Dropdown Menu */}
-      {menuOpen && isMobile && (
+      {menuOpen && (
         <div style={{ position:"fixed", top:"calc(35px + 52px)", left:0, right:0, zIndex:199, background:C.surface, borderBottom:`1px solid ${C.border}`, padding:"10px 14px", display:"flex", flexDirection:"column", gap:2, animation:"slideUp .2s ease", boxShadow:"0 6px 20px rgba(0,0,0,.08)" }}>
           {navLinks.map(([h,l])=><a key={l} href={h} onClick={()=>setMenuOpen(false)} style={{ padding:"12px 14px", borderRadius:8, fontSize:15, fontWeight:500, color:C.ink2, minHeight:48, display:"flex", alignItems:"center", textDecoration: "none" }}>{l}</a>)}
           <div style={{ paddingTop:10, borderTop:`1px solid ${C.border}`, marginTop:6, display:"flex", flexDirection:"column", gap:8 }}>
@@ -1783,7 +1774,7 @@ function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onP
             </div>
           </div>
 
-          <div style={{ paddingTop:20, display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:10, fontSize:12, color:"#57534E" }}>
+          <div className="footer-bottom" style={{ paddingTop:20, display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:10, fontSize:12, color:"#57534E" }}>
             <span>© 2025 KrackHire. All rights reserved.</span>
             <div style={{ display:"flex", gap:16 }}>
               <button onClick={()=>navigate("privacy")} style={{ fontSize:12, color:"#57534E", cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", minHeight:"unset", minWidth:"unset" }}>Privacy</button>
@@ -1799,316 +1790,6 @@ function Landing({ onEnter, user, profile, onShowAuth, onSignOut, onUpgrade, onP
           )}
         </div>
       </footer>
-    </div>
-  );
-}
-
-
-      {/* HERO */}
-      <section className="hero-section section-pad" style={{ maxWidth:1060, margin:"0 auto", padding:"clamp(48px,9vw,100px) clamp(16px,5vw,52px) clamp(48px,7vw,88px)", display:"grid", gridTemplateColumns:"1fr 1fr", gap:"clamp(28px,6vw,72px)", alignItems:"center" }}>
-        <div>
-          <Tag color={C.sage} bg={C.sageBg} style={{ marginBottom:16, display:"inline-flex" }}>Early beta — free to use</Tag>
-          <h1 className="hero-title" style={{ fontFamily:"'Lora',Georgia,serif", fontSize:"clamp(28px,4vw,50px)", lineHeight:1.12, letterSpacing:"-.3px", color:C.ink, marginBottom:18, marginTop:12 }}>
-            Understand why your resume gets rejected —<br/>
-            <em style={{ fontStyle:"italic", color:C.sage }}>before you apply.</em>
-          </h1>
-          <p className="hero-sub" style={{ fontSize:"clamp(15px,1.7vw,17px)", color:C.ink2, lineHeight:1.85, marginBottom:28, maxWidth:500 }}>
-            Paste your resume and job description. Get a clear score, gap analysis, ATS resume, cover letter, and interview preparation in 20 seconds.
-          </p>
-          <div className="hero-btns" style={{ display:"flex", gap:12, flexWrap:"wrap", marginBottom:24 }}>
-            <Btn onClick={onEnter} size="lg" bg={C.sage}>Open the tool — it's free</Btn>
-            {!user&&<OutBtn onClick={onShowAuth} size="lg">Sign in to save</OutBtn>}
-          </div>
-          <div className="hero-trust" style={{ display:"flex", flexWrap:"wrap", gap:16 }}>
-            {(user?["Results saved","No credit card","Data not stored","Built for India"]:["No account needed","No credit card","Data not stored","Built for India"]).map(t=>(
-              <span key={t} className="inline" style={{ fontSize:13, color:C.ink3, gap:5, minHeight:"unset", minWidth:"unset" }}>
-                <span style={{ color:C.sage }}>✓</span>{t}
-              </span>
-            ))}
-          </div>
-        </div>
-        <div className="hero-visual" style={{ position:"relative", animation:"fadeIn 1s ease" }}>
-          <Card flat style={{ overflow:"hidden", border:`1px solid ${C.border}` }}>
-            <div style={{ background:C.bg, borderBottom:`1px solid ${C.border}`, padding:"10px 14px", display:"flex", alignItems:"center", gap:8 }}>
-              <div style={{ display:"flex", gap:4 }}>{["#FF5F57","#FEBC2E","#28C840"].map(c=><div key={c} style={{ width:10, height:10, borderRadius:"50%", background:c }}/>)}</div>
-              <span className="inline" style={{ fontSize:12, fontWeight:500, color:C.ink3, minHeight:"unset", minWidth:"unset" }}>Example result — your results will differ</span>
-            </div>
-            <div style={{ padding:"18px 18px 14px" }}>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
-                <div style={{ display:"flex", gap:16 }}>
-                  <ScoreRing score={72} size={64} color={C.sage} label="Readiness"/>
-                  <ScoreRing score={68} size={64} color={C.amber} label="ATS"/>
-                  <ScoreRing score={74} size={64} color={C.blue} label="Skills"/>
-                </div>
-              </div>
-              {[{t:"red",i:"✗",title:"Missing: SQL basics",sub:"Found in 4/5 similar JDs."},{t:"amber",i:"△",title:"Weak: Project impact",sub:"Add numbers to your achievements."},{t:"green",i:"✓",title:"Strong: Ops experience",sub:"Relevant. Lead with this."}].map((g,i)=>{
-                const m={red:[C.red,C.redBg],amber:[C.amber,C.amberBg],green:[C.sage,C.sageBg]};
-                const[clr,bg]=m[g.t];
-                return <div key={i} style={{ display:"flex", gap:9, padding:"8px 11px", background:bg, borderRadius:7, borderLeft:`3px solid ${clr}`, marginBottom:7 }}>
-                  <span className="inline" style={{ color:clr, fontWeight:800, fontSize:12, minHeight:"unset", minWidth:"unset" }}>{g.i}</span>
-                  <div><div style={{ fontSize:12, fontWeight:700, color:clr }}>{g.title}</div><div style={{ fontSize:11.5, color:C.ink2, marginTop:1 }}>{g.sub}</div></div>
-                </div>;
-              })}
-            </div>
-          </Card>
-        </div>
-      </section>
-
-      {/* HOW IT WORKS */}
-      <section id="how" className="section-pad" style={{ background:C.surface, borderTop:`1px solid ${C.border}`, borderBottom:`1px solid ${C.border}`, padding:"64px clamp(16px,5vw,52px)" }}>
-        <div style={{ maxWidth:1060, margin:"0 auto" }}>
-          <Reveal>
-            <div style={{ textAlign:"center", marginBottom:40 }}>
-              <Tag color={C.blue} bg={C.blueBg}>How it works</Tag>
-              <h2 className="section-title" style={{ fontFamily:"'Lora',Georgia,serif", fontSize:"clamp(24px,3.5vw,36px)", lineHeight:1.2, margin:"12px 0 10px", color:C.ink }}>Simple. Honest. Practical.</h2>
-              <p className="section-sub" style={{ fontSize:15, color:C.ink2, maxWidth:380, margin:"0 auto", lineHeight:1.75 }}>No account required. Just paste and get clear feedback.</p>
-            </div>
-            <div className="how-grid" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", border:`1px solid ${C.border}`, borderRadius:12, overflow:"hidden" }}>
-              {[{n:"01",title:"Paste your resume",desc:"Any format. Copy the full text."},{n:"02",title:"Paste the job description",desc:"From Naukri, LinkedIn, anywhere."},{n:"03",title:"Get your score and gaps",desc:"Clear results in about 20 seconds."},{n:"04",title:"Improve and apply",desc:"Use feedback to strengthen applications."}].map((s,i)=>(
-                <div key={i} style={{ padding:"24px 18px", borderRight:i<3?`1px solid ${C.border}`:"none", background:C.surface, transition:"background .18s" }}
-                  onMouseEnter={e=>e.currentTarget.style.background=C.bg}
-                  onMouseLeave={e=>e.currentTarget.style.background=C.surface}>
-                  <div style={{ fontFamily:"'Lora',Georgia,serif", fontSize:32, color:C.ink4, lineHeight:1, marginBottom:10, fontWeight:700 }}>{s.n}</div>
-                  <div style={{ fontSize:14, fontWeight:700, marginBottom:5, color:C.ink }}>{s.title}</div>
-                  <div style={{ fontSize:13, color:C.ink2, lineHeight:1.65 }}>{s.desc}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{ textAlign:"center", marginTop:28 }}><Btn onClick={onEnter} size="lg" bg={C.sage}>Try it now — free</Btn></div>
-          </Reveal>
-        </div>
-      </section>
-
-      {/* FEATURES */}
-      <section id="features" className="section-pad" style={{ padding:"64px clamp(16px,5vw,52px)" }}>
-        <div style={{ maxWidth:1060, margin:"0 auto" }}>
-          <Reveal>
-            <div style={{ textAlign:"center", marginBottom:36 }}>
-              <Tag>What you get</Tag>
-              <h2 className="section-title" style={{ fontFamily:"'Lora',Georgia,serif", fontSize:"clamp(24px,3.5vw,36px)", lineHeight:1.2, margin:"12px 0 10px", color:C.ink }}>Eight tools in one analysis.</h2>
-              <p className="section-sub" style={{ fontSize:15, color:C.ink2, maxWidth:400, margin:"0 auto", lineHeight:1.75 }}>Everything you need from score to first job, in one place.</p>
-            </div>
-            <div className="features-grid" style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))", gap:10 }}>
-              {FEATURES.map((f,i)=>(
-                <Card key={i} style={{ padding:"20px 18px" }}>
-                  <div style={{ width:38, height:38, borderRadius:8, background:f.bg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:19, marginBottom:12 }}>{f.icon}</div>
-                  <div style={{ fontSize:14.5, fontWeight:700, marginBottom:5, color:C.ink }}>{f.title}</div>
-                  <div style={{ fontSize:13, color:C.ink2, lineHeight:1.75 }}>{f.desc}</div>
-                </Card>
-              ))}
-            </div>
-          </Reveal>
-        </div>
-      </section>
-
-      {/* PRICING */}
-      <section id="pricing" className="section-pad" style={{ background:C.surface, borderTop:`1px solid ${C.border}`, borderBottom:`1px solid ${C.border}`, padding:"64px clamp(16px,5vw,52px)" }}>
-        <div style={{ maxWidth:860, margin:"0 auto" }}>
-          <Reveal>
-            <div style={{ textAlign:"center", marginBottom:36 }}>
-              <Tag color={C.amber} bg={C.amberBg}>Pricing</Tag>
-              <h2 className="section-title" style={{ fontFamily:"'Lora',Georgia,serif", fontSize:"clamp(24px,3.5vw,36px)", lineHeight:1.2, margin:"12px 0 10px", color:C.ink }}>Simple, honest pricing.</h2>
-              <p className="section-sub" style={{ fontSize:15, color:C.ink2, maxWidth:380, margin:"0 auto", lineHeight:1.75 }}>Start free. Upgrade when you're ready.</p>
-            </div>
-            <div className="pricing-grid" style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:14 }}>
-              <Card flat className="pricing-card" style={{ padding:"24px 20px", border:`1px solid ${C.border}` }}>
-                <div style={{ fontSize:11, fontWeight:700, color:C.ink3, textTransform:"uppercase", letterSpacing:.8, marginBottom:14 }}>Free</div>
-                <div className="pricing-price" style={{ fontFamily:"'Lora',Georgia,serif", fontSize:40, lineHeight:1, color:C.ink, marginBottom:3 }}>₹0</div>
-                <div style={{ fontSize:13, color:C.ink3, marginBottom:20 }}>forever</div>
-                <Btn onClick={onEnter} full bg={C.ink} style={{ marginBottom:20, fontSize:14 }}>{user?"Open the tool →":"Start free →"}</Btn>
-                <div style={{ height:1, background:C.border, marginBottom:16 }}/>
-                {["3 analyses / month","Resume score","Gap analysis",{dim:"Cover letter"},{dim:"PDF report"},{dim:"Job tracker"}].map((f,i)=>{ const d=typeof f==="object"; return <div key={i} style={{ display:"flex", alignItems:"center", gap:9, fontSize:13.5, color:d?C.ink4:C.ink2, marginBottom:8 }}><span className="inline" style={{ color:d?C.ink4:C.sage, fontWeight:700, minHeight:"unset", minWidth:"unset" }}>{d?"—":"✓"}</span>{d?f.dim:f}</div>; })}
-              </Card>
-              <div style={{ position:"relative" }}>
-                <Card flat className="pricing-card" style={{ padding:"24px 20px", border:`2px solid ${C.sage}`, boxShadow:"0 4px 20px rgba(61,107,79,.12)" }}>
-                  <div style={{ fontSize:11, fontWeight:700, color:C.sage, textTransform:"uppercase", letterSpacing:.8, marginBottom:14 }}>Pro Monthly</div>
-                  <div className="pricing-price" style={{ fontFamily:"'Lora',Georgia,serif", fontSize:40, lineHeight:1, color:C.sage, marginBottom:3 }}>₹49</div>
-                  <div style={{ fontSize:13, color:C.ink3, marginBottom:20 }}>per month</div>
-                  <Btn onClick={()=>user?onUpgrade("pro_monthly"):onShowAuth()} full bg={C.sage} style={{ marginBottom:20, fontSize:14 }}>{user?"Get Pro →":"Sign in to upgrade →"}</Btn>
-                  <div style={{ height:1, background:C.border, marginBottom:16 }}/>
-                  {["Unlimited analyses","PDF career reports","Job application tracker","All AI outputs","Interview prep by round","Save all analyses"].map((f,i)=>(
-                    <div key={i} style={{ display:"flex", alignItems:"center", gap:9, fontSize:13.5, color:C.ink2, marginBottom:8 }}><span className="inline" style={{ color:C.sage, fontWeight:700, minHeight:"unset", minWidth:"unset" }}>✓</span>{f}</div>
-                  ))}
-                </Card>
-              </div>
-              <div style={{ position:"relative" }}>
-                <div style={{ position:"absolute", top:-13, left:"50%", transform:"translateX(-50%)", background:C.amber, color:"#fff", fontSize:11, fontWeight:700, padding:"4px 12px", borderRadius:99, whiteSpace:"nowrap", zIndex:1 }}>Best value for students</div>
-                <Card flat className="pricing-card" style={{ padding:"24px 20px", border:`2px solid ${C.amber}30` }}>
-                  <div style={{ fontSize:11, fontWeight:700, color:C.amber, textTransform:"uppercase", letterSpacing:.8, marginBottom:14 }}>Pro Yearly</div>
-                  <div className="pricing-price" style={{ fontFamily:"'Lora',Georgia,serif", fontSize:40, lineHeight:1, color:C.amber, marginBottom:3 }}>₹499</div>
-                  <div style={{ fontSize:13, color:C.ink3, marginBottom:4 }}>per year</div>
-                  <div style={{ fontSize:12.5, color:C.sage, fontWeight:600, marginBottom:16 }}>Save ₹89 vs monthly</div>
-                  <Btn onClick={()=>user?onUpgrade("pro_yearly"):onShowAuth()} full bg={C.amber} style={{ marginBottom:20, fontSize:14 }}>{user?"Get Yearly →":"Sign in to upgrade →"}</Btn>
-                  <div style={{ height:1, background:C.border, marginBottom:16 }}/>
-                  {["Everything in Pro Monthly","₹41.58/month effective","Perfect for placement season","Cancel anytime"].map((f,i)=>(
-                    <div key={i} style={{ display:"flex", alignItems:"center", gap:9, fontSize:13.5, color:C.ink2, marginBottom:8 }}><span className="inline" style={{ color:C.amber, fontWeight:700, minHeight:"unset", minWidth:"unset" }}>✓</span>{f}</div>
-                  ))}
-                </Card>
-              </div>
-            </div>
-            <p style={{ textAlign:"center", fontSize:13, color:C.ink3, marginTop:16 }}>Payments secured by PayU — UPI · Debit/Credit cards · Net Banking</p>
-          </Reveal>
-        </div>
-      </section>
-
-      {/* REVIEWS */}
-      <section id="reviews" className="section-pad" style={{ padding:"64px clamp(16px,5vw,52px)" }}>
-        <div style={{ maxWidth:1060, margin:"0 auto" }}>
-          <Reveal>
-            <div className="reviews-header" style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", flexWrap:"wrap", gap:14, marginBottom:32 }}>
-              <div>
-                <Tag color={C.amber} bg={C.amberBg}>User feedback</Tag>
-                <h2 className="section-title" style={{ fontFamily:"'Lora',Georgia,serif", fontSize:"clamp(24px,3.5vw,36px)", lineHeight:1.2, margin:"12px 0 6px", color:C.ink }}>What people are saying.</h2>
-                {avg&&reviews.length>0&&<div style={{ display:"flex", alignItems:"center", gap:8 }}><Stars rating={Math.round(parseFloat(avg))}/><span style={{ fontSize:14, fontWeight:700, color:C.ink }}>{avg}/5</span><span style={{ fontSize:13, color:C.ink3 }}>({reviews.length} verified {reviews.length===1?"review":"reviews"})</span></div>}
-              </div>
-              <Btn onClick={()=>{ if(!user){onShowAuth();return;} setShowForm(!showForm); }} bg={C.sage} size="sm">{showForm?"✕ Cancel":"Leave a review"}</Btn>
-            </div>
-            {showForm&&<Card flat style={{ marginBottom:24, border:`1px solid ${C.border}`, overflow:"hidden" }}><ReviewForm user={user} onDone={()=>setShowForm(false)}/></Card>}
-            {!reviewsDone?<div className="reviews-grid" style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:10 }}>{[1,2,3].map(i=><div key={i}><Skel h={130}/></div>)}</div>
-             :reviews.length===0?
-               <div style={{ padding:"40px 20px", textAlign:"center", background:C.bg, borderRadius:12, border:`1px solid ${C.border}` }}>
-                 <div style={{ fontSize:26, marginBottom:10 }}>💬</div>
-                 <div style={{ fontSize:15, fontWeight:600, color:C.ink, marginBottom:8 }}>Early beta — user reviews will appear here as people start using the product.</div>
-                 <div style={{ fontSize:13.5, color:C.ink2, lineHeight:1.7, maxWidth:400, margin:"0 auto 18px" }}>We don't display fake or unverified testimonials. Reviews appear only after manual approval.</div>
-                 <Btn onClick={()=>{ if(!user){onShowAuth();return;} setShowForm(true); }} bg={C.sage} size="sm">Be the first to review</Btn>
-               </div>
-             :<>
-               <div className="reviews-grid" style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:10, marginBottom:20 }}>
-                 {visible.map((r,i)=>(
-                   <Card key={i} style={{ padding:"18px 16px" }}>
-                     <Stars rating={r.rating}/>
-                     <p style={{ fontSize:13.5, color:C.ink2, lineHeight:1.75, margin:"10px 0 12px", fontStyle:"italic" }}>"{r.text}"</p>
-                     <div style={{ display:"flex", alignItems:"center", gap:8, borderTop:`1px solid ${C.border}`, paddingTop:11 }}>
-                       <div style={{ width:30, height:30, borderRadius:"50%", background:C.sageBg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:C.sage, flexShrink:0 }}>{r.name[0]}</div>
-                       <div><div style={{ fontSize:13, fontWeight:700, color:C.ink }}>{r.name}</div>{r.role&&<div style={{ fontSize:11.5, color:C.ink3 }}>{r.role}</div>}</div>
-                     </div>
-                   </Card>
-                 ))}
-               </div>
-               {totalPages>1&&<div style={{ display:"flex", justifyContent:"center", gap:7 }}>
-                 <OutBtn onClick={()=>setPage(p=>Math.max(0,p-1))} size="sm" style={{ opacity:page===0?.4:1 }}>← Prev</OutBtn>
-                 {Array.from({length:totalPages}).map((_,i)=><button key={i} onClick={()=>setPage(i)} style={{ width:36, height:36, borderRadius:7, border:`1.5px solid ${page===i?C.sage:C.border}`, background:page===i?C.sage:C.surface, color:page===i?"#fff":C.ink2, fontWeight:600, fontSize:13, cursor:"pointer", fontFamily:"inherit", transition:"all .15s" }}>{i+1}</button>)}
-                 <OutBtn onClick={()=>setPage(p=>Math.min(totalPages-1,p+1))} size="sm" style={{ opacity:page===totalPages-1?.4:1 }}>Next →</OutBtn>
-               </div>}
-             </>}
-          </Reveal>
-        </div>
-      </section>
-
-      {/* FAQ */}
-      <section id="faq" className="section-pad" style={{ background:C.surface, borderTop:`1px solid ${C.border}`, padding:"64px clamp(16px,5vw,52px)" }}>
-        <div style={{ maxWidth:1060, margin:"0 auto" }}>
-          <Reveal>
-            <div className="faq-grid" style={{ display:"grid", gridTemplateColumns:"1fr 1.8fr", gap:"clamp(24px,6vw,64px)" }}>
-              <div>
-                <Tag>FAQ</Tag>
-                <h2 className="section-title" style={{ fontFamily:"'Lora',Georgia,serif", fontSize:"clamp(22px,2.8vw,30px)", lineHeight:1.2, margin:"12px 0 10px", color:C.ink }}>Common questions.</h2>
-                <p style={{ fontSize:14, color:C.ink2, lineHeight:1.75, marginBottom:20 }}>Email us at hello@krackhire.in for anything else.</p>
-                <OutBtn onClick={onEnter}>Open the tool →</OutBtn>
-              </div>
-              <div>
-                {FAQS.map((f,i)=>(
-                  <div key={i} style={{ borderBottom:`1px solid ${C.border}` }}>
-                    <button onClick={()=>setFaqOpen(faqOpen===i?null:i)} style={{ width:"100%", display:"flex", justifyContent:"space-between", alignItems:"center", padding:"15px 0", background:"none", border:"none", cursor:"pointer", fontSize:14.5, fontWeight:600, color:C.ink, fontFamily:"inherit", textAlign:"left", gap:12, minHeight:52 }}>
-                      <span>{f.q}</span>
-                      <span className="inline" style={{ fontSize:20, color:C.ink3, transform:faqOpen===i?"rotate(45deg)":"none", transition:"transform .25s", flexShrink:0, minHeight:"unset", minWidth:"unset" }}>+</span>
-                    </button>
-                    <div style={{ overflow:"hidden", maxHeight:faqOpen===i?300:0, transition:"max-height .36s ease" }}>
-                      <p style={{ fontSize:14, color:C.ink2, lineHeight:1.8, paddingBottom:16 }}>{f.a}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </Reveal>
-        </div>
-      </section>
-
-
-      {/* CTA */}
-      <section className="section-pad" style={{ background:C.sageBg, borderTop:`1px solid ${C.sage}25`, padding:"72px clamp(16px,5vw,52px)", textAlign:"center" }}>
-        <Reveal>
-          <h2 className="section-title" style={{ fontFamily:"'Lora',Georgia,serif", fontSize:"clamp(24px,4vw,40px)", lineHeight:1.15, color:C.ink, marginBottom:12 }}>Start improving your applications today.</h2>
-          <p style={{ fontSize:16, color:C.ink2, marginBottom:28, lineHeight:1.75, maxWidth:420, margin:"0 auto 28px" }}>{user?"Your results are saved. Paste your resume and get honest feedback in seconds.":"No account. No credit card. Paste your resume and get honest feedback in seconds."}</p>
-          <Btn onClick={onEnter} size="lg" bg={C.sage}>Open KrackHire — free</Btn>
-          <div style={{ marginTop:18, display:"flex", justifyContent:"center", gap:18, flexWrap:"wrap", fontSize:13, color:C.ink3 }}>
-            {(user?["Results saved","No credit card","Data not stored","Made in Hyderabad 🇮🇳"]:["No account needed","No credit card","Data not stored","Made in Hyderabad 🇮🇳"]).map(t=>(
-              <span key={t} className="inline" style={{ gap:4, minHeight:"unset", minWidth:"unset" }}><span style={{ color:C.sage }}>✓</span>{t}</span>
-            ))}
-          </div>
-        </Reveal>
-      </section>
-
-      {/* FOOTER */}
-      <footer style={{ background:"#1C1917", color:"#fff", padding:"44px clamp(16px,5vw,52px) 28px" }}>
-        <div style={{ maxWidth:1060, margin:"0 auto" }}>
-          <div className="footer-grid" style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr", gap:"clamp(24px,4vw,48px)", paddingBottom:32, borderBottom:"1px solid #292524" }}>
-
-            {/* Brand */}
-            <div className="footer-brand">
-              <Logo dark/>
-              <p style={{ fontSize:13, color:"#78716C", lineHeight:1.8, marginTop:12, maxWidth:260 }}>
-                India's AI job readiness platform for freshers and early-career professionals. Honest feedback. No hype.
-              </p>
-              <p style={{ fontSize:12, color:"#57534E", marginTop:8 }}>Made with care in Hyderabad, India 🇮🇳</p>
-            </div>
-
-            {/* Product */}
-            <div>
-              <div style={{ fontSize:11, fontWeight:700, color:"#57534E", textTransform:"uppercase", letterSpacing:1, marginBottom:16 }}>Product</div>
-              <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-                {[["#features","Features"],["#how","How it works"],["#pricing","Pricing"],["#faq","FAQ"]].map(([href,label])=>(
-                  <a key={label} href={href} style={{ fontSize:13.5, color:"#78716C", lineHeight:1, display:"flex", alignItems:"center", minHeight:"unset", transition:"color .15s" }}
-                    onMouseEnter={e=>e.target.style.color="#fff"} onMouseLeave={e=>e.target.style.color="#78716C"}>
-                    {label}
-                  </a>
-                ))}
-              </div>
-            </div>
-
-            {/* Legal */}
-            <div>
-              <div style={{ fontSize:11, fontWeight:700, color:"#57534E", textTransform:"uppercase", letterSpacing:1, marginBottom:16 }}>Legal & Support</div>
-              <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-                {[
-                  {label:"Contact Us",     page:"contact"},
-                  {label:"Privacy Policy", page:"privacy"},
-                  {label:"Terms of Service",page:"terms"},
-                  {label:"Refund Policy",  page:"refund"},
-                ].map(({label,page})=>(
-                  <button key={page} onClick={()=>navigate(page)}
-                    style={{ fontSize:13.5, color:"#78716C", cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", textAlign:"left", padding:0, minHeight:"unset", minWidth:"unset", display:"flex", alignItems:"center", lineHeight:1, transition:"color .15s" }}
-                    onMouseEnter={e=>e.currentTarget.style.color="#fff"} onMouseLeave={e=>e.currentTarget.style.color="#78716C"}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom bar */}
-          <div style={{ paddingTop:20, display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:10, fontSize:12, color:"#57534E" }}>
-            <span>© 2025 KrackHire. All rights reserved.</span>
-            <div style={{ display:"flex", gap:16 }}>
-              <button onClick={()=>navigate("privacy")} style={{ fontSize:12, color:"#57534E", cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", minHeight:"unset", minWidth:"unset" }}>Privacy</button>
-              <button onClick={()=>navigate("terms")} style={{ fontSize:12, color:"#57534E", cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", minHeight:"unset", minWidth:"unset" }}>Terms</button>
-              <button onClick={()=>navigate("refund")} style={{ fontSize:12, color:"#57534E", cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", minHeight:"unset", minWidth:"unset" }}>Refund</button>
-              <button onClick={()=>navigate("contact")} style={{ fontSize:12, color:"#57534E", cursor:"pointer", background:"none", border:"none", fontFamily:"inherit", minHeight:"unset", minWidth:"unset" }}>Contact</button>
-            </div>
-          </div>
-          {["admin","founder"].includes(profile?.role)&&(
-            <div style={{paddingTop:10,textAlign:"center"}}>
-              <button onClick={onAdmin} style={{fontSize:11,color:"#57534E",cursor:"pointer",background:"none",border:"none",fontFamily:"inherit",opacity:.35,minHeight:"unset",minWidth:"unset"}}>⚙ Admin</button>
-            </div>
-          )}
-        </div>
-      </footer>
-
-
-      <div className="mobile-cta" style={{ display:"none", position:"fixed", bottom:0, left:0, right:0, zIndex:198, padding:"10px 16px", background:"rgba(249,248,246,.97)", backdropFilter:"blur(12px)", borderTop:`1px solid ${C.border}`, alignItems:"center", justifyContent:"space-between", gap:12 }}>
-        <div><div style={{ fontSize:13, fontWeight:700, color:C.ink }}>KrackHire</div><div style={{ fontSize:11.5, color:C.ink3 }}>Free resume analysis tool</div></div>
-        <Btn onClick={onEnter} size="sm" bg={C.sage}>{user?"Open tool":"Try free"}</Btn>
-      </div>
     </div>
   );
 }
